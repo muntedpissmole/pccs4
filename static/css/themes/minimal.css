@@ -1,0 +1,50 @@
+/*
+ * Minimal theme — OLED black with teal accents.
+ * Overrides semantic tokens only; everything else inherits from tokens.css.
+ */
+
+[data-theme="minimal"] {
+    --color-accent: #14f0d4;
+    --color-accent-hover: #0fd9c0;
+    --color-accent-glow: rgba(20, 240, 212, 0.45);
+    --color-accent-border: rgba(20, 240, 212, 0.3);
+
+    --color-bg: #000000;
+    --color-bg-elevated: rgba(8, 8, 12, 0.94);
+    --color-surface: rgba(14, 14, 20, 0.9);
+    --color-surface-active: rgba(22, 22, 30, 0.96);
+
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-highlight-subtle: rgba(255, 255, 255, 0.03);
+
+    --color-text: #f1f5f9;
+    --color-text-muted: #8b9cb3;
+    --color-text-label: #9aa8b8;
+
+    --tile-bg: rgba(14, 14, 20, 0.9);
+    --tile-bg-hover: rgba(20, 20, 28, 0.95);
+    --tile-border: rgba(255, 255, 255, 0.08);
+    --tile-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+    --tile-inner-border: rgba(255, 255, 255, 0.03);
+    --tile-shadow-inset-top: rgba(255, 255, 255, 0.06);
+    --tile-shadow-inset-bottom: rgba(0, 0, 0, 0.6);
+}
+
+html.light[data-theme="minimal"] {
+    --color-bg: #f8fafc;
+    --color-bg-elevated: rgba(255, 255, 255, 0.96);
+    --color-surface: rgba(248, 250, 252, 0.95);
+    --color-surface-active: rgba(255, 255, 255, 0.98);
+    --color-border: rgba(255, 255, 255, 0.7);
+
+    --color-text: #0f172a;
+    --color-text-muted: #64748b;
+    --color-text-label: #0ea5e9;
+
+    --tile-bg: rgba(255, 255, 255, 0.92);
+    --tile-bg-hover: rgba(255, 255, 255, 0.97);
+    --tile-border: rgba(226, 232, 240, 0.8);
+    --tile-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, transparent 50%);
+    --tile-shadow-inset-top: rgba(255, 255, 255, 0.7);
+    --tile-shadow-inset-bottom: rgba(0, 0, 0, 0.08);
+}

@@ -1,0 +1,360 @@
+/* Lighting tab — slider cards, toggles, and responsive grid */
+
+.lighting-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-tile-gap);
+    max-width: 100%;
+}
+
+@media (min-width: 40rem) {
+    .lighting-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 96rem) {
+    .lighting-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* ── Slider cards ── */
+
+.slider-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: var(--tile-padding);
+    background: var(--tile-bg);
+    border: 1px solid var(--tile-border);
+    border-radius: var(--tile-radius);
+    box-shadow:
+        var(--tile-shadow-drop),
+        inset 0 1px 0 var(--tile-shadow-inset-top),
+        inset 0 -2px 0 var(--tile-shadow-inset-bottom);
+    backdrop-filter: var(--blur-tile);
+    -webkit-backdrop-filter: var(--blur-tile);
+    overflow: visible;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    transition:
+        transform var(--duration-fast) ease,
+        background var(--duration-fast) ease,
+        box-shadow var(--duration-fast) ease;
+}
+
+.slider-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--tile-shine);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.slider-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid var(--tile-inner-border);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.slider-card:hover {
+    background: var(--tile-bg-hover);
+    transform: translateY(var(--tile-hover-lift));
+}
+
+.slider-card-header,
+.slider-wrapper,
+.paired-relay-inner {
+    position: relative;
+    z-index: 3;
+}
+
+.slider-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.slider-card-left {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.slider-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.slider-card-title i {
+    font-size: var(--font-size-tile-icon);
+    color: var(--color-accent);
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 10px var(--color-accent-glow));
+}
+
+.slider-label {
+    font-size: var(--font-size-tile-value);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.slider-card-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.value-display {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+    min-width: 3.625rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Brightness slider ── */
+
+.slider-wrapper {
+    position: relative;
+    width: 100%;
+    height: 4.875rem;
+    margin: 0 auto;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+}
+
+.slider-wrapper.dragging {
+    cursor: grabbing;
+}
+
+.slider-inner {
+    position: absolute;
+    left: 2rem;
+    right: 2rem;
+    top: 50%;
+    height: 1.375rem;
+    transform: translateY(-50%);
+}
+
+.slider-track {
+    position: absolute;
+    inset: 0;
+    background: var(--color-slider-bg);
+    border-radius: var(--radius-pill);
+    box-shadow:
+        inset 6px 6px 12px var(--shadow-dark),
+        inset -6px -6px 12px var(--shadow-light);
+}
+
+.slider-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-hover));
+    border-radius: var(--radius-pill);
+    box-shadow: 0 0 28px var(--color-accent-glow-strong);
+    transition: width 0.25s ease;
+}
+
+.slider-fill.bug-mode {
+    background: linear-gradient(
+        90deg,
+        var(--color-bug),
+        var(--color-bug-gradient-start),
+        var(--color-bug-gradient-end)
+    );
+    box-shadow: 0 0 30px var(--color-bug-glow);
+}
+
+.slider-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 4rem;
+    height: 4rem;
+    background: var(--color-toggle-handle);
+    border: 2px solid var(--color-accent);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow:
+        4px 4px 8px var(--shadow-dark),
+        -4px -4px 8px var(--shadow-light),
+        inset 3px 3px 8px var(--color-slider-thumb-inner-light),
+        inset -3px -3px 8px var(--color-slider-thumb-inner-dark);
+    transition: left 0.25s ease;
+    will-change: left;
+    pointer-events: auto;
+    touch-action: none;
+}
+
+.slider-thumb.bug-mode {
+    border-color: var(--color-bug);
+    box-shadow:
+        4px 4px 8px var(--shadow-dark),
+        -4px -4px 8px var(--shadow-light),
+        inset 3px 3px 8px var(--color-slider-thumb-inner-light),
+        inset -3px -3px 8px var(--color-slider-thumb-inner-dark),
+        0 0 0 4px var(--color-bug-mode-glow);
+}
+
+.slider-card.bug-mode .slider-card-title i {
+    color: var(--color-bug);
+    filter: drop-shadow(0 0 6px var(--color-bug-glow));
+}
+
+/* ── Toggle pills & relay switches ── */
+
+.toggle-pill,
+.relay-toggle {
+    position: relative;
+    width: 5.5rem;
+    height: 3rem;
+    background: var(--color-slider-bg);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    border: 1px solid var(--color-border);
+    backdrop-filter: var(--blur-surface);
+    box-shadow:
+        inset 6px 6px 12px var(--shadow-dark),
+        inset -6px -6px 12px var(--shadow-light);
+    transition: background 0.4s ease;
+}
+
+.toggle-pill.on,
+.relay-toggle.on {
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-hover));
+    box-shadow: 0 0 28px var(--color-accent-glow-strong);
+}
+
+.toggle-pill.bug-mode.on,
+.relay-toggle.bug-mode.on {
+    background: linear-gradient(
+        90deg,
+        var(--color-bug),
+        var(--color-bug-gradient-start),
+        var(--color-bug-gradient-end)
+    );
+    box-shadow: 0 0 28px var(--color-bug-glow);
+}
+
+.toggle-pill .toggle-knob,
+.relay-toggle .relay-knob {
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    width: 2.375rem;
+    height: 2.375rem;
+    background: var(--color-toggle-handle);
+    border-radius: var(--radius-pill);
+    transform: translateY(-50%);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid var(--color-accent);
+    box-shadow:
+        inset 2px 2px 6px var(--color-slider-thumb-inner-light),
+        inset -2px -2px 6px var(--color-slider-thumb-inner-dark);
+}
+
+.toggle-pill.bug-mode .toggle-knob,
+.relay-toggle.bug-mode .relay-knob {
+    border-color: var(--color-bug);
+}
+
+.toggle-pill.on .toggle-knob,
+.relay-toggle.on .relay-knob {
+    transform: translate(2.4375rem, -50%);
+    background: #ffffff;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 2px solid var(--color-accent);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.55),
+        0 2px 6px rgba(0, 0, 0, 0.35),
+        0 0 16px var(--color-accent-glow-strong),
+        inset 2px 2px 6px var(--color-slider-thumb-inner-light),
+        inset -2px -2px 6px var(--color-slider-thumb-inner-dark);
+}
+
+.toggle-pill.bug-mode.on .toggle-knob,
+.relay-toggle.bug-mode.on .relay-knob {
+    border-color: var(--color-bug);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.55),
+        0 2px 6px rgba(0, 0, 0, 0.35),
+        0 0 16px var(--color-bug-glow),
+        inset 2px 2px 6px var(--color-slider-thumb-inner-light),
+        inset -2px -2px 6px var(--color-slider-thumb-inner-dark);
+}
+
+/* ── Paired relay cards ── */
+
+.paired-relay-card {
+    height: 100%;
+    padding-bottom: 1.5rem;
+}
+
+.paired-relay-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.paired-relay-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    min-height: 3rem;
+}
+
+.paired-relay-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 0.5rem 0;
+}
+
+/* ── Disabled states ── */
+
+.slider-card.rooftop-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.slider-card.rooftop-disabled .slider-wrapper,
+.slider-card.rooftop-disabled .slider-inner,
+.slider-card.rooftop-disabled .slider-track,
+.slider-card.rooftop-disabled .slider-fill,
+.slider-card.rooftop-disabled .slider-thumb,
+.slider-card.rooftop-disabled .toggle-pill,
+.slider-card.rooftop-disabled .relay-toggle {
+    pointer-events: none;
+}
+
+.lighting-connecting {
+    margin: 0;
+    padding: var(--space-lg, 1.5rem);
+    text-align: center;
+    opacity: 0.7;
+}

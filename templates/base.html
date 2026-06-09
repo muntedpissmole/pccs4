@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="neuglass">
+<head>
+    <style id="pccs4-boot-hide">html:not(.theme-ready){visibility:hidden}</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>The Pissmole Camper Control System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/neuglass.css') }}" data-theme-link="true">
+    <script>
+        (function () {
+            var html = document.documentElement;
+            var themeBase = {{ url_for('static', filename='css/themes/') | tojson }};
+            try {
+                var mode = localStorage.getItem('pccs4-color-mode');
+                html.classList.add(mode === 'light' ? 'light' : 'dark');
+
+                var theme = localStorage.getItem('pccs4-theme') || 'neuglass';
+                html.setAttribute('data-theme', theme);
+                if (theme !== 'neuglass') {
+                    document.querySelector('link[data-theme-link]')?.remove();
+                    var link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = themeBase + theme + '.css';
+                    link.setAttribute('data-theme-link', 'true');
+                    document.head.appendChild(link);
+                }
+            } catch (e) { /* ignore private browsing */ }
+        })();
+    </script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='favicon/site.webmanifest') }}">
+
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div id="offline-overlay"
+         class="offline-overlay is-hidden"
+         hidden
+         role="alertdialog"
+         aria-modal="true"
+         aria-labelledby="offline-title"
+         aria-describedby="offline-detail"
+         aria-hidden="true">
+        <div class="offline-overlay__banner" id="offline-banner">
+            <i class="fa-solid fa-circle-exclamation offline-overlay__icon" aria-hidden="true"></i>
+            <div class="offline-overlay__text">
+                <p class="offline-overlay__title" id="offline-title">System Offline</p>
+                <p class="offline-overlay__detail" id="offline-detail">Waiting to reconnect…</p>
+            </div>
+            <div class="offline-overlay__spinner" aria-hidden="true"></div>
+        </div>
+    </div>
+
+    <header class="site-header">
+        <div class="site-header__inner">
+            <div class="site-title-track">
+                <p class="site-title">The Pissmole Camper Control System</p>
+            </div>
+            <nav class="nav-pill" role="tablist" aria-label="Main navigation">
+                <span class="nav-pill__indicator" aria-hidden="true"></span>
+                {% for item in nav_items %}
+                <button type="button"
+                        id="nav-{{ item.id }}"
+                        class="nav-pill__item{% if active_page == item.id %} active{% endif %}"
+                        role="tab"
+                        aria-selected="{{ 'true' if active_page == item.id else 'false' }}"
+                        data-section="{{ item.id }}">
+                    <i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>
+                    <span>{{ item.label }}</span>
+                </button>
+                {% endfor %}
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="toast-container" aria-live="polite" aria-relevant="additions"></div>
+
+    <script src="{{ url_for('static', filename='js/boot.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/theme-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dark-mode.js') }}"></script>
+    <script src="{{ url_for('static', filename='nav.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

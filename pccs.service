@@ -1,0 +1,18 @@
+[Unit]
+Description=The Pissmole Camper Control System (PCCS4)
+After=network.target nginx.service
+
+[Service]
+User=joel
+Group=www-data
+WorkingDirectory=/home/joel/pccs4
+ExecStart=/home/joel/pccs4/venv/bin/python3 /home/joel/pccs4/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,100 @@
+/* Water tile — circular gauge with % inside, fills tile */
+
+#tile-water {
+    display: flex;
+    flex-direction: column;
+    min-height: var(--tile-min-height);
+    min-width: 0;
+    gap: 0.5rem;
+    overflow: visible;
+}
+
+#tile-water .tile__label {
+    flex-shrink: 0;
+    line-height: 1.2;
+    margin-bottom: 0;
+}
+
+#tile-water .water-tile__gauge-wrap {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+    min-width: 0;
+    padding-block: 4px;
+}
+
+#tile-water .water-tile__gauge {
+    --ring-circ: 326.726;
+    --water-level: 0;
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    aspect-ratio: 1;
+    margin-inline: auto;
+}
+
+#tile-water .water-tile__ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    overflow: visible;
+}
+
+#tile-water .water-tile__ring-track,
+#tile-water .water-tile__ring-fill {
+    fill: none;
+    stroke-width: 9;
+}
+
+#tile-water .water-tile__ring-track {
+    stroke: var(--color-highlight-subtle);
+    stroke-linecap: round;
+}
+
+#tile-water .water-tile__ring-fill {
+    stroke: var(--color-accent);
+    stroke-linecap: butt;
+    stroke-dasharray: var(--ring-circ);
+    stroke-dashoffset: var(--ring-offset, var(--ring-circ));
+    filter: drop-shadow(0 0 8px var(--color-accent-glow));
+    transition:
+        stroke-dashoffset var(--duration-fast) var(--ease-standard),
+        stroke var(--duration-fast) ease;
+}
+
+#tile-water .water-tile__percent {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+#tile-water.is-low .water-tile__ring-fill {
+    stroke: #f59e0b;
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.35));
+}
+
+#tile-water.is-critical .water-tile__ring-fill {
+    stroke: #ef4444;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.35));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #tile-water .water-tile__ring-fill {
+        transition: none;
+    }
+}

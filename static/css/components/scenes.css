@@ -1,0 +1,122 @@
+/* Scenes tab — preset button grid */
+
+.scenes-grid__loading {
+    margin: 0;
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.scenes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-tile-gap);
+    max-width: 100%;
+}
+
+@media (max-width: 40rem) {
+    .scenes-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 40.0625rem) and (max-width: 64rem) {
+    .scenes-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.scene-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 7.5rem;
+    padding: 1.25rem;
+    border: 1px solid var(--tile-border);
+    border-radius: var(--tile-radius);
+    background: var(--tile-bg);
+    color: var(--color-text);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow:
+        var(--tile-shadow-drop),
+        inset 0 1px 0 var(--tile-shadow-inset-top),
+        inset 0 -2px 0 var(--tile-shadow-inset-bottom);
+    backdrop-filter: var(--blur-tile);
+    -webkit-backdrop-filter: var(--blur-tile);
+    transition:
+        transform var(--duration-fast) ease,
+        background var(--duration-fast) ease,
+        box-shadow var(--duration-fast) ease,
+        border-color var(--duration-fast) ease,
+        color var(--duration-fast) ease;
+}
+
+.scene-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--tile-shine);
+    pointer-events: none;
+}
+
+.scene-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid var(--tile-inner-border);
+    pointer-events: none;
+}
+
+.scene-btn:hover {
+    transform: translateY(var(--tile-hover-lift));
+    background: var(--tile-bg-hover);
+}
+
+.scene-btn:active {
+    transform: scale(0.98);
+}
+
+.scene-btn.active {
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+    color: var(--color-text-on-accent);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 28px var(--color-accent-glow-strong);
+}
+
+.scene-btn i {
+    position: relative;
+    z-index: 1;
+    font-size: 2rem;
+    color: var(--color-accent);
+    filter: drop-shadow(0 0 10px var(--color-accent-glow));
+}
+
+.scene-btn span {
+    position: relative;
+    z-index: 1;
+}
+
+.scene-btn.active i {
+    color: var(--color-text-on-accent);
+    filter: none;
+}
+
+.scenes-grid .last-row {
+    display: flex;
+    gap: var(--space-tile-gap);
+    grid-column: 1 / -1;
+}
+
+.scenes-grid .last-row .scene-btn {
+    flex: 1;
+}

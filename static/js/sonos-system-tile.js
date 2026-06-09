@@ -1,0 +1,476 @@
+/**
+ * PCCS4 System tab — live Sonos speakers from Socket.IO discovery.
+ */
+(function () {
+    'use strict';
+
+    const POLL_INTERVAL_MS = 5000;
+    const SPEAKER_ICONS = {
+        kitchen: 'fa-utensils',
+        lounge: 'fa-couch',
+        awning: 'fa-umbrella',
+        bedroom: 'fa-bed',
+        bathroom: 'fa-shower',
+    };
+
+    const grid = document.getElementById('sonos-system-grid');
+    const headlineEl = document.getElementById('sonos-system-headline');
+    const detailEl = document.getElementById('sonos-system-detail');
+    if (!grid || !headlineEl || !detailEl) return;
+
+    const state = {
+        speakers: [],
+        activeSpeaker: null,
+        enabled: false,
+        speakerStates: {},
+        volumeDrag: null,
+        socketConnected: false,
+    };
+
+    function getSocket() {
+        return window.PCCS4?.socket ?? null;
+    }
+
+    function speakerIcon(name) {
+        const key = String(name || '').toLowerCase();
+        for (const [fragment, icon] of Object.entries(SPEAKER_ICONS)) {
+            if (key.includes(fragment)) return icon;
+        }
+        return 'fa-music';
+    }
+
+    function normalizeState(data) {
+        if (!data) return null;
+        return {
+            speaker: data.speaker ?? data.room,
+            title: data.title ?? data.track ?? 'Nothing playing',
+            artist: data.artist ?? '',
+            playing: Boolean(data.playing ?? data.is_playing),
+            muted: Boolean(data.muted ?? data.mute),
+            volume: Number(data.volume) || 0,
+            elapsed_seconds: Number(data.elapsed_seconds ?? data.position ?? 0) || 0,
+            duration_seconds: Number(data.duration_seconds ?? data.duration ?? 0) || 0,
+            album_art: data.album_art ?? null,
+            enabled: data.enabled !== false,
+        };
+    }
+
+    function getSpeakerView(name) {
+        const cached = state.speakerStates[name];
+        if (!cached) {
+            return {
+                title: '—',
+                artist: 'Waiting for state',
+                playing: false,
+                muted: false,
+                volume: 0,
+                elapsed_seconds: 0,
+                duration_seconds: 0,
+                album_art: null,
+                reachable: true,
+            };
+        }
+        return {
+            title: cached.title || '—',
+            artist: cached.artist || '—',
+            playing: cached.playing,
+            muted: cached.muted,
+            volume: cached.volume,
+            elapsed_seconds: cached.elapsed_seconds,
+            duration_seconds: cached.duration_seconds,
+            album_art: cached.album_art,
+            reachable: true,
+        };
+    }
+
+    function formatTime(seconds) {
+        const total = Math.max(0, Math.round(Number(seconds) || 0));
+        const mins = Math.floor(total / 60);
+        const secs = total % 60;
+        return `${mins}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function availabilityMessage(data) {
+        if (data?.message) return data.message;
+        if (data?.source === 'disabled') {
+            return 'Set enabled = true under [sonos] in pccs.conf';
+        }
+        return 'Install the soco package and restart the backend';
+    }
+
+    function renderSummary(extra) {
+        if (!state.enabled) {
+            const source = extra?.source;
+            if (source === 'unavailable') {
+                headlineEl.textContent = 'Sonos unavailable';
+                detailEl.textContent = availabilityMessage(extra);
+            } else {
+                headlineEl.textContent = 'Sonos disabled';
+                detailEl.textContent = availabilityMessage(extra);
+            }
+            detailEl.classList.add('is-warning');
+            return;
+        }
+
+        if (!state.speakers.length) {
+            headlineEl.textContent = 'No speakers found';
+            detailEl.textContent = 'Discovery running on the local network';
+            detailEl.classList.add('is-warning');
+            return;
+        }
+
+        const active = state.activeSpeaker || state.speakers[0];
+        const view = getSpeakerView(active);
+        headlineEl.textContent = `${active} selected`;
+
+        if (!view.reachable) {
+            detailEl.textContent = 'Speaker unreachable';
+            detailEl.classList.add('is-warning');
+            return;
+        }
+
+        const status = view.playing ? 'Playing' : 'Paused';
+        const level = view.muted ? 'Muted' : `${view.volume}%`;
+        detailEl.textContent = `${status} · ${level} · ${view.title}`;
+        detailEl.classList.toggle('is-warning', false);
+    }
+
+    function renderCard(name) {
+        const view = getSpeakerView(name);
+        const isActive = name === state.activeSpeaker;
+        const progress = view.duration_seconds > 0
+            ? Math.min(100, (view.elapsed_seconds / view.duration_seconds) * 100)
+            : 0;
+        const controlsDisabled = !state.enabled || !view.reachable || !isActive;
+        const icon = speakerIcon(name);
+
+        const modifiers = [
+            isActive ? 'is-active' : '',
+            view.reachable ? 'is-live' : 'is-offline',
+            view.playing ? 'is-playing' : 'is-paused',
+            view.muted ? 'is-muted' : '',
+        ].filter(Boolean).join(' ');
+
+        const artHtml = view.album_art
+            ? `<img class="sonos-system-tile__art" src="${view.album_art}" alt="" decoding="async">`
+            : `<div class="sonos-system-tile__art sonos-system-tile__art--placeholder" aria-hidden="true">
+                   <i class="fa-solid ${icon}"></i>
+               </div>`;
+
+        return `
+            <article class="sonos-system-tile__card ${modifiers}"
+                     data-speaker-name="${name}"
+                     role="listitem"
+                     aria-label="${name} speaker">
+                <div class="sonos-system-tile__media">
+                    ${artHtml}
+                    <div class="sonos-system-tile__meta">
+                        <h3 class="sonos-system-tile__room">${name}</h3>
+                        <p class="sonos-system-tile__track">${view.title}</p>
+                        <p class="sonos-system-tile__artist">${view.artist}</p>
+                    </div>
+                </div>
+
+                ${view.reachable ? `
+                    <div class="sonos-system-tile__progress" aria-hidden="true">
+                        <div class="sonos-system-tile__progress-bar">
+                            <div class="sonos-system-tile__progress-fill" style="width:${progress}%"></div>
+                        </div>
+                        <div class="sonos-system-tile__times">
+                            <span>${formatTime(view.elapsed_seconds)}</span>
+                            <span>${formatTime(view.duration_seconds)}</span>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <div class="sonos-system-tile__transport" role="group" aria-label="${name} playback">
+                    <button type="button"
+                            class="sonos-system-tile__transport-btn"
+                            data-sonos-action="previous"
+                            aria-label="Previous track"
+                            ${controlsDisabled ? 'disabled' : ''}>
+                        <i class="fa-solid fa-backward-step" aria-hidden="true"></i>
+                    </button>
+                    <button type="button"
+                            class="sonos-system-tile__transport-btn sonos-system-tile__transport-btn--primary"
+                            data-sonos-action="toggle"
+                            aria-label="${view.playing ? 'Pause' : 'Play'}"
+                            ${controlsDisabled ? 'disabled' : ''}>
+                        <i class="fa-solid ${view.playing ? 'fa-pause' : 'fa-play'}" aria-hidden="true"></i>
+                    </button>
+                    <button type="button"
+                            class="sonos-system-tile__transport-btn"
+                            data-sonos-action="next"
+                            aria-label="Next track"
+                            ${controlsDisabled ? 'disabled' : ''}>
+                        <i class="fa-solid fa-forward-step" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <div class="sonos-system-tile__volume">
+                    <button type="button"
+                            class="sonos-system-tile__mute-btn"
+                            data-sonos-action="mute"
+                            aria-label="${view.muted ? 'Unmute' : 'Mute'}"
+                            aria-pressed="${view.muted ? 'true' : 'false'}"
+                            ${controlsDisabled ? 'disabled' : ''}>
+                        <i class="fa-solid ${view.muted ? 'fa-volume-xmark' : 'fa-volume-high'}" aria-hidden="true"></i>
+                    </button>
+                    <input type="range"
+                           class="sonos-system-tile__volume-slider"
+                           data-sonos-volume="${name}"
+                           min="0"
+                           max="100"
+                           value="${view.volume}"
+                           aria-label="${name} volume"
+                           ${controlsDisabled ? 'disabled' : ''}>
+                    <span class="sonos-system-tile__volume-pct">${view.volume}%</span>
+                </div>
+
+                <div class="sonos-system-tile__footer">
+                    <span class="sonos-system-tile__link${view.reachable ? ' is-up' : ' is-down'}">
+                        <span class="sonos-system-tile__link-dot" aria-hidden="true"></span>
+                        <span>${view.reachable ? (view.playing ? 'Playing' : 'Paused') : 'Offline'}</span>
+                    </span>
+                    <button type="button"
+                            class="sonos-system-tile__select${isActive ? ' is-selected' : ''}"
+                            data-sonos-action="select"
+                            aria-pressed="${isActive ? 'true' : 'false'}">
+                        ${isActive ? 'Active' : 'Select'}
+                    </button>
+                </div>
+            </article>`;
+    }
+
+    function render(extra) {
+        renderSummary(extra);
+        if (!state.enabled) {
+            grid.innerHTML = `<p class="sonos-system-tile__empty">${availabilityMessage(extra)}</p>`;
+            return;
+        }
+        const names = state.speakers.length ? state.speakers : [];
+        grid.innerHTML = names.length
+            ? names.map(renderCard).join('')
+            : '<p class="sonos-system-tile__empty">Searching for Sonos speakers…</p>';
+    }
+
+    function onAvailabilityUpdate(data) {
+        state.enabled = false;
+        state.speakers = [];
+        state.activeSpeaker = null;
+        state.speakerStates = {};
+        window.sonosTile?.handleStatus?.(data);
+        render(data);
+    }
+
+    function syncHomeTile(data) {
+        if (window.sonosTile?.onSocketUpdate && data) {
+            window.sonosTile.onSocketUpdate(data);
+        } else if (window.sonosTile?.update && data) {
+            window.sonosTile.update(data);
+        }
+    }
+
+    function onSpeakersUpdate(data) {
+        if (!data) return;
+        if (data.enabled === false) {
+            onAvailabilityUpdate(data);
+            return;
+        }
+        state.enabled = data.enabled !== false;
+        state.speakers = Array.isArray(data.speakers) ? data.speakers.slice() : [];
+        if (data.current) {
+            state.activeSpeaker = data.current;
+            window.sonosTile?.setActiveSpeaker?.(data.current);
+        } else if (!state.activeSpeaker && state.speakers.length) {
+            state.activeSpeaker = state.speakers[0];
+            window.sonosTile?.setActiveSpeaker?.(state.activeSpeaker);
+        }
+        render();
+    }
+
+    function onSocketUpdate(data) {
+        if (!data) return;
+        if (data.enabled === false) {
+            onAvailabilityUpdate(data);
+            return;
+        }
+        state.enabled = true;
+        const normalized = normalizeState(data);
+        if (!normalized?.speaker) return;
+        state.speakerStates[normalized.speaker] = normalized;
+        if (normalized.speaker === state.activeSpeaker) {
+            syncHomeTile(normalized);
+        }
+        render();
+    }
+
+    function emitCommand(command, { speaker, value } = {}) {
+        const socket = getSocket();
+        if (!socket?.connected) return false;
+        const payload = { command };
+        if (speaker) payload.speaker = speaker;
+        if (value !== undefined) payload.value = value;
+        socket.emit('sonos_command', payload);
+        return true;
+    }
+
+    async function postJson(url, body) {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) return null;
+        return res.json();
+    }
+
+    async function fetchStatus() {
+        try {
+            const res = await fetch('/api/sonos', { cache: 'no-store' });
+            if (!res.ok) return;
+            onSocketUpdate(await res.json());
+        } catch {
+            /* keep last values */
+        }
+    }
+
+    async function sendTransport(action) {
+        const mapping = {
+            toggle: 'playpause',
+            play: 'play',
+            pause: 'pause',
+            next: 'next',
+            previous: 'previous',
+        };
+        const command = mapping[action] || action;
+        if (emitCommand(command, { speaker: state.activeSpeaker })) return;
+        const data = await postJson('/api/sonos/transport', { action });
+        if (data) onSocketUpdate(data);
+    }
+
+    async function sendVolume(level) {
+        if (emitCommand('volume', { speaker: state.activeSpeaker, value: parseInt(level, 10) })) return;
+        const data = await postJson('/api/sonos/volume', { level });
+        if (data) onSocketUpdate(data);
+    }
+
+    async function sendMute(muted) {
+        if (emitCommand('mute', { speaker: state.activeSpeaker, value: Boolean(muted) })) return;
+        const data = await postJson('/api/sonos/mute', { muted });
+        if (data) onSocketUpdate(data);
+    }
+
+    function setActiveSpeaker(name) {
+        if (!state.speakers.includes(name)) return;
+        state.activeSpeaker = name;
+        window.sonosTile?.setActiveSpeaker?.(name);
+        const socket = getSocket();
+        if (socket?.connected) {
+            socket.emit('sonos_switch_speaker', { name });
+        }
+        const cached = state.speakerStates[name];
+        if (cached) syncHomeTile(cached);
+        render();
+    }
+
+    grid.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-sonos-action]');
+        if (!button || button.disabled) return;
+
+        const card = button.closest('[data-speaker-name]');
+        if (!card) return;
+
+        const name = card.dataset.speakerName;
+        const action = button.dataset.sonosAction;
+
+        if (action === 'select') {
+            setActiveSpeaker(name);
+            return;
+        }
+
+        if (name !== state.activeSpeaker) return;
+
+        if (action === 'toggle' || action === 'previous' || action === 'next') {
+            sendTransport(action);
+            return;
+        }
+
+        if (action === 'mute') {
+            const view = getSpeakerView(name);
+            sendMute(!view.muted);
+        }
+    });
+
+    grid.addEventListener('pointerdown', (event) => {
+        const slider = event.target.closest('[data-sonos-volume]');
+        if (!slider || slider.disabled) return;
+        state.volumeDrag = slider.dataset.sonosVolume;
+    });
+
+    grid.addEventListener('input', (event) => {
+        const slider = event.target.closest('[data-sonos-volume]');
+        if (!slider || slider.disabled) return;
+
+        const card = slider.closest('[data-speaker-name]');
+        const pct = card?.querySelector('.sonos-system-tile__volume-pct');
+        if (pct) pct.textContent = `${slider.value}%`;
+    });
+
+    grid.addEventListener('pointerup', () => {
+        state.volumeDrag = null;
+    });
+
+    grid.addEventListener('change', (event) => {
+        const slider = event.target.closest('[data-sonos-volume]');
+        if (!slider || slider.disabled) return;
+
+        const name = slider.closest('[data-speaker-name]')?.dataset.speakerName;
+        if (name !== state.activeSpeaker) return;
+
+        state.volumeDrag = null;
+        sendVolume(Number(slider.value));
+    });
+
+    function registerSocket(socket) {
+        if (!socket) return;
+        socket.on('connect', () => {
+            state.socketConnected = true;
+        });
+        socket.on('disconnect', () => {
+            state.socketConnected = false;
+        });
+        state.socketConnected = socket.connected;
+    }
+
+    async function pollStatus() {
+        if (!window.PCCS4?.isSystemTabActive) return;
+        await fetchStatus();
+    }
+
+    render();
+    setInterval(pollStatus, POLL_INTERVAL_MS);
+
+    const socket = getSocket();
+    if (socket) {
+        registerSocket(socket);
+    } else {
+        document.addEventListener('pccs4:socket-ready', (event) => {
+            registerSocket(event.detail?.socket);
+        }, { once: true });
+    }
+
+    window.sonosSystemTile = {
+        setActiveSpeaker,
+        onSocketUpdate,
+        onSpeakersUpdate,
+        onAvailabilityUpdate,
+        fetchStatus,
+        getState: () => ({
+            activeSpeaker: state.activeSpeaker,
+            speakers: state.speakers.slice(),
+            speakerStates: { ...state.speakerStates },
+        }),
+        refresh: render,
+    };
+})();

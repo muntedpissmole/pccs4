@@ -1,0 +1,414 @@
+/* System tab — lighting phases (schedule, timeline, force controls) */
+
+#system .tile-grid {
+    display: block;
+    column-gap: var(--space-tile-gap);
+}
+
+#system .tile-grid > .tile {
+    display: inline-flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: var(--tile-min-height);
+    height: auto;
+    margin-bottom: var(--space-tile-gap);
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    vertical-align: top;
+}
+
+#system .tile-grid > .tile:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 70rem) {
+    #system .tile-grid {
+        column-count: 1;
+    }
+}
+
+@media (min-width: 70.0625rem) and (max-width: 110rem) {
+    #system .tile-grid {
+        column-count: 2;
+    }
+}
+
+@media (min-width: 110.0625rem) {
+    #system .tile-grid {
+        column-count: 3;
+    }
+}
+
+#tile-phases {
+    display: flex;
+    flex-direction: column;
+    min-height: var(--tile-min-height);
+    min-width: 0;
+}
+
+.phases-tile__body {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-width: 0;
+}
+
+.phases-tile__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.phases-tile__summary-main {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.phases-tile__summary-icon {
+    flex-shrink: 0;
+    font-size: 1.35rem;
+    color: var(--color-sun);
+    filter: drop-shadow(0 0 8px var(--color-sun-glow));
+}
+
+#tile-phases.is-evening .phases-tile__summary-icon {
+    color: var(--color-accent);
+    filter: drop-shadow(0 0 8px var(--color-accent-glow));
+}
+
+#tile-phases.is-night .phases-tile__summary-icon {
+    color: var(--color-moon);
+    filter: drop-shadow(0 0 8px var(--color-moon-glow));
+}
+
+.phases-tile__headline {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    line-height: 1.2;
+}
+
+.phases-tile__detail {
+    margin: 0.15rem 0 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+    line-height: 1.3;
+}
+
+.phases-tile__detail.is-forced {
+    color: var(--color-sun);
+}
+
+.phases-tile__next {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-label);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    line-height: 1.3;
+}
+
+.phases-tile__track {
+    position: relative;
+    padding-top: 0.35rem;
+}
+
+.phases-tile__track-bar {
+    display: flex;
+    overflow: hidden;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid var(--color-border);
+}
+
+html.light .phases-tile__track-bar {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.phases-tile__track-segment {
+    height: 100%;
+    min-width: 2px;
+    opacity: 0.45;
+    transition: opacity var(--duration-fast) ease;
+}
+
+.phases-tile__track-segment.is-active {
+    opacity: 1;
+}
+
+.phases-tile__track-segment--night {
+    background: linear-gradient(90deg, #475569, #64748b);
+}
+
+.phases-tile__track-segment--day {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.phases-tile__track-segment--evening {
+    background: linear-gradient(90deg, var(--color-accent-hover), var(--color-accent));
+}
+
+.phases-tile__track-now {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: calc(0.45rem + 0.7rem);
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--color-text);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.45);
+    pointer-events: none;
+    transition: left var(--duration-fast) ease;
+}
+
+.phases-tile__schedule {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.phases-tile__card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+    padding: 0.6rem 0.65rem;
+    border: 1px solid var(--color-border);
+    border-radius: calc(var(--tile-radius) * 0.35);
+    background: rgba(0, 0, 0, 0.14);
+    transition:
+        border-color var(--duration-fast) ease,
+        background var(--duration-fast) ease,
+        box-shadow var(--duration-fast) ease;
+}
+
+html.light .phases-tile__card {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.phases-tile__card.is-active {
+    border-color: var(--color-accent-border);
+    background: rgba(79, 195, 247, 0.08);
+    box-shadow: 0 0 0 1px var(--color-accent-glow);
+}
+
+#tile-phases.is-day .phases-tile__card[data-phase="Day"].is-active {
+    border-color: rgba(251, 191, 36, 0.45);
+    background: rgba(251, 191, 36, 0.1);
+    box-shadow: 0 0 0 1px var(--color-sun-glow);
+}
+
+#tile-phases.is-evening .phases-tile__card[data-phase="Evening"].is-active {
+    border-color: var(--color-accent-border);
+    background: rgba(79, 195, 247, 0.1);
+}
+
+#tile-phases.is-night .phases-tile__card[data-phase="Night"].is-active {
+    border-color: rgba(148, 163, 184, 0.45);
+    background: rgba(148, 163, 184, 0.1);
+    box-shadow: 0 0 0 1px var(--color-moon-glow);
+}
+
+.phases-tile__card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+}
+
+.phases-tile__card-icon {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.phases-tile__card[data-phase="Day"] .phases-tile__card-icon {
+    color: var(--color-sun);
+}
+
+.phases-tile__card[data-phase="Night"] .phases-tile__card-icon {
+    color: var(--color-moon);
+}
+
+.phases-tile__card[data-phase="Evening"] .phases-tile__card-icon {
+    color: var(--color-accent);
+}
+
+.phases-tile__card-badge {
+    font-size: 0.5625rem;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    opacity: 0;
+}
+
+.phases-tile__card.is-active .phases-tile__card-badge {
+    opacity: 1;
+    color: var(--color-text-label);
+}
+
+.phases-tile__card-name {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    line-height: 1.2;
+}
+
+.phases-tile__card-time {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+}
+
+.phases-tile__force {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: auto;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.phases-tile__force-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.phases-tile__force-label {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.phases-tile__clear {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--color-sun);
+    font: inherit;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.phases-tile__clear:hover {
+    text-decoration: underline;
+}
+
+.phases-tile__segmented {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--color-border);
+    border-radius: calc(var(--tile-radius) * 0.3);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+html.light .phases-tile__segmented {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.phases-tile__segment {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: calc(var(--size-mode-btn-height) - 8px);
+    padding: 0 0.35rem;
+    border: none;
+    border-radius: calc(var(--tile-radius) * 0.22);
+    background: transparent;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.2;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition:
+        background var(--duration-fast) ease,
+        color var(--duration-fast) ease,
+        transform var(--duration-fast) ease;
+}
+
+.phases-tile__segment:hover {
+    color: var(--color-text);
+    background: var(--color-surface-active);
+}
+
+.phases-tile__segment.is-selected {
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+}
+
+.phases-tile__segment.is-selected i {
+    color: inherit;
+}
+
+.phases-tile__segment[data-phase="Day"] i {
+    color: var(--color-sun);
+}
+
+.phases-tile__segment[data-phase="Night"] i {
+    color: var(--color-moon);
+}
+
+.phases-tile__segment[data-phase="Evening"] i {
+    color: var(--color-accent);
+}
+
+.phases-tile__segment.is-selected i {
+    color: inherit;
+}
+
+.phases-tile__segment:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 30rem) {
+    .phases-tile__schedule {
+        grid-template-columns: 1fr;
+    }
+
+    .phases-tile__next {
+        width: 100%;
+        text-align: left;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .phases-tile__segment,
+    .phases-tile__track-now,
+    .phases-tile__track-segment {
+        transition: none;
+    }
+
+    .phases-tile__segment:active {
+        transform: none;
+    }
+}

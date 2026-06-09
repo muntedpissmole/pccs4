@@ -1,0 +1,18 @@
+flask>=3.0
+Flask-Cors
+Flask-SocketIO
+gpiozero
+python-socketio
+python-engineio
+pyserial
+geopy
+requests
+pynmea2
+suntime
+astral
+psutil
+colorzero
+soco
+
+# Victron SmartShunt + MPPT SmartSolar via Bluetooth (passive BLE advertisements)
+victron_ble

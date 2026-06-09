@@ -163,6 +163,9 @@ class PCCSRuntime:
             self.world.set_reed_force(name, None)
         else:
             self.world.set_reed_force(name, closed)
+        # Match phase force: operator overrides clear slider intents so policy
+        # reflects the forced reed state, not stale manual levels.
+        self.world.clear_all_light_intents()
         self._emit_reeds()
         self.reconcile(ramp_source="reed")
 

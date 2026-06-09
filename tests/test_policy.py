@@ -499,6 +499,25 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(out.lights["rooftop_tent"][0], 20)
         self.assertEqual(out.light_sources["rooftop_tent"], "automation_reed")
 
+    def test_reed_force_clears_intents_restores_automation(self):
+        """Operator reed force clears all slider intents (same as phase force)."""
+        cfg = minimal_cfg()
+        world = WorldStore(cfg.reed_names, cfg.light_names, [])
+        world.set_light_to_reed_map(cfg.light_to_reed)
+        world.set_phase("Evening", invalidate=False)
+        world.update_reeds(_default_reeds(closed_names=["kitchen_panel"]))
+        world.set_light_intent("kitchen_panel", 0, expires="until_reed_close")
+        world.set_light_intent("awning", 54, "red", expires="until_reed_close")
+        world.set_reed_force("kitchen_panel", False)
+        world.clear_all_light_intents()
+        snap = world.snapshot()
+        self.assertEqual(snap.light_intents, {})
+        out = desired_outputs(snap, cfg)
+        self.assertEqual(out.lights["kitchen_panel"][0], 40)
+        self.assertEqual(out.light_sources["kitchen_panel"], "automation_reed")
+        self.assertGreater(out.lights["awning"][0], 0)
+        self.assertEqual(out.light_sources["awning"], "automation_ambient")
+
     def test_until_scene_clear_wiped_on_scene_activate(self):
         world = WorldStore([], ["accent"], [])
         world.set_light_intent("accent", 33, expires="until_scene_clear")

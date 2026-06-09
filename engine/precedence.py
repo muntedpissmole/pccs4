@@ -148,9 +148,10 @@ def _safety_clamp(light: str, resolved: ResolvedLight, world: WorldState, cfg: C
 def resolve_light(light: str, world: WorldState, cfg: CompiledConfig) -> ResolvedLight:
     """Explicit precedence stack (highest wins first).
 
-    Slider intents are cleared on phase or reed transitions; until then they apply.
+    Slider intents are cleared on phase change, hardware reed transition, or
+    operator reed force; until then they apply.
 
-    1. User intent — temporary UI levels until phase/reed change
+    1. User intent — temporary UI levels until phase/reed override
     2. Reed closed — reed-linked automation off (includes operator force via effective_reed_closed)
     3. Active scene — transient only while set_scene() is reconciling; never persisted
     4. Automation — ambient / reed phase tables

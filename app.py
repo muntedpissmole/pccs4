@@ -201,7 +201,7 @@ def api_get_themes():
             path = os.path.join(themes_dir, filename)
             fallback = base.replace("-", " ").replace("_", " ").title()
             themes.append({"file": base, "name": _extract_css_friendly_name(path, fallback)})
-    themes.sort(key=lambda item: (item["name"].lower() != "neuglass", item["name"].lower()))
+    themes.sort(key=lambda item: (item["file"].lower() != "neuglass", item["name"].lower()))
     return jsonify({"themes": themes})
 
 

@@ -10,8 +10,9 @@
     const DEFAULT_THEME = 'neuglass';
 
     let themes = [
-        { id: 'neuglass', label: 'Neuglass' },
-        { id: 'minimal', label: 'Minimal' },
+        { id: 'neuglass', label: 'Neumorphism' },
+        { id: 'minimal', label: 'OLED Minimal' },
+        { id: 'void', label: 'Void' },
     ];
 
     function getSocket() {

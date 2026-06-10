@@ -6,8 +6,11 @@
 
     const JUST_SET_DURATION = 2800;
     const SCENE_RAMP_MS = 4000;
+    const REED_RAMP_MS = 2000;
+    const PHASE_RAMP_MS = 4000;
     let backendConnected = false;
     let sceneActivating = false;
+    let reedActivating = false;
     const sceneAnimationCancels = {};
 
     const state = {
@@ -71,41 +74,60 @@
         if (thumb) thumb.style.transition = transition;
     }
 
-    function animateSlider(name, from, to, rampMs, onComplete) {
+    function animateSlider(name, to, rampMs, onComplete) {
         const wrapper = document.querySelector(`.slider-wrapper[data-name="${name}"]`);
-        const start = performance.now();
-        let frameId = null;
+        if (!wrapper) {
+            updateLightUI(name, to);
+            onComplete?.();
+            return () => {};
+        }
+
+        const fill = wrapper.querySelector('.slider-fill');
+        const thumb = wrapper.querySelector('.slider-thumb');
+        const transition = `width ${rampMs}ms ease, left ${rampMs}ms ease`;
+        let timeoutId = null;
 
         function cancel() {
-            if (frameId) cancelAnimationFrame(frameId);
+            if (timeoutId) clearTimeout(timeoutId);
             delete sceneAnimationCancels[name];
         }
 
-        function step(now) {
-            const t = Math.min(1, (now - start) / rampMs);
-            const value = Math.round(from + (to - from) * t);
-            updateLightUI(name, value);
-            if (t < 1) {
-                frameId = requestAnimationFrame(step);
-            } else {
-                updateLightUI(name, to);
-                setSliderMotion(wrapper, true);
-                delete sceneAnimationCancels[name];
-                onComplete?.();
-            }
-        }
-
         sceneAnimationCancels[name] = cancel;
-        setSliderMotion(wrapper, false);
-        frameId = requestAnimationFrame(step);
+        if (fill) fill.style.transition = transition;
+        if (thumb) thumb.style.transition = transition;
+        void wrapper.offsetWidth;
+        updateLightUI(name, to);
+
+        timeoutId = window.setTimeout(() => {
+            delete sceneAnimationCancels[name];
+            onComplete?.();
+        }, rampMs + 60);
+
         return cancel;
     }
 
-    const STATE_META_KEYS = new Set(['last_scene']);
+    const STATE_META_KEYS = new Set(['last_scene', '_animate', '_ramp_ms', '_trigger']);
+
+    function extractStateMeta(newState) {
+        const trigger = newState._trigger;
+        let rampMs = newState._ramp_ms;
+        if (!rampMs && trigger === 'reed') rampMs = REED_RAMP_MS;
+        if (!rampMs && trigger === 'phase') rampMs = PHASE_RAMP_MS;
+        return {
+            animate: !!newState._animate,
+            rampMs: rampMs || SCENE_RAMP_MS,
+            trigger,
+        };
+    }
 
     function applyStateToUI(newState, { animate = false, rampMs = SCENE_RAMP_MS } = {}) {
+        const meta = extractStateMeta(newState);
+        let shouldAnimate = animate || meta.animate;
+        if (document.hidden) shouldAnimate = false;
+        const effectiveRampMs = meta.rampMs || rampMs;
+
         const protectedLights = new Set([...state.currentlyDragging]);
-        if (!animate) {
+        if (!shouldAnimate) {
             state.userJustSet.forEach((name) => protectedLights.add(name));
         }
 
@@ -116,7 +138,7 @@
             }
         });
 
-        if (!animate) {
+        if (!shouldAnimate) {
             Object.keys(newState).forEach((k) => {
                 if (k.endsWith('_mode') || STATE_META_KEYS.has(k)) return;
                 if (!protectedLights.has(k)) state.currentState[k] = newState[k];
@@ -150,10 +172,32 @@
                 return;
             }
 
-            animateSlider(light.name, from, end, rampMs);
+            animateSlider(light.name, end, effectiveRampMs);
         });
 
         updateRooftopTentControls();
+    }
+
+    async function syncFromServer() {
+        try {
+            const res = await fetch('/api/lights', { cache: 'no-store' });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.lights?.length) {
+                const hadConfig = state.lightsConfig.length > 0;
+                state.lightsConfig = data.lights;
+                if (!hadConfig) renderLightingControls();
+            }
+            if (data.state) {
+                const meta = extractStateMeta(data.state);
+                applyStateToUI(data.state, {
+                    animate: meta.animate,
+                    rampMs: meta.rampMs || REED_RAMP_MS,
+                });
+            }
+        } catch {
+            /* socket will retry */
+        }
     }
 
     function getCurrentColumns() {
@@ -218,6 +262,7 @@
             });
 
             if (valueEl) valueEl.textContent = isOn ? 'On' : 'Off';
+            window.PCCS4.lightingHome?.onLightUpdate?.(name, isOn ? 1 : 0);
             return;
         }
 
@@ -252,6 +297,12 @@
             if (fill) fill.classList.toggle('bug-mode', isBugMode);
             if (thumb) thumb.classList.toggle('bug-mode', isBugMode);
         }
+
+        window.PCCS4.lightingHome?.onLightUpdate?.(
+            name,
+            light.type === 'relay' ? (value ? 1 : 0) : (value || 0),
+            state.currentModes[name]
+        );
     }
 
     function updateUIFromState() {
@@ -647,10 +698,13 @@
     window.PCCS4.lighting = {
         onLightsConfig(config) {
             backendConnected = true;
+            const isFirstConfig = !state.lightsConfig.length;
             state.lightsConfig = config || [];
-            state.currentState = {};
-            state.currentModes = {};
-            state.lastRenderConfigHash = '';
+            if (isFirstConfig) {
+                state.currentState = {};
+                state.currentModes = {};
+                state.lastRenderConfigHash = '';
+            }
             state.lightsConfig.forEach((light) => {
                 const mode = state.currentState[`${light.name}_mode`];
                 if (light.has_mode && mode) state.currentModes[light.name] = mode;
@@ -661,16 +715,21 @@
             if (Object.keys(state.currentState).length > 0) updateUIFromState();
         },
         onStateUpdate(newState, options = {}) {
-            const animate = options.animate ?? sceneActivating;
+            const meta = extractStateMeta(newState);
+            const animate = options.animate ?? meta.animate ?? sceneActivating ?? reedActivating;
             if (sceneActivating) sceneActivating = false;
+            if (reedActivating) reedActivating = false;
             applyStateToUI(newState, {
                 animate,
-                rampMs: options.rampMs ?? SCENE_RAMP_MS,
+                rampMs: options.rampMs ?? meta.rampMs ?? SCENE_RAMP_MS,
             });
         },
         setSceneActivating(value, rampMs) {
             sceneActivating = !!value;
             if (rampMs) window.PCCS4._sceneRampMs = rampMs;
+        },
+        setReedActivating(value) {
+            reedActivating = !!value;
         },
         getSceneRampMs() {
             return window.PCCS4._sceneRampMs || SCENE_RAMP_MS;
@@ -680,6 +739,7 @@
             updateRooftopTentControls();
         },
         initResize,
+        syncFromServer,
         isBackendConnected() {
             return backendConnected;
         },

@@ -11,8 +11,10 @@ from .world import WorldState
 
 # Internal source key → log/diag label
 SOURCE_LABELS: Dict[str, str] = {
-    "reed_closed": "reed closed or interlocked",
+    "reed_closed": "reed closed",
+    "reed_interlocked": "interlocked",
     "user_intent": "user set level",
+    "user_reed_force": "forced reed · phase level",
     "automation_reed": "reed open · phase level",
     "automation_ambient": "panel open · ambient on",
     "automation_all_closed": "all panels closed",
@@ -82,10 +84,17 @@ def build_explain_snapshot(
         target_b, target_m = desired.lights.get(light, (0, "white"))
         target_m = target_m or "white"
         source = desired.light_sources.get(light, "fallback")
+        reed = cfg.light_to_reed.get(light)
+        if (
+            reed
+            and reed in world.reed_forces
+            and not world.reed_forces[reed]
+            and source in ("automation_reed", "automation_ambient")
+        ):
+            source = "user_reed_force"
         observed_b = world.observed_lights.get(light)
         observed_m = world.observed_light_modes.get(light, "white")
         intent = world.light_intents.get(light)
-        reed = cfg.light_to_reed.get(light)
 
         drift = False
         drift_detail = None
@@ -97,10 +106,13 @@ def build_explain_snapshot(
                 drift = True
                 drift_detail = f"observed mode {observed_m} vs desired {target_m}"
 
+        label = cfg.light_labels.get(light, light)
+
         if drift:
-            drifts.append({"light": light, "detail": drift_detail})
+            drifts.append({"light": light, "label": label, "detail": drift_detail})
 
         entry: Dict[str, Any] = {
+            "label": label,
             "desired_brightness": target_b,
             "desired_mode": target_m,
             "observed_brightness": observed_b,
@@ -135,12 +147,16 @@ def build_explain_snapshot(
         target = desired.relays.get(relay, False)
         observed = world.observed_relays.get(relay)
         rdrift = observed is not None and bool(observed) != bool(target)
+        label = cfg.relay_labels.get(relay, relay)
+
         if rdrift:
             drifts.append({
                 "relay": relay,
+                "label": label,
                 "detail": f"observed {'ON' if observed else 'OFF'} vs desired {'ON' if target else 'OFF'}",
             })
         relays_out[relay] = {
+            "label": label,
             "desired": target,
             "observed": observed,
             "drift": rdrift,

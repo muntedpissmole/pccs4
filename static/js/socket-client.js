@@ -28,7 +28,6 @@
             socket.emit('sonos_request_state');
             window.PCCS4.water?.refresh?.();
             window.PCCS4.climate?.refreshSensors?.();
-            window.lpgTile?.refresh?.();
             window.powerTile?.refresh?.();
             window.systemTile?.refresh?.();
             window.sonosTile?.refresh?.();
@@ -37,6 +36,7 @@
             window.PCCS4.screensSystem?.refresh?.();
             window.PCCS4.reedsSystem?.refresh?.();
             window.PCCS4.reedsHome?.refresh?.();
+            window.PCCS4.lightingHome?.refresh?.();
             window.PCCS4.phases?.refresh?.();
             window.PCCS4.explain?.refresh?.();
             window.PCCS4.wifi?.refresh?.({ quiet: true });
@@ -54,17 +54,23 @@
         // Lighting
         socket.on('lights_config', (config) => {
             window.PCCS4.lighting?.onLightsConfig(config);
+            window.PCCS4.lightingHome?.onLightsConfig?.(config);
         });
 
         socket.on('state_update', (state) => {
             window.PCCS4.scenes?.onStateUpdate?.(state);
-            const rampMs = window.PCCS4.lighting?.getSceneRampMs?.();
-            window.PCCS4.lighting?.onStateUpdate(state, { rampMs });
+            window.PCCS4.lightingHome?.onStateUpdate?.(state);
+            const rampMs = state._ramp_ms ?? window.PCCS4.lighting?.getSceneRampMs?.();
+            const animate = !!state._animate;
+            window.PCCS4.lighting?.onStateUpdate(state, { rampMs, animate });
+            window.PCCS4.explain?.refresh?.();
         });
 
         socket.on('reed_update', (payload) => {
             window.PCCS4.lighting?.onReedUpdate(payload);
+            window.PCCS4.lightingHome?.onReedUpdate?.(payload);
             window.PCCS4.reedsHome?.onReedUpdate(payload);
+            window.PCCS4.lighting?.setReedActivating?.(true);
         });
 
         // Scenes (state_update handles slider ramp after set_scene)
@@ -99,7 +105,6 @@
         socket.on('sensor_update', (data) => {
             window.PCCS4.water?.onSensorUpdate(data);
             window.PCCS4.climate?.onSensorUpdate(data);
-            window.lpgTile?.onSensorUpdate?.(data);
         });
 
         // Toasts
@@ -142,10 +147,6 @@
             window.sonosSystemTile?.onSpeakersUpdate?.(data);
         });
 
-        // Policy explain (refresh after reconcile)
-        socket.on('state_update', () => {
-            window.PCCS4.explain?.refresh?.();
-        });
     }
 
     if (document.readyState === 'loading') {

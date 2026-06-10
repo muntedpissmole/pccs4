@@ -114,34 +114,17 @@
     font-variant-numeric: tabular-nums;
 }
 
-.network-tile__speeds {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    min-width: 0;
-    color: var(--color-text-muted);
-}
-
-.network-tile__speed-group {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+.network-tile__throughput-values {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    justify-content: flex-end;
     gap: 0.35rem 0.5rem;
-    min-width: 0;
-}
-
-.network-tile__speed {
-    color: var(--color-text);
+    text-align: right;
 }
 
 .network-tile__speed-unit {
     opacity: 0.7;
-}
-
-.network-tile__link-speed {
-    flex-shrink: 0;
-    opacity: 0.75;
 }
 
 .network-tile__ping.is-good {

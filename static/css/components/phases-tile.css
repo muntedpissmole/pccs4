@@ -28,13 +28,13 @@
     }
 }
 
-@media (min-width: 70.0625rem) and (max-width: 110rem) {
+@media (min-width: 70.0625rem) and (max-width: 157.5rem) {
     #system .tile-grid {
         column-count: 2;
     }
 }
 
-@media (min-width: 110.0625rem) {
+@media (min-width: 157.5625rem) {
     #system .tile-grid {
         column-count: 3;
     }

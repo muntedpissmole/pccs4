@@ -398,6 +398,15 @@ class PolicyTests(unittest.TestCase):
         self.assertTrue(effective_reed_closed(world, "kitchen_bench", cfg))
         out = desired_outputs(world, cfg)
         self.assertEqual(out.lights["kitchen_bench"][0], 0)
+        self.assertEqual(out.light_sources["kitchen_bench"], "reed_interlocked")
+
+    def test_kitchen_bench_closed_shows_reed_closed_not_interlocked(self):
+        cfg = minimal_cfg()
+        world = WorldState(
+            reeds=_default_reeds(closed_names=["kitchen_bench", "kitchen_panel"]),
+            phase="Evening",
+        )
+        out = desired_outputs(world, cfg)
         self.assertEqual(out.light_sources["kitchen_bench"], "reed_closed")
 
     def test_kitchen_bench_open_when_panel_open(self):
@@ -430,6 +439,97 @@ class PolicyTests(unittest.TestCase):
         )
         self.assertTrue(effective_reed_closed(world, "kitchen_bench", cfg))
         out = desired_outputs(world, cfg)
+        self.assertEqual(out.lights["kitchen_bench"][0], 0)
+
+    def test_force_bench_open_panel_closed_still_interlocked(self):
+        """Forced bench open cannot bypass a closed/forced-closed panel."""
+        cfg = real_cfg()
+        world = WorldState(
+            reeds=_default_reeds(closed_names=["kitchen_panel", "kitchen_bench"]),
+            reed_forces={"kitchen_bench": False, "kitchen_panel": True},
+            phase="Day",
+        )
+        self.assertTrue(effective_reed_closed(world, "kitchen_bench", cfg))
+        out = desired_outputs(world, cfg)
+        self.assertEqual(out.lights["kitchen_bench"][0], 0)
+        self.assertEqual(out.lights["kitchen_panel"][0], 0)
+        self.assertEqual(out.light_sources["kitchen_bench"], "reed_interlocked")
+        self.assertEqual(out.light_sources["kitchen_panel"], "reed_closed")
+
+    def test_force_panel_closed_turns_off_forced_open_bench(self):
+        cfg = real_cfg()
+        world = WorldState(
+            reeds=_default_reeds(open_names=["kitchen_bench", "kitchen_panel"]),
+            reed_forces={"kitchen_panel": True, "kitchen_bench": False},
+            phase="Day",
+        )
+        out = desired_outputs(world, cfg)
+        self.assertEqual(out.lights["kitchen_panel"][0], 0)
+        self.assertEqual(out.lights["kitchen_bench"][0], 0)
+
+    def test_force_panel_open_with_forced_open_bench_both_on(self):
+        cfg = real_cfg()
+        world = WorldState(
+            reeds=_default_reeds(closed_names=["kitchen_panel", "kitchen_bench"]),
+            reed_forces={"kitchen_panel": False, "kitchen_bench": False},
+            phase="Day",
+        )
+        out = desired_outputs(world, cfg)
+        self.assertEqual(out.lights["kitchen_panel"][0], 100)
+        self.assertEqual(out.lights["kitchen_bench"][0], 100)
+
+    def test_kitchen_interlock_panel_closed_bench_opens_no_action(self):
+        """Bench reed open while panel closed — bench light stays off."""
+        cfg = real_cfg()
+        world = WorldState(
+            reeds=_default_reeds(open_names=["kitchen_bench"], closed_names=["kitchen_panel"]),
+            phase="Day",
+        )
+        out = desired_outputs(world, cfg)
+        self.assertEqual(out.lights["kitchen_bench"][0], 0)
+        self.assertEqual(out.lights["kitchen_panel"][0], 0)
+
+    def test_kitchen_interlock_bench_open_panel_opens_both_on(self):
+        """Bench already open; panel opens — both lights to phase levels."""
+        cfg = real_cfg()
+        world = WorldState(
+            reeds=_default_reeds(open_names=["kitchen_bench", "kitchen_panel"]),
+            phase="Day",
+        )
+        out = desired_outputs(world, cfg)
+        self.assertEqual(out.lights["kitchen_panel"][0], 100)
+        self.assertEqual(out.lights["kitchen_bench"][0], 100)
+
+    def test_kitchen_interlock_bench_closed_panel_opens_panel_only(self):
+        """Panel opens while bench closed — panel light only."""
+        cfg = real_cfg()
+        world = WorldState(
+            reeds=_default_reeds(open_names=["kitchen_panel"], closed_names=["kitchen_bench"]),
+            phase="Day",
+        )
+        out = desired_outputs(world, cfg)
+        self.assertEqual(out.lights["kitchen_panel"][0], 100)
+        self.assertEqual(out.lights["kitchen_bench"][0], 0)
+
+    def test_kitchen_interlock_panel_open_bench_opens_bench_on(self):
+        """Panel already open; bench opens — bench light to phase level."""
+        cfg = real_cfg()
+        world = WorldState(
+            reeds=_default_reeds(open_names=["kitchen_panel", "kitchen_bench"]),
+            phase="Day",
+        )
+        out = desired_outputs(world, cfg)
+        self.assertEqual(out.lights["kitchen_bench"][0], 100)
+
+    def test_kitchen_interlock_panel_closes_both_off(self):
+        """Panel closes — both lights off even if bench reed still open."""
+        cfg = real_cfg()
+        world = WorldState(
+            reeds=_default_reeds(open_names=["kitchen_bench"], closed_names=["kitchen_panel"]),
+            phase="Day",
+        )
+        out = desired_outputs(world, cfg)
+        self.assertEqual(out.lights["kitchen_panel"][0], 0)
         self.assertEqual(out.lights["kitchen_bench"][0], 0)
 
     # ── Screens ───────────────────────────────────────────────────────────

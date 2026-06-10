@@ -71,15 +71,17 @@
     --blur-surface: blur(12px);
     --blur-tile: blur(20px);
 
-    /* ── Layout ── */
-    --size-content-max: 1760px;
+    /* ── Layout (2560px viewport − 2× main horizontal padding) ── */
+    --size-content-max: 2520px;
 
     /* ── Header & nav ── */
     --size-header-height: 64px;
     --size-nav-height: 44px;
     --size-nav-icon: 18px;
     --space-pill-pad-inset: 5px;
+    --space-nav-pad-y: 8px;
     --space-pill-pad-x: 9px;
+    --line-height-nav: 1.45;
     --space-nav-gap: 4px;
     --space-nav-item-x: 14px;
     --space-nav-icon-gap: 7px;
@@ -160,6 +162,7 @@
     --duration-fast: 0.2s;
     --duration-nav: 0.25s;
     --duration-page-fade: 0.28s;
+    --duration-tile-list-fade: 1s;
     --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
     /* ── Toasts ── */
@@ -186,6 +189,23 @@
     --color-bug-mode-glow: rgba(225, 29, 72, 0.25);
     --color-slider-thumb-inner-light: rgba(255, 255, 255, 0.55);
     --color-slider-thumb-inner-dark: rgba(0, 0, 0, 0.6);
+}
+
+@media (min-width: 64rem) {
+    :root {
+        --size-nav-max: 36rem;
+    }
+}
+
+/* 2520px content max @ 16px root → 157.5rem */
+@media (min-width: 157.5625rem) {
+    :root {
+        --space-tile-gap: 20px;
+        --tile-padding: 24px;
+        --tile-min-height: 168px;
+        --size-datetime-curve-width: 280px;
+        --size-nav-max: 42rem;
+    }
 }
 
 /* ── Light mode (class toggled on <html> by dark-mode.js) ── */

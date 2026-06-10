@@ -5,7 +5,7 @@ import time
 from typing import Callable, Dict, List, Optional, Tuple
 
 from .config_compile import CompiledConfig
-from .explain import build_explain_snapshot, source_label
+from .explain import DRIFT_BRIGHTNESS_TOLERANCE, build_explain_snapshot, source_label
 from .policy import DesiredOutputs, desired_outputs
 from .precedence import is_scene_source
 from .world import WorldStore
@@ -13,6 +13,7 @@ from .world import WorldStore
 logger = logging.getLogger("pccs")
 
 CommandedLight = Tuple[int, str]
+ANIMATED_RAMP_SOURCES = frozenset({"reed", "phase", "scene", "ui", "startup"})
 
 
 class Reconciler:
@@ -43,8 +44,56 @@ class Reconciler:
         self._commanded_relays: Dict[str, bool] = {}
         self._commanded_screens: Dict[str, bool] = {}
         self._commanded_at: Dict[str, float] = {}
-        self._drift_grace_s = max(3.0, cfg.reed_ramp_ms / 1000.0 + 1.0)
+        self._drift_grace_s = max(
+            5.0,
+            cfg.reed_ramp_ms / 1000.0 + cfg.optimistic_lock_duration_s + 2.0,
+        )
         self._active_drifts: Dict[str, str] = {}
+        self._pending_reed_command: set[str] = set()
+        self._last_emit_meta: Dict[str, object] = {}
+
+    def _reeds_for_invalidation(self, reed_name: str) -> set[str]:
+        """Reeds whose outputs may change when reed_name transitions (incl. interlock dependents)."""
+        reeds = {reed_name}
+        for dependent in self.cfg.interlock_dependents.get(reed_name, []):
+            reeds.add(dependent)
+        return reeds
+
+    def invalidate_commanded_for_reed(self, reed_name: str) -> set[str]:
+        """Drop commanded/observed cache for outputs tied to a reed so hardware is re-sent."""
+        lights: set[str] = set()
+        for reed in self._reeds_for_invalidation(reed_name):
+            for light, mapped_reed in self.cfg.light_to_reed.items():
+                if mapped_reed == reed:
+                    lights.add(light)
+        if reed_name in self.cfg.reed_names:
+            lights.update(self.cfg.ambient_lights)
+
+        for light in lights:
+            self._commanded_lights.pop(light, None)
+            self._commanded_at.pop(light, None)
+            self._pending_reed_command.add(light)
+
+        if self.screens:
+            for screen_name, screen in self.cfg.screens.items():
+                if screen.get("linked_reed") == reed_name:
+                    self._commanded_screens.pop(screen_name, None)
+
+        return lights
+
+    def _should_recommand_light(
+        self,
+        light: str,
+        brightness: int,
+        cmd_b: int,
+        world,
+    ) -> bool:
+        if cmd_b != brightness:
+            return True
+        observed = world.observed_lights.get(light)
+        if observed is None:
+            return False
+        return abs(int(observed) - int(brightness)) > DRIFT_BRIGHTNESS_TOLERANCE
 
     def _preserve_lights_except(self, desired: DesiredOutputs, world, affected: set) -> None:
         """Keep untouched lights at their prior commanded or observed levels."""
@@ -85,7 +134,13 @@ class Reconciler:
 
             target_m = mode or "white"
             cmd_b, cmd_m = self._commanded_lights.get(light, (-1, ""))
-            if cmd_b != brightness or (light in self.cfg.rgb_lights and cmd_m != target_m):
+            needs_mode = light in self.cfg.rgb_lights and cmd_m != target_m
+            force_reed = ramp_source == "reed" and light in self._pending_reed_command
+            if (
+                force_reed
+                or self._should_recommand_light(light, brightness, cmd_b, world)
+                or needs_mode
+            ):
                 self.arduino.set_light(
                     light,
                     brightness,
@@ -96,6 +151,14 @@ class Reconciler:
                 )
                 self._commanded_lights[light] = (brightness, target_m)
                 self._commanded_at[light] = now
+                if ramp_source in ANIMATED_RAMP_SOURCES:
+                    self.world.seed_observed_light(
+                        light,
+                        brightness,
+                        target_m if light in self.cfg.rgb_lights else None,
+                    )
+                if force_reed:
+                    self._pending_reed_command.discard(light)
 
         for relay, on in desired.relays.items():
             if ui_pass and relay not in world.relay_intents:
@@ -125,7 +188,17 @@ class Reconciler:
         self._last_desired = desired
 
         if self.on_state_emit:
-            self.on_state_emit(self.build_ui_state(desired))
+            ui_state = self.build_ui_state(desired)
+            if ramp_source in ANIMATED_RAMP_SOURCES:
+                self._last_emit_meta = {
+                    "_animate": True,
+                    "_ramp_ms": ramp_ms,
+                    "_trigger": ramp_source,
+                }
+            else:
+                self._last_emit_meta = {}
+            ui_state.update(self._last_emit_meta)
+            self.on_state_emit(ui_state)
 
     def build_ui_state(self, desired: Optional[DesiredOutputs] = None) -> dict:
         desired = desired or self._last_desired
@@ -148,7 +221,23 @@ class Reconciler:
         """Refresh observed state from hardware reads."""
         lights, modes = self.arduino.read_lights()
         relays = self.relays.read_relays()
-        self.world.update_observed_lights(lights, modes)
+        now = time.time()
+        filtered_lights = dict(lights)
+        filtered_modes = dict(modes)
+        for light, brightness in list(filtered_lights.items()):
+            commanded_at = self._commanded_at.get(light, 0)
+            if now - commanded_at >= self._drift_grace_s:
+                continue
+            cmd = self._commanded_lights.get(light)
+            if not cmd:
+                continue
+            cmd_b, cmd_m = cmd
+            if brightness < cmd_b - DRIFT_BRIGHTNESS_TOLERANCE:
+                filtered_lights.pop(light, None)
+                filtered_modes.pop(light, None)
+            elif light in self.cfg.rgb_lights and filtered_modes.get(light) != cmd_m:
+                filtered_modes.pop(light, None)
+        self.world.update_observed_lights(filtered_lights, filtered_modes)
         self.world.update_observed_relays(relays)
 
     def check_hardware_drift(self) -> List[dict]:
@@ -215,12 +304,53 @@ class Reconciler:
 
         return drifts
 
+    def _apply_drift_grace_to_explain(self, snap: dict) -> dict:
+        """Hide transient observed/desired gaps while a ramp is still in flight."""
+        now = time.time()
+        grace = self._drift_grace_s
+
+        filtered_drifts: List[dict] = []
+        for item in snap.get("drifts", []):
+            key = item.get("light") or item.get("relay")
+            if not key:
+                continue
+            grace_key = f"relay:{key}" if "relay" in item else key
+            if now - self._commanded_at.get(grace_key, 0) < grace:
+                continue
+            filtered_drifts.append(item)
+
+        snap["drifts"] = filtered_drifts
+        snap["has_drift"] = len(filtered_drifts) > 0
+
+        for light, entry in snap.get("lights", {}).items():
+            if not entry.get("drift"):
+                entry.pop("ramping", None)
+                continue
+            commanded_at = self._commanded_at.get(light, 0)
+            if now - commanded_at < grace:
+                entry["drift"] = False
+                entry["ramping"] = True
+                entry.pop("drift_detail", None)
+            else:
+                entry.pop("ramping", None)
+
+        for relay, entry in snap.get("relays", {}).items():
+            if not entry.get("drift"):
+                continue
+            grace_key = f"relay:{relay}"
+            if now - self._commanded_at.get(grace_key, 0) < grace:
+                entry["drift"] = False
+                entry["ramping"] = True
+
+        return snap
+
     def explain_snapshot(self) -> dict:
         world = self.world.snapshot()
         desired = self._last_desired or desired_outputs(world, self.cfg)
-        return build_explain_snapshot(
+        snap = build_explain_snapshot(
             world,
             self.cfg,
             desired,
             last_trigger=self._last_ramp_source,
         )
+        return self._apply_drift_grace_to_explain(snap)

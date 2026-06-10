@@ -130,16 +130,35 @@
         grid.innerHTML = state.reeds.map(renderCard).join('');
     }
 
+    function applyForceResult(data) {
+        if (data?.reeds) onReedDiagUpdate(data.reeds);
+        if (!data?.state) return;
+        const rampMs = data.ramp_ms || data.state._ramp_ms || 2000;
+        window.PCCS4.lighting?.onStateUpdate(data.state, { animate: true, rampMs });
+        window.PCCS4.lightingHome?.onStateUpdate?.(data.state);
+    }
+
     function emitForceReed(name, closed) {
         const socket = getSocket();
         if (socket?.connected) {
             socket.emit('force_reed', { name, closed });
+            return;
         }
+        fetch('/api/reeds/force', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, closed }),
+            keepalive: true,
+        })
+            .then((res) => (res.ok ? res.json() : null))
+            .then(applyForceResult)
+            .catch((err) => console.warn('[PCCS4] force_reed HTTP failed', err));
     }
 
     function forceReed(name, closed) {
         state.forced[name] = closed;
         render();
+        window.PCCS4.lighting?.setReedActivating?.(true);
         emitForceReed(name, closed);
     }
 

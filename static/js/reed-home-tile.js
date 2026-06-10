@@ -1,62 +1,149 @@
 /**
- * PCCS4 Home page reed summary — built from reeds_config, updated via reed_update.
+ * PCCS4 Home page reed summary — open panels only, fade out when closed.
  */
 (function () {
     'use strict';
 
+    const FADE_MS = 1000;
+
     const listEl = document.getElementById('reed-home-list');
+    const emptyEl = document.getElementById('reed-home-empty');
+    const placeholderEl = document.getElementById('reed-home-placeholder');
     if (!listEl) return;
 
     const state = {
         reeds: [],
         raw: {},
+        pendingRemoval: new Map(),
     };
 
-    function renderList() {
-        if (!state.reeds.length) {
-            listEl.innerHTML = '<li class="reed-tile__item"><span class="reed-tile__name">Loading panels…</span></li>';
+    function isOpen(name) {
+        if (!Object.prototype.hasOwnProperty.call(state.raw, name)) return false;
+        return state.raw[name] === false;
+    }
+
+    function setOverlayVisible(el, visible) {
+        if (!el) return;
+        el.classList.toggle('is-visible', visible);
+        el.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    }
+
+    function clearPlaceholder() {
+        setOverlayVisible(placeholderEl, false);
+    }
+
+    function updateEmpty() {
+        setOverlayVisible(emptyEl, listEl.children.length === 0);
+    }
+
+    function fadeIn(el) {
+        el.classList.remove('is-fading-out');
+        el.classList.add('is-active', 'is-fading-in');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                el.classList.remove('is-fading-in');
+            });
+        });
+    }
+
+    function insertInOrder(el, reed) {
+        const idx = state.reeds.findIndex((item) => item.name === reed.name);
+        const nextReed = state.reeds[idx + 1];
+        const nextEl = nextReed
+            ? document.getElementById(`reed-${nextReed.name}`)
+            : null;
+        if (nextEl) {
+            listEl.insertBefore(el, nextEl);
+        } else {
+            listEl.appendChild(el);
+        }
+    }
+
+    function ensureItem(reed) {
+        let el = document.getElementById(`reed-${reed.name}`);
+        if (el) return el;
+
+        el = document.createElement('li');
+        el.id = `reed-${reed.name}`;
+        el.className = 'reed-tile__item is-open';
+        el.dataset.reedName = reed.name;
+        el.innerHTML = `
+            <span class="reed-tile__status" aria-hidden="true"></span>
+            <span class="reed-tile__name"></span>
+            <span class="reed-tile__state" aria-live="polite">Open</span>`;
+        el.querySelector('.reed-tile__name').textContent = reed.label;
+        insertInOrder(el, reed);
+        return el;
+    }
+
+    function fadeOut(name) {
+        const el = document.getElementById(`reed-${name}`);
+        if (!el || el.classList.contains('is-fading-out')) return;
+
+        clearTimeout(state.pendingRemoval.get(name));
+        el.classList.add('is-fading-out');
+        el.classList.remove('is-active');
+
+        const timeoutId = window.setTimeout(() => {
+            el.remove();
+            state.pendingRemoval.delete(name);
+            updateEmpty();
+        }, FADE_MS);
+        state.pendingRemoval.set(name, timeoutId);
+    }
+
+    function showReed(reed) {
+        if (!isOpen(reed.name)) {
+            const el = document.getElementById(`reed-${reed.name}`);
+            if (el?.classList.contains('is-active')) fadeOut(reed.name);
             return;
         }
 
-        listEl.innerHTML = state.reeds.map((reed) => {
-            const closed = Object.prototype.hasOwnProperty.call(state.raw, reed.name)
-                ? state.raw[reed.name]
-                : true;
-            const isClosed = closed !== false;
-            return `
-                <li class="reed-tile__item ${isClosed ? 'is-closed' : 'is-open'}"
-                    id="reed-${reed.name}"
-                    data-reed-name="${reed.name}">
-                    <span class="reed-tile__status" aria-hidden="true"></span>
-                    <span class="reed-tile__name">${reed.label}</span>
-                    <span class="reed-tile__state" aria-live="polite">${isClosed ? 'Closed' : 'Open'}</span>
-                </li>`;
-        }).join('');
+        clearTimeout(state.pendingRemoval.get(reed.name));
+        state.pendingRemoval.delete(reed.name);
+
+        const el = ensureItem(reed);
+        const wasActive = el.classList.contains('is-active') && !el.classList.contains('is-fading-out');
+        if (wasActive) {
+            el.classList.remove('is-fading-out', 'is-fading-in');
+            el.classList.add('is-active', 'is-open');
+        } else {
+            fadeIn(el);
+            el.classList.add('is-open');
+        }
+        updateEmpty();
     }
 
-    function updateReed(name, closed) {
-        state.raw[name] = closed;
-        const el = document.getElementById(`reed-${name}`);
-        if (!el) return;
-
-        const stateEl = el.querySelector('.reed-tile__state');
-        const isClosed = closed !== false;
-
-        el.classList.toggle('is-closed', isClosed);
-        el.classList.toggle('is-open', !isClosed);
-        if (stateEl) stateEl.textContent = isClosed ? 'Closed' : 'Open';
+    function refreshAll() {
+        state.reeds.forEach(showReed);
+        updateEmpty();
     }
 
     function onReedsConfig(reeds) {
         if (!Array.isArray(reeds) || !reeds.length) return;
+
+        clearPlaceholder();
         state.reeds = reeds.map((reed) => ({ ...reed }));
-        renderList();
-        Object.entries(state.raw).forEach(([name, closed]) => updateReed(name, closed));
+
+        listEl.querySelectorAll('.reed-tile__item').forEach((el) => {
+            const name = el.dataset.reedName;
+            if (!state.reeds.some((reed) => reed.name === name)) {
+                clearTimeout(state.pendingRemoval.get(name));
+                state.pendingRemoval.delete(name);
+                el.remove();
+            }
+        });
+
+        refreshAll();
     }
 
     function onReedUpdate(payload) {
         const states = payload?.states || {};
-        Object.entries(states).forEach(([name, closed]) => updateReed(name, closed));
+        Object.entries(states).forEach(([name, closed]) => {
+            state.raw[name] = closed;
+            const reed = state.reeds.find((item) => item.name === name);
+            if (reed) showReed(reed);
+        });
     }
 
     async function loadReeds() {
@@ -73,7 +160,6 @@
         }
     }
 
-    renderList();
     loadReeds();
 
     window.PCCS4 = window.PCCS4 || {};

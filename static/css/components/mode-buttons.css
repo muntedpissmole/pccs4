@@ -13,19 +13,18 @@
 }
 
 .appearance-tile__theme {
-    display: flex;
+    display: block;
     flex: 1;
-    align-items: center;
-    justify-content: center;
     width: 100%;
     min-height: 0;
     min-width: 0;
 }
 
 .appearance-tile__theme-select {
+    display: block;
     width: 100%;
     min-height: var(--size-mode-btn-height);
-    padding: 0 calc(var(--space-mode-btn-x) + 16px) 0 var(--space-mode-btn-x);
+    padding: 0 22px 0 8px;
     border: 1px solid var(--color-border);
     border-radius: calc(var(--tile-radius) * 2 / 3);
     background: var(--color-surface);
@@ -40,8 +39,8 @@
         linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%),
         linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%);
     background-position:
-        calc(100% - 18px) calc(50% - 3px),
-        calc(100% - 12px) calc(50% - 3px);
+        calc(100% - 10px) calc(50% - 3px),
+        calc(100% - 6px) calc(50% - 3px);
     background-size: 6px 6px, 6px 6px;
     background-repeat: no-repeat;
     transition:

@@ -19,18 +19,36 @@
         return `${Math.round(Number(value))}%`;
     }
 
+    function formatObserved(entry) {
+        if (entry.ramping) return 'ramping';
+        const observed = entry.observed_brightness;
+        if (observed == null) {
+            const desired = entry.desired_brightness;
+            if (desired == null) return '—';
+            return formatPercent(desired);
+        }
+        return formatPercent(observed);
+    }
+
+    function displayName(name, entry) {
+        return entry?.label || name;
+    }
+
     function renderLightRow(name, entry) {
+        const label = displayName(name, entry);
         const desired = formatPercent(entry.desired_brightness);
-        const observed = formatPercent(entry.observed_brightness);
+        const observed = formatObserved(entry);
         const mode = entry.desired_mode && entry.desired_mode !== 'white'
             ? ` · ${entry.desired_mode}`
             : '';
-        const driftClass = entry.drift ? ' explain-tile__row--drift' : '';
+        const rowClass = entry.drift
+            ? ' explain-tile__row--drift'
+            : (entry.ramping ? ' explain-tile__row--ramping' : '');
 
         return `
-            <div class="explain-tile__row${driftClass}">
+            <div class="explain-tile__row${rowClass}">
                 <div class="explain-tile__row-main">
-                    <span class="explain-tile__name">${name}</span>
+                    <span class="explain-tile__name">${label}</span>
                     <span class="explain-tile__levels">${desired}${mode} → ${observed}</span>
                 </div>
                 <span class="explain-tile__source">${entry.source_label || entry.source || '—'}</span>
@@ -38,14 +56,17 @@
     }
 
     function renderRelayRow(name, entry) {
+        const label = displayName(name, entry);
         const desired = entry.desired ? 'ON' : 'OFF';
         const observed = entry.observed == null ? '—' : (entry.observed ? 'ON' : 'OFF');
-        const driftClass = entry.drift ? ' explain-tile__row--drift' : '';
+        const rowClass = entry.drift
+            ? ' explain-tile__row--drift'
+            : (entry.ramping ? ' explain-tile__row--ramping' : '');
 
         return `
-            <div class="explain-tile__row${driftClass}">
+            <div class="explain-tile__row${rowClass}">
                 <div class="explain-tile__row-main">
-                    <span class="explain-tile__name">${name}</span>
+                    <span class="explain-tile__name">${label}</span>
                     <span class="explain-tile__levels">${desired} → ${observed}</span>
                 </div>
                 <span class="explain-tile__source">relay</span>
@@ -64,7 +85,7 @@
             <p class="explain-tile__drifts-title">Hardware drift</p>
             <ul class="explain-tile__drifts-list">
                 ${drifts.map((item) => {
-                    const label = item.light || item.relay || 'output';
+                    const label = item.label || item.light || item.relay || 'output';
                     return `<li><strong>${label}</strong> — ${item.detail || 'mismatch'}</li>`;
                 }).join('')}
             </ul>`;
@@ -80,21 +101,28 @@
         headlineEl.textContent = `${phase}${scene}${forced}`;
 
         const driftCount = Array.isArray(data.drifts) ? data.drifts.length : 0;
+        const rampCount = Object.values(data.lights || {}).filter((e) => e.ramping).length
+            + Object.values(data.relays || {}).filter((e) => e.ramping).length;
+        const trigger = data.last_reconcile_trigger || 'unknown';
+
         if (driftCount) {
-            detailEl.textContent = `${driftCount} drift${driftCount === 1 ? '' : 's'} · trigger ${data.last_reconcile_trigger || 'unknown'}`;
+            detailEl.textContent = `${driftCount} drift${driftCount === 1 ? '' : 's'} · trigger ${trigger}`;
             detailEl.classList.add('is-warning');
+        } else if (rampCount) {
+            detailEl.textContent = `Ramping ${rampCount} output${rampCount === 1 ? '' : 's'} · trigger ${trigger}`;
+            detailEl.classList.remove('is-warning');
         } else {
-            detailEl.textContent = `Aligned · trigger ${data.last_reconcile_trigger || 'unknown'}`;
+            detailEl.textContent = `Aligned · trigger ${trigger}`;
             detailEl.classList.remove('is-warning');
         }
 
         const lightRows = Object.entries(data.lights || {})
-            .sort(([a], [b]) => a.localeCompare(b))
+            .sort(([, a], [, b]) => displayName('', a).localeCompare(displayName('', b)))
             .map(([name, entry]) => renderLightRow(name, entry))
             .join('');
 
         const relayRows = Object.entries(data.relays || {})
-            .sort(([a], [b]) => a.localeCompare(b))
+            .sort(([, a], [, b]) => displayName('', a).localeCompare(displayName('', b)))
             .map(([name, entry]) => renderRelayRow(name, entry))
             .join('');
 
@@ -103,7 +131,8 @@
     }
 
     async function refresh() {
-        if (!window.PCCS4?.isSystemTabActive) return;
+        const tile = document.getElementById('tile-explain');
+        if (!tile || tile.closest('.page-section')?.hidden) return;
         try {
             const res = await fetch('/api/explain', { cache: 'no-store' });
             if (!res.ok) return;

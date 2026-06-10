@@ -23,14 +23,17 @@ def _parse_level(val: str, default_mode: str = "white") -> Optional[Level]:
 @dataclass
 class CompiledConfig:
     light_names: List[str] = field(default_factory=list)
+    light_labels: Dict[str, str] = field(default_factory=dict)
     pwm_lights: Dict[str, int] = field(default_factory=dict)
     rgb_lights: Dict[str, dict] = field(default_factory=dict)
     relay_names: List[str] = field(default_factory=list)
+    relay_labels: Dict[str, str] = field(default_factory=dict)
 
     reed_names: List[str] = field(default_factory=list)
     reed_to_lights: Dict[str, List[str]] = field(default_factory=dict)
     light_to_reed: Dict[str, str] = field(default_factory=dict)
     interlocks: Dict[str, List[str]] = field(default_factory=dict)
+    interlock_dependents: Dict[str, List[str]] = field(default_factory=dict)
 
     ambient_lights: List[str] = field(default_factory=list)
     all_closed_action: str = "off"
@@ -47,6 +50,7 @@ class CompiledConfig:
     reed_debounce_ms: int = 50
     reconcile_interval_s: int = 30
     sync_interval_s: int = 45
+    optimistic_lock_duration_s: float = 2.5
 
 
 def compile_config(cfg) -> CompiledConfig:
@@ -60,6 +64,9 @@ def compile_config(cfg) -> CompiledConfig:
     out.reed_debounce_ms = cfg.getint("reed_monitor", "reed_debounce_ms", fallback=50)
     out.sync_interval_s = cfg.getint("background_sync", "sync_interval", fallback=45)
     out.reconcile_interval_s = 30
+    out.optimistic_lock_duration_s = cfg.getfloat(
+        "arduino", "optimistic_lock_duration", fallback=2.5
+    )
 
     if cfg.has_section("ambient"):
         out.all_closed_action = cfg.get("ambient", "all_closed_action", fallback="off").strip().lower()
@@ -71,6 +78,7 @@ def compile_config(cfg) -> CompiledConfig:
             if len(parts) < 4:
                 continue
             out.light_names.append(name)
+            out.light_labels[name] = parts[0]
             ltype = parts[1].lower()
             if ltype == "pwm":
                 try:
@@ -92,6 +100,7 @@ def compile_config(cfg) -> CompiledConfig:
             parts = [p.strip() for p in str(line).split("|")]
             if len(parts) >= 2:
                 out.relay_names.append(name)
+                out.relay_labels[name] = parts[0]
 
     # Reeds
     if cfg.has_section("reeds"):
@@ -119,6 +128,9 @@ def compile_config(cfg) -> CompiledConfig:
             out.interlocks[reed.strip()] = [
                 x.strip() for x in str(required).split(",") if x.strip()
             ]
+        for controlled, required_list in out.interlocks.items():
+            for required in required_list:
+                out.interlock_dependents.setdefault(required, []).append(controlled)
 
     # Reed phase levels (preferred)
     for section in cfg.sections():

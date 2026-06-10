@@ -24,12 +24,9 @@ class SensorManager:
         # ====================== CALIBRATION FROM CONFIG ======================
         self.WATER_R_EMPTY = config.getfloat('sensors', 'water_resistance_empty')
         self.WATER_R_FULL = config.getfloat('sensors', 'water_resistance_full')
-        self.LPG_R_EMPTY = config.getfloat('sensors', 'lpg_resistance_empty', fallback=200.0)
-        self.LPG_R_FULL = config.getfloat('sensors', 'lpg_resistance_full', fallback=33.0)
 
         # Analog input pins (via Arduino)
         self.WATER_PIN = config.getint('arduino analog', 'water_pin')
-        self.LPG_PIN = config.getint('sensors', 'lpg_pin', fallback=-1)
 
         # 1-Wire DS18B20 sensor IDs (folder names under /sys/bus/w1/devices/, e.g. "28-3ce1d4435d5a")
         # Leave blank to auto-detect first available 28* device.
@@ -171,13 +168,6 @@ class SensorManager:
 
         water_pct = self._calculate_water(adc_water, vcc)
 
-        lpg_pct = None
-        if self.LPG_PIN >= 0:
-            adc_lpg = self._read_analog(self.LPG_PIN)
-            lpg_pct = self._calculate_level_percent(
-                adc_lpg, vcc, self.LPG_R_EMPTY, self.LPG_R_FULL
-            )
-
         sensor_data = {
             "water_percent": water_pct,
             "temp_c": outside_temp if outside_temp is not None else None,  # legacy key
@@ -185,8 +175,6 @@ class SensorManager:
             "fridge_temp_c": fridge_temp,
             "temp_valid": outside_temp is not None,
         }
-        if lpg_pct is not None:
-            sensor_data["lpg_percent"] = lpg_pct
 
         self.last_reading = sensor_data
         logger.debug("📤 Emitting sensor data: %s", sensor_data)

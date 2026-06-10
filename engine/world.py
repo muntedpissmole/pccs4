@@ -114,6 +114,20 @@ class WorldStore:
             if modes:
                 self._state.observed_light_modes.update(modes)
 
+    def seed_observed_light(self, name: str, brightness: int, mode: Optional[str] = None):
+        """Optimistic observed level while a ramp is in flight (replaced on next hardware read)."""
+        with self._lock:
+            self._state.observed_lights[name] = brightness
+            if mode is not None:
+                self._state.observed_light_modes[name] = mode
+
+    def clear_observed_lights(self, lights) -> None:
+        """Drop cached hardware reads so reconcile won't trust stale levels."""
+        with self._lock:
+            for light in lights:
+                self._state.observed_lights.pop(light, None)
+                self._state.observed_light_modes.pop(light, None)
+
     def update_observed_relays(self, relays: Dict[str, bool]):
         with self._lock:
             self._state.observed_relays.update(relays)

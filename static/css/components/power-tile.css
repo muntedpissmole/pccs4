@@ -249,6 +249,7 @@ html.light #tile-power .water-tile__gauge-markers span {
 .power-tile__marker-labels {
     position: relative;
     height: 1em;
+    padding-bottom: var(--space-datetime-curve-pad-y);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     color: var(--color-text-muted);
@@ -260,6 +261,18 @@ html.light #tile-power .water-tile__gauge-markers span {
 .power-tile__marker-labels span {
     position: absolute;
     top: 0;
+}
+
+/* Render via CSS so Firefox iOS won't auto-link adjacent digits as a phone number. */
+.power-tile__marker-labels span::before {
+    display: block;
+    content: attr(data-label);
+}
+
+.power-tile__marker-labels a {
+    color: inherit;
+    text-decoration: none;
+    pointer-events: none;
 }
 
 .power-tile__marker-labels span:nth-child(1) {

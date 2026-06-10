@@ -67,6 +67,15 @@
     outline: 1px solid color-mix(in srgb, #fbbf24 55%, transparent);
 }
 
+.explain-tile__row--ramping {
+    outline: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+.explain-tile__row--ramping .explain-tile__source {
+    color: var(--color-accent);
+    opacity: 0.85;
+}
+
 .explain-tile__row-main {
     display: flex;
     flex-direction: column;

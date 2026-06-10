@@ -6,13 +6,13 @@
 @import url("css/components/climate-tile.css");
 @import url("css/components/water-tile.css");
 @import url("css/components/network-tile.css");
-@import url("css/components/lpg-tile.css");
 @import url("css/components/power-tile.css");
 @import url("css/components/sonos-tile.css");
 @import url("css/components/location-tile.css");
 @import url("css/components/system-tile.css");
 @import url("css/components/pccs-core-tile.css");
 @import url("css/components/reed-tile.css");
+@import url("css/components/lighting-home-tile.css");
 
 @import url("css/components/mode-buttons.css");
 @import url("css/components/lighting.css");

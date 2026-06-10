@@ -18,10 +18,9 @@
 #tile-water .water-tile__gauge-wrap {
     position: relative;
     z-index: 3;
-    display: flex;
+    display: grid;
+    place-items: center;
     flex: 1;
-    align-items: center;
-    justify-content: center;
     width: 100%;
     min-height: 0;
     min-width: 0;
@@ -38,7 +37,7 @@
     width: auto;
     max-width: 100%;
     aspect-ratio: 1;
-    margin-inline: auto;
+    justify-self: center;
 }
 
 #tile-water .water-tile__ring {

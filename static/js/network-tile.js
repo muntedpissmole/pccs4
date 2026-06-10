@@ -14,6 +14,7 @@
         signal: tile.querySelector('.network-tile__row--signal .network-tile__row-value'),
         ping: tile.querySelector('.network-tile__ping'),
         speeds: tile.querySelectorAll('.network-tile__speed'),
+        linkSpeedRow: tile.querySelector('.network-tile__link-speed-row'),
         linkSpeed: tile.querySelector('.network-tile__link-speed'),
     };
 
@@ -67,8 +68,12 @@
         if (speedEls[1]) {
             speedEls[1].textContent = inet.tx_kbps != null ? `↑${Math.round(inet.tx_kbps)}` : '↑—';
         }
+        const hasLinkSpeed = inet.link_speed_mbps != null && inet.link_speed_mbps > 0;
+        if (els.linkSpeedRow) {
+            els.linkSpeedRow.hidden = !hasLinkSpeed;
+        }
         if (els.linkSpeed) {
-            els.linkSpeed.textContent = inet.link_speed_mbps ? `${inet.link_speed_mbps}M` : '';
+            els.linkSpeed.textContent = hasLinkSpeed ? `${inet.link_speed_mbps} Mbps` : '—';
         }
     }
 

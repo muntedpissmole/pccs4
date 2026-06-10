@@ -84,14 +84,36 @@ def _read_iface_bytes(iface: str) -> tuple[int, int] | None:
 
 
 def _read_link_speed_mbps(iface: str) -> int | None:
+    """Best-effort negotiated link speed in Mbps (sysfs for wired, iw for wireless)."""
+    if not iface:
+        return None
+
     speed_path = Path(f"/sys/class/net/{iface}/speed")
     try:
         value = int(speed_path.read_text(encoding="ascii").strip())
+        if 0 < value <= 100_000:
+            return value
     except (OSError, ValueError):
-        return None
-    if value <= 0 or value > 100_000:
-        return None
-    return value
+        pass
+
+    try:
+        out = subprocess.check_output(
+            ["iw", "dev", iface, "link"],
+            stderr=subprocess.DEVNULL,
+            timeout=2,
+            text=True,
+        )
+        for line in out.splitlines():
+            if "tx bitrate" not in line.lower():
+                continue
+            for part in line.split():
+                token = part.rstrip(":")
+                if token.replace(".", "", 1).isdigit():
+                    return int(round(float(token)))
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+    return None
 
 
 def _throughput_kbps(iface: str | None) -> tuple[float, float]:

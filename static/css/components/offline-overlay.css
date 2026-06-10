@@ -16,7 +16,6 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-sizing: border-box;
-    width: 100vw;
     height: 100dvh;
     min-height: 100dvh;
     min-height: -webkit-fill-available;

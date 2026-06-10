@@ -40,10 +40,8 @@
     height: 4.75rem;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.28),
-        0 0 0 1px rgba(0, 0, 0, 0.12) inset;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-drop-sm);
 }
 
 .sonos-tile__body {
@@ -138,8 +136,8 @@
     width: 100%;
     height: 8px;
     border-radius: var(--radius-pill);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: var(--color-highlight-subtle);
+    border: 1px solid var(--color-border);
     box-shadow: inset 0 1px 3px var(--shadow-dark);
     overflow: hidden;
 }
@@ -169,7 +167,6 @@
     color: var(--color-text-muted);
     line-height: 1;
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
 .sonos-tile__controls-row {
@@ -195,17 +192,15 @@
     width: var(--size-mode-btn-height);
     height: var(--size-mode-btn-height);
     padding: 0;
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    border: 1px solid var(--color-border);
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.35);
+    background: var(--color-surface);
     color: var(--color-text);
     font-size: var(--font-size-nav-icon);
     line-height: 1;
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
     transition:
         background var(--duration-fast) ease,
         border-color var(--duration-fast) ease,
@@ -230,13 +225,12 @@
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.65));
     transition: color var(--duration-fast) ease, transform var(--duration-fast) ease;
 }
 
 .sonos-tile__transport-btn:hover {
     border-color: var(--color-accent-border);
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-surface-active);
 }
 
 .sonos-tile__mute-btn:hover {
@@ -290,8 +284,8 @@
     width: 100%;
     height: 8px;
     border-radius: var(--radius-pill);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: var(--color-highlight-subtle);
+    border: 1px solid var(--color-border);
     box-shadow: inset 0 1px 3px var(--shadow-dark);
 }
 
@@ -326,7 +320,6 @@
     line-height: 1;
     font-variant-numeric: tabular-nums;
     text-align: right;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
 .sonos-tile__volume {

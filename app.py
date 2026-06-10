@@ -16,7 +16,6 @@ from flask_socketio import SocketIO, emit
 
 from bridge.runtime import PCCSRuntime
 from gps import get_gps_status, set_gps_module
-from lpg import get_lpg_status, set_sensor_manager
 from modules.config import config
 from modules.gps import GPSModule
 from modules.logger import setup_logging
@@ -169,11 +168,6 @@ def api_gps():
 @app.route("/api/system")
 def api_system():
     return jsonify(get_system_status())
-
-
-@app.route("/api/lpg")
-def api_lpg():
-    return jsonify(get_lpg_status())
 
 
 @app.route("/api/weather")
@@ -341,6 +335,30 @@ def api_set_scene():
         "ok": True,
         "state": runtime.get_ui_state(),
         "ramp_ms": runtime.compiled.scene_ramp_ms,
+    })
+
+
+@app.route("/api/lights")
+def api_get_lights():
+    return jsonify({
+        "lights": runtime.get_frontend_config(),
+        "state": runtime.get_ui_state(),
+    })
+
+
+@app.route("/api/reeds/force", methods=["POST"])
+def api_force_reed():
+    data = request.get_json(silent=True) or {}
+    name = data.get("name")
+    if name is None:
+        return jsonify({"ok": False, "error": "name required"}), 400
+    state = runtime.force_reed(name, data.get("closed"))
+    return jsonify({
+        "ok": True,
+        "state": state,
+        "ramp_ms": state.get("_ramp_ms") or runtime.compiled.reed_ramp_ms,
+        "reeds": runtime.get_reed_diag_json(),
+        "effective": runtime.effective_reed_states(),
     })
 
 
@@ -702,7 +720,6 @@ def _startup():
 
     sensor_manager = SensorManager(config, runtime.arduino.send_command, socketio)
     runtime.sensor_manager = sensor_manager
-    set_sensor_manager(sensor_manager)
 
     gps_module.init_gps()
     gps_module.init_geolocator()

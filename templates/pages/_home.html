@@ -67,13 +67,17 @@
                             <span class="network-tile__row-label">Latency</span>
                             <span class="network-tile__row-value network-tile__ping">—</span>
                         </div>
-                        <div class="network-tile__speeds" aria-label="Transfer rates">
-                            <div class="network-tile__speed-group">
+                        <div class="network-tile__row network-tile__throughput" aria-label="Transfer rates">
+                            <span class="network-tile__row-label">Traffic</span>
+                            <span class="network-tile__row-value network-tile__throughput-values">
                                 <span class="network-tile__speed">↓—</span>
                                 <span class="network-tile__speed">↑—</span>
                                 <span class="network-tile__speed-unit">KB/s</span>
-                            </div>
-                            <span class="network-tile__link-speed"></span>
+                            </span>
+                        </div>
+                        <div class="network-tile__row network-tile__link-speed-row" hidden>
+                            <span class="network-tile__row-label">Link speed</span>
+                            <span class="network-tile__row-value network-tile__link-speed">—</span>
                         </div>
                     </div>
                 </div>
@@ -208,11 +212,11 @@
                             </div>
                         </div>
                         <div class="power-tile__marker-labels" aria-hidden="true">
-                            <span>0</span>
-                            <span>25</span>
-                            <span>50</span>
-                            <span>75</span>
-                            <span>100</span>
+                            <span data-label="0"></span>
+                            <span data-label="25"></span>
+                            <span data-label="50"></span>
+                            <span data-label="75"></span>
+                            <span data-label="100"></span>
                         </div>
                         </div>
                     </div>
@@ -316,32 +320,22 @@
                     </div>
                 </div>
             </article>
-            <article class="tile" id="tile-lpg">
-                <i class="fa-solid fa-fire tile__icon" aria-hidden="true"></i>
-                <p class="tile__label">LPG</p>
-                <div class="lpg-tile__gauge-wrap">
-                    <div
-                        class="lpg-tile__gauge"
-                        id="lpg-gauge"
-                        role="meter"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                        aria-valuenow="0"
-                        aria-label="LPG tank level"
-                    >
-                        <svg class="lpg-tile__ring" viewBox="0 0 120 120" aria-hidden="true">
-                            <circle class="lpg-tile__ring-track" cx="60" cy="60" r="52"></circle>
-                            <circle class="lpg-tile__ring-fill" id="lpg-gauge-fill" cx="60" cy="60" r="52"></circle>
-                        </svg>
-                        <p class="lpg-tile__percent" id="lpg-percent" aria-live="polite">—%</p>
-                    </div>
+            <article class="tile" id="tile-lighting-home">
+                <i class="fa-solid fa-lightbulb tile__icon" aria-hidden="true"></i>
+                <p class="tile__label">Lighting</p>
+                <div class="lighting-home-tile__body">
+                    <p class="lighting-home-tile__placeholder is-visible" id="lighting-home-placeholder">Loading lights…</p>
+                    <p class="lighting-home-tile__empty" id="lighting-home-empty" aria-hidden="true">All off</p>
+                    <ul class="lighting-home-tile__list" id="lighting-home-list" aria-label="Active lights"></ul>
                 </div>
             </article>
             <article class="tile" id="tile-reeds" aria-label="Panels">
                 <i class="fa-solid fa-door-open tile__icon" aria-hidden="true"></i>
                 <p class="tile__label">Panels</p>
                 <div class="reed-tile__body">
-                    <ul class="reed-tile__list" id="reed-home-list" aria-label="Panel status"></ul>
+                    <p class="reed-tile__placeholder is-visible" id="reed-home-placeholder">Loading panels…</p>
+                    <p class="reed-tile__empty" id="reed-home-empty" aria-hidden="true">All closed</p>
+                    <ul class="reed-tile__list" id="reed-home-list" aria-label="Open panels"></ul>
                 </div>
             </article>
             <article class="tile tile--span-2" id="tile-system">

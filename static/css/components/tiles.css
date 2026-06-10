@@ -4,6 +4,9 @@
     display: grid;
     gap: var(--space-tile-gap);
     align-items: stretch;
+    justify-items: stretch;
+    width: 100%;
+    min-width: 0;
 }
 
 .tile--span-2 {
@@ -14,7 +17,7 @@
     grid-row: span 2;
 }
 
-@media (min-width: 110.0625rem) {
+@media (min-width: 157.5625rem) {
     .tile-grid {
         grid-template-columns: repeat(9, minmax(0, 1fr));
     }
@@ -27,13 +30,13 @@
     #tile-power { order: 5; }
     #tile-gps { order: 6; }
     #tile-appearance { order: 7; }
-    #tile-lpg { order: 8; }
+    #tile-lighting-home { order: 8; }
     #tile-reeds { order: 9; }
     #tile-system { order: 10; }
     #tile-network { order: 11; }
 }
 
-@media (min-width: 70.0625rem) and (max-width: 110rem) {
+@media (min-width: 70.0625rem) and (max-width: 157.5rem) {
     .tile-grid {
         grid-template-columns: repeat(6, minmax(0, 1fr));
         /* Equal row floor — row 1 grows with Sonos ~208px at ~1264px; row 3 was dropping to ~171px */
@@ -59,7 +62,7 @@
         min-height: calc(13rem * 2 + var(--space-tile-gap));
     }
     #tile-gps { grid-column: 6; grid-row: 2; }
-    .tile-grid > #tile-lpg { grid-column: 1; grid-row: 3; }
+    .tile-grid > #tile-lighting-home { grid-column: 1; grid-row: 3; }
     .tile-grid > #tile-system { grid-column: 2 / span 2; grid-row: 3; }
     .tile-grid > #tile-reeds { grid-column: 6; grid-row: 3; }
 }
@@ -69,6 +72,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     height: 100%;
     min-height: var(--tile-min-height);
     padding: var(--tile-padding);
@@ -191,8 +197,36 @@
 }
 
 @media (max-width: 45rem) {
-    .tile-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* WebKit (iOS Safari/Firefox) sizes 1fr grid tracks unevenly on 2-col rows.
+       Flex + explicit calc widths avoids the ~20px right-column bias. */
+    #home .tile-grid {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+
+    /* height: 100% prevents flex cross-axis stretch on WebKit when the row
+       height comes from a sibling tile (water, appearance, blank stay short). */
+    #home .tile-grid > .tile {
+        height: auto;
+        align-self: stretch;
+    }
+
+    #home .tile-grid > .tile--span-2 {
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    #home .tile-grid > .tile:not(.tile--span-2) {
+        flex: 0 0 calc((100% - var(--space-tile-gap)) / 2);
+        width: calc((100% - var(--space-tile-gap)) / 2);
+        max-width: calc((100% - var(--space-tile-gap)) / 2);
+    }
+
+    /* Row-span only applies in the 6-col layout; on 2-col it skews auto-placement. */
+    .tile--span-rows-2 {
+        grid-row: span 1;
     }
 }
 

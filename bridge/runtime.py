@@ -9,7 +9,8 @@ from actuators.arduino import ArduinoActuator
 from actuators.relays import RelayActuator
 from actuators.screens import ScreenActuator
 from engine.config_compile import compile_config
-from engine.reconcile import Reconciler
+from engine.policy import desired_outputs
+from engine.reconcile import ANIMATED_RAMP_SOURCES, Reconciler
 from engine.world import WorldStore
 from inputs.reeds import ReedInput
 from modules.arduino import ArduinoManager
@@ -70,33 +71,73 @@ class PCCSRuntime:
     def reconcile(self, ramp_source: str = "auto"):
         with self._reconcile_lock:
             self.reconciler.reconcile(ramp_source=ramp_source)
+        if ramp_source in ANIMATED_RAMP_SOURCES:
+            self._schedule_post_ramp_read(self._ramp_ms_for_source(ramp_source))
+
+    def _reconcile_async(self, ramp_source: str = "auto"):
+        def _run():
+            try:
+                self.reconcile(ramp_source=ramp_source)
+            except Exception as e:
+                logger.warning(f"Async reconcile ({ramp_source}): {e}")
+
+        threading.Thread(
+            target=_run,
+            daemon=True,
+            name=f"Reconcile-{ramp_source}",
+        ).start()
+
+    def broadcast_ui_state(self):
+        """Push lighting slider state to every connected browser."""
+        self._emit_state(self.get_ui_state())
 
     def _emit_state(self, state: dict):
         if not self.socketio:
             return
         try:
-            self.socketio.emit("state_update", state, broadcast=True)
+            self.socketio.emit("state_update", state, namespace="/")
         except Exception as e:
-            logger.debug(f"state_update broadcast failed: {e}")
+            logger.warning(f"state_update broadcast failed: {e}")
+
+    def _schedule_post_ramp_read(self, ramp_ms: int):
+        """Re-read hardware after a ramp so observed state catches up before drift checks."""
+        delay_s = (
+            ramp_ms / 1000.0
+            + self.compiled.optimistic_lock_duration_s
+            + 0.5
+        )
+
+        def _work():
+            if self._shutdown.wait(delay_s):
+                return
+            try:
+                if self.arduino.is_connected():
+                    self.reconciler.read_hardware()
+            except Exception as e:
+                logger.debug(f"Post-ramp hardware read: {e}")
+
+        threading.Thread(target=_work, daemon=True, name="PostRampRead").start()
 
     def _on_hardware_drift(self, drifts: list):
         from modules.toasts import toast_manager
-        if not toast_manager or not drifts:
+        if not drifts:
             return
-        if len(drifts) == 1:
-            d = drifts[0]
-            key = d.get("light") or d.get("relay") or "output"
-            toast_manager.warning(
-                d.get("detail", "hardware mismatch"),
-                title=f"Drift: {key}",
-                duration=8000,
-            )
-        else:
-            toast_manager.warning(
-                f"{len(drifts)} outputs differ from desired state",
-                title="Hardware drift",
-                duration=8000,
-            )
+        if toast_manager:
+            if len(drifts) == 1:
+                d = drifts[0]
+                key = d.get("light") or d.get("relay") or "output"
+                toast_manager.warning(
+                    d.get("detail", "hardware mismatch"),
+                    title=f"Drift: {key}",
+                    duration=8000,
+                )
+            else:
+                toast_manager.warning(
+                    f"{len(drifts)} outputs differ from desired state",
+                    title="Hardware drift",
+                    duration=8000,
+                )
+        self.broadcast_ui_state()
 
     def get_explain_json(self) -> dict:
         return self.reconciler.explain_snapshot()
@@ -117,12 +158,16 @@ class PCCSRuntime:
 
     def on_reeds_updated(self, reeds: dict, transitioned_reeds: list):
         self.world.update_reeds(reeds, transition_reeds=transitioned_reeds)
+        for reed in transitioned_reeds or []:
+            self.reconciler.invalidate_commanded_for_reed(reed)
+        self._emit_state(self._preview_ui_state("reed"))
         self._emit_reeds()
-        self.reconcile(ramp_source="reed")
+        self._reconcile_async("reed")
 
     def on_phase_change(self, phase: str, forced: Optional[str], invalidate: bool):
         self.world.set_phase(phase, forced, invalidate=invalidate)
         self.reconcile(ramp_source="phase")
+        self.broadcast_ui_state()
 
     def set_light_intent(self, name: str, brightness: int, mode: Optional[str] = None):
         self.world.set_light_intent(name, brightness, mode, expires="until_reed_close")
@@ -156,18 +201,43 @@ class PCCSRuntime:
                 duration=4000 if scene.get("all_off") else 3500,
             )
 
-    def force_reed(self, name: str, closed: Optional[bool]):
+    @staticmethod
+    def _coerce_reed_closed(closed) -> Optional[bool]:
+        if closed is None:
+            return None
+        if isinstance(closed, bool):
+            return closed
+        if isinstance(closed, str):
+            value = closed.strip().lower()
+            if value in ("true", "1", "yes", "on", "closed"):
+                return True
+            if value in ("false", "0", "no", "off", "open"):
+                return False
+        return bool(closed)
+
+    def force_reed(self, name: str, closed: Optional[bool]) -> dict:
+        closed = self._coerce_reed_closed(closed)
         if name == "all" and closed is None:
             self.world.clear_all_reed_forces()
+            for reed in self.compiled.reed_names:
+                self.reconciler.invalidate_commanded_for_reed(reed)
         elif closed is None:
             self.world.set_reed_force(name, None)
         else:
+            if name not in self.compiled.reed_names:
+                logger.warning(f"force_reed ignored — unknown reed: {name}")
+                return self.get_ui_state()
             self.world.set_reed_force(name, closed)
         # Match phase force: operator overrides clear slider intents so policy
         # reflects the forced reed state, not stale manual levels.
         self.world.clear_all_light_intents()
+        if name != "all":
+            self.reconciler.invalidate_commanded_for_reed(name)
+        preview = self._preview_ui_state("reed")
+        self._emit_state(preview)
         self._emit_reeds()
-        self.reconcile(ramp_source="reed")
+        self._reconcile_async("reed")
+        return preview
 
     def force_phase(self, phase: Optional[str]):
         if not self.phase_manager:
@@ -181,7 +251,21 @@ class PCCSRuntime:
         self.reconcile(ramp_source="phase")
 
     def get_ui_state(self) -> dict:
-        return self.reconciler.build_ui_state()
+        state = self.reconciler.build_ui_state()
+        state.update(self.reconciler._last_emit_meta)
+        return state
+
+    def _preview_ui_state(self, ramp_source: str) -> dict:
+        """Desired UI levels from policy — no hardware I/O (for instant slider animation)."""
+        desired = desired_outputs(self.world.snapshot(), self.compiled)
+        state = self.reconciler.build_ui_state(desired)
+        if ramp_source in ANIMATED_RAMP_SOURCES:
+            state.update({
+                "_animate": True,
+                "_ramp_ms": self._ramp_ms_for_source(ramp_source),
+                "_trigger": ramp_source,
+            })
+        return state
 
     def get_reed_diag_json(self) -> dict:
         """Raw hardware + force overrides — diagnostics only."""
@@ -230,7 +314,6 @@ class PCCSRuntime:
                 if self.arduino.is_connected():
                     self.reconciler.read_hardware()
                     self.reconciler.report_hardware_drift()
-                    self._emit_state(self.get_ui_state())
             except Exception as e:
                 logger.debug(f"Hardware sync: {e}")
 

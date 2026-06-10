@@ -28,15 +28,30 @@ def _phase_key(world: WorldState) -> Optional[str]:
     return p if p in ("day", "evening", "night") else "evening"
 
 
-def effective_reed_closed(world: WorldState, reed: str, cfg: CompiledConfig) -> bool:
+def reed_raw_closed(world: WorldState, reed: str) -> bool:
+    """True when this reed is physically closed or operator-forced closed (ignoring interlock)."""
     if reed in world.reed_forces:
         return world.reed_forces[reed]
-    if world.reeds.get(reed, True):
+    return world.reeds.get(reed, True)
+
+
+def effective_reed_closed(world: WorldState, reed: str, cfg: CompiledConfig) -> bool:
+    """True when a reed is latched closed, forced closed, or interlocked closed."""
+    if reed_raw_closed(world, reed):
         return True
     for required in cfg.interlocks.get(reed, []):
         if effective_reed_closed(world, required, cfg):
             return True
     return False
+
+
+def reed_off_source(world: WorldState, reed: str, cfg: CompiledConfig) -> str:
+    """Policy source when a reed-linked light is held off."""
+    if reed_raw_closed(world, reed):
+        return "reed_closed"
+    if effective_reed_closed(world, reed, cfg):
+        return "reed_interlocked"
+    return "fallback"
 
 
 def any_reed_open(world: WorldState, cfg: CompiledConfig) -> bool:
@@ -166,9 +181,9 @@ def resolve_light(light: str, world: WorldState, cfg: CompiledConfig) -> Resolve
         resolved = ResolvedLight(intent.brightness, intent.mode or "white", "user_intent").clamped()
         return _safety_clamp(light, resolved, world, cfg)
 
-    # 2. Reed closed
+    # 2. Reed closed or interlocked
     if reed and effective_reed_closed(world, reed, cfg):
-        return ResolvedLight(0, "white", "reed_closed")
+        return ResolvedLight(0, "white", reed_off_source(world, reed, cfg))
 
     # 3. Scene
     scene_result = _scene_resolve(light, world, cfg)

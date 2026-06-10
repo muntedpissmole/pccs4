@@ -39,7 +39,7 @@ This project has been built with support for:
 - DS18B20 1-wire Temperature Sensor
 - fuel level sensor that scales from 240ohm (full) to 33ohm (empty)
 
-**Power Monitoring (Victron — replaces the removed Arduino voltage divider + CT)**
+**Power Monitoring (Victron)**
 - Victron SmartShunt (battery voltage, current, SoC, time remaining, etc.)
 - Victron SmartSolar MPPT (solar power, daily yield, charge state)
 - Connected over Bluetooth Low Energy using the `victron_ble` Python library (passive "Instant Readout" advertisements — no constant connection required)
@@ -60,7 +60,7 @@ This project has been built with support for:
 #### Portrait and Light Mode (Red indicates bug mode capable lights)
 <img src="images/ipad-glass-light-front-portrait.png" width="50%">
 
- #### Mobile
+#### Mobile
 |Glassmorphism|Neumorphism|
 |:-----------:|:---------:|
 |<img src="images/iphone-glass-dark-front.png">|<img src="images/iphone-neumorph-dark-angle.png">|
@@ -94,8 +94,8 @@ See /images folder for more examples.
 
 #### Arduino Mega
 **Outputs**
- Pin | Channel Type           | Description                            |
-:---:|:-----------------------|:---------------------------------------|
+| Pin | Channel Type           | Description                            |
+|:---:|:-----------------------|:---------------------------------------|
 | 2  | PWM/Output             | Kitchen Panel RGBW LED Strip - White   |
 | 3  | PWM/Output             | Kitchen Panel RGBW LED Strip - Red     |
 | 4  | PWM/Output             | Kitchen Panel RGBW LED Strip - Green   |
@@ -110,15 +110,15 @@ See /images folder for more examples.
 | 13 | PWM/Output             | Ensuite tent LED Strip                 |
 
 **Inputs**
- Pin | Channel Type           | Description                            |
-:---:|:-----------------------|:---------------------------------------|
+| Pin | Channel Type           | Description                            |
+|:---:|:-----------------------|:---------------------------------------|
 | A1 | Analog Input           | Water Level Sensor Input               |
 
 **Notes**
 <small>
 - Arduino Mega is used as RPI PWM/I2C servo driver expansion boards don't have enough power to drive the MOSFETs
 - Breadboard circuitboard for MOSFETs and outgoing lighting circuit connections is required
-- Some analog front-end (voltage divider / protection) may still be needed for the water level sender on A1
+- Some analog signal conditioning may still be needed for the water level sender on A1
 - Blue channels of RGB lights not used in this project due to Arduino channel capacity (Green is used to soften the red)
 </small>
 
@@ -140,9 +140,11 @@ After your first SSH login (step 4), set the Linux account and install path for 
 ```bash
 export USERNAME=pi
 export PCCS_HOME=/home/$USERNAME/pccs4
+export SCREEN_USER=pi
+export SCREEN_HOST=10.10.10.10
 ```
 
-Change `pi` if your account name differs. Remote touchscreen SSH users (e.g. `joel` in `[screens]`) are separate — see step 12.
+Change `USERNAME` if your PCCS Pi account name differs. `SCREEN_USER` and `SCREEN_HOST` must match the username and host in each `[screens]` entry in `config/pccs.conf` — see step 12.
 
 1.  Format an SD card with Debian Trixie 64-bit. Enable SSH during installation and edit all customisation options to suit.
 2.  Navigate to and open /boot/firmware/config.txt on the host computer before ejecting the SD card.
@@ -350,15 +352,15 @@ On the PCCS Pi, logged in as `$USERNAME`:
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
-ssh-copy-id joel@10.10.10.10
+ssh-copy-id $SCREEN_USER@$SCREEN_HOST
 ```
 
-Repeat `ssh-copy-id` for every touchscreen Pi. Replace the username and IP to match `[screens]` in your config.
+Repeat `ssh-copy-id` for every touchscreen Pi (update `SCREEN_USER` and `SCREEN_HOST` to match each `[screens]` entry).
 
 Verify non-interactive login (PCCS uses the same SSH flags):
 
 ```bash
-ssh -o BatchMode=yes -o PreferredAuthentications=publickey joel@10.10.10.10 'echo ok'
+ssh -o BatchMode=yes -o PreferredAuthentications=publickey $SCREEN_USER@$SCREEN_HOST 'echo ok'
 ```
 
 On each remote Pi, the SSH user must be able to write the brightness/blank sysfs file. See the notes under `[screens]` in `config/pccs.conf` if wake/sleep fails with permission errors.
@@ -482,7 +484,7 @@ Press Ctrl+S to save and then Ctrl+x to exit.
 sudo nano /etc/dnsmasq.conf
 ```
 Search for, uncomment and update the following lines or just paste everything at the end of the file:
-```bash
+```ini
 interface=eth0
 bind-interfaces
 except-interface=wlan0
@@ -501,7 +503,7 @@ Press Ctrl+S to save and then Ctrl+x to exit.
 sudo nano /etc/sysctl.conf
 ```
 Uncomment this line or add it to the bottom of the file:
-```bash
+```ini
 net.ipv4.ip_forward=1
 ```
 Press Ctrl+S to save and then Ctrl+x to exit.

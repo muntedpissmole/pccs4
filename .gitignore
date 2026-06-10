@@ -12,6 +12,10 @@ __pycache__/
 # Environment variables and secrets
 .env
 
+# Local UI preferences (per-device)
+config/active_theme.json
+config/active_dark_mode.json
+
 # Logs and temporary files
 logs/
 *.log

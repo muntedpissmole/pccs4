@@ -41,8 +41,8 @@
     backdrop-filter: var(--blur-tile);
     -webkit-backdrop-filter: var(--blur-tile);
     overflow: visible;
-    overscroll-behavior: none;
-    touch-action: manipulation;
+    overscroll-behavior: auto;
+    touch-action: auto;
     transition:
         transform var(--duration-fast) ease,
         background var(--duration-fast) ease,
@@ -242,7 +242,8 @@
     margin: 0 auto;
     cursor: grab;
     user-select: none;
-    touch-action: none;
+    /* pan-x: horizontal drag for brightness; vertical scroll passes to the page (Chrome wheel fix). */
+    touch-action: pan-x;
 }
 
 .slider-wrapper.dragging {

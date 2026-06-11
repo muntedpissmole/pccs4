@@ -16,7 +16,8 @@
         const navRect = nav.getBoundingClientRect();
         const itemRect = item.getBoundingClientRect();
         indicator.style.width = `${itemRect.width}px`;
-        indicator.style.transform = `translateX(${itemRect.left - navRect.left}px)`;
+        indicator.style.left = `${itemRect.left - navRect.left}px`;
+        indicator.style.transform = '';
     }
 
     function waitForFade() {

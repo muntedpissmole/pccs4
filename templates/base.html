@@ -12,6 +12,10 @@
     <script>
         (function () {
             var html = document.documentElement;
+            var ua = navigator.userAgent;
+            if (/Chrom(e|ium)/.test(ua) && !/Edg|OPR|SamsungBrowser/i.test(ua)) {
+                html.classList.add('is-chromium');
+            }
             var themeBase = {{ url_for('static', filename='css/themes/') | tojson }};
             try {
                 var mode = localStorage.getItem('pccs4-color-mode');

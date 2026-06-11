@@ -98,6 +98,8 @@ body::-webkit-scrollbar {
     align-items: center;
     gap: var(--space-header-gap);
     grid-column: 2;
+    width: calc(100% + 2 * var(--content-shadow-bleed));
+    max-width: calc(var(--size-content-max) + 2 * var(--content-shadow-bleed));
     margin-inline: calc(-1 * var(--content-shadow-bleed));
     padding-inline: var(--content-shadow-bleed);
     box-sizing: border-box;
@@ -373,7 +375,8 @@ main {
 
 .page-content {
     min-width: 0;
-    max-width: 100%;
+    width: calc(100% + 2 * var(--content-shadow-bleed));
+    max-width: calc(100% + 2 * var(--content-shadow-bleed));
     margin-inline: calc(-1 * var(--content-shadow-bleed));
     padding-inline: var(--content-shadow-bleed);
     overflow: visible;

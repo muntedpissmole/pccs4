@@ -219,13 +219,8 @@ html.light .reeds-system-tile__segmented {
 }
 
 .reeds-system-tile__card.is-closed .reeds-system-tile__segment[data-reed-action="closed"].is-selected {
-    background: color-mix(in srgb, var(--color-text-on-accent) 92%, transparent);
-    color: var(--color-bg);
-}
-
-html.light .reeds-system-tile__card.is-closed .reeds-system-tile__segment[data-reed-action="closed"].is-selected {
-    background: var(--color-text);
-    color: var(--color-bg);
+    background: var(--color-surface-active);
+    color: var(--color-text);
 }
 
 .reeds-system-tile__footer {

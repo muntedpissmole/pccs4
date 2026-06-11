@@ -14,6 +14,16 @@
     let reedActivating = false;
     const sceneAnimationCancels = {};
 
+    function sortByLabel(items) {
+        return items.slice().sort((a, b) =>
+            (a.label || a.name || '').localeCompare(
+                b.label || b.name || '',
+                undefined,
+                { sensitivity: 'base' },
+            ),
+        );
+    }
+
     const state = {
         lightsConfig: [],
         currentState: {},
@@ -245,7 +255,7 @@
             const data = await res.json();
             if (data.lights?.length) {
                 const hadConfig = state.lightsConfig.length > 0;
-                state.lightsConfig = data.lights;
+                state.lightsConfig = sortByLabel(data.lights);
                 if (!hadConfig) renderLightingControls();
             }
             if (data.state) {
@@ -892,7 +902,7 @@
         onLightsConfig(config) {
             backendConnected = true;
             const isFirstConfig = !state.lightsConfig.length;
-            state.lightsConfig = config || [];
+            state.lightsConfig = sortByLabel(config || []);
             if (isFirstConfig) {
                 state.currentState = {};
                 state.currentModes = {};

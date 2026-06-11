@@ -8,12 +8,33 @@
     const THEME_PATH = '/static/css/themes/';
     const STORAGE_KEY = 'pccs4-theme';
     const DEFAULT_THEME = 'neuglass';
+    const THEME_ALIASES = {
+        aurora: 'glassmorphism',
+        clay: 'claymorphism',
+        glass: 'glassmorphism',
+        noir: 'obsidian',
+    };
 
     let themes = [
+        { id: 'claymorphism', label: 'Claymorphism' },
+        { id: 'glassmorphism', label: 'Glassmorphism' },
         { id: 'neuglass', label: 'Neumorphism' },
+        { id: 'cyberpunk', label: 'Cyberpunk' },
+        { id: 'ember', label: 'Ember' },
+        { id: 'industrial', label: 'Industrial' },
+        { id: 'nebula', label: 'Nebula' },
         { id: 'minimal', label: 'OLED Minimal' },
+        { id: 'obsidian', label: 'Obsidian' },
+        { id: 'terminal', label: 'Terminal' },
         { id: 'void', label: 'Void' },
     ];
+
+    function compareThemes(a, b) {
+        const aMorph = a.label.toLowerCase().endsWith('morphism');
+        const bMorph = b.label.toLowerCase().endsWith('morphism');
+        if (aMorph !== bMorph) return aMorph ? -1 : 1;
+        return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+    }
 
     function getSocket() {
         return window.PCCS4?.socket ?? null;
@@ -23,9 +44,13 @@
         return themes.map((theme) => theme.id);
     }
 
+    function normalizeThemeId(name) {
+        return THEME_ALIASES[name] || name;
+    }
+
     function getStoredTheme() {
         try {
-            const stored = localStorage.getItem(STORAGE_KEY);
+            const stored = normalizeThemeId(localStorage.getItem(STORAGE_KEY));
             if (stored && themeIds().includes(stored)) {
                 return stored;
             }
@@ -52,7 +77,8 @@
     }
 
     function applyTheme(themeName, { persist = true, broadcast = false } = {}) {
-        const name = themeIds().includes(themeName) ? themeName : DEFAULT_THEME;
+        const resolved = normalizeThemeId(themeName);
+        const name = themeIds().includes(resolved) ? resolved : DEFAULT_THEME;
 
         document.documentElement.setAttribute('data-theme', name);
         document.querySelectorAll('link[data-theme-link]').forEach((link) => link.remove());
@@ -92,10 +118,12 @@
             if (!res.ok) return;
             const data = await res.json();
             if (!Array.isArray(data.themes) || !data.themes.length) return;
-            themes = data.themes.map((theme) => ({
-                id: theme.file,
-                label: theme.name || theme.file,
-            }));
+            themes = data.themes
+                .map((theme) => ({
+                    id: theme.file,
+                    label: theme.name || theme.file,
+                }))
+                .sort(compareThemes);
         } catch {
             /* keep built-in fallback list */
         }
@@ -106,7 +134,7 @@
             const res = await fetch('/api/current-theme', { cache: 'no-store' });
             if (!res.ok) return getStoredTheme();
             const data = await res.json();
-            return data.theme || getStoredTheme();
+            return normalizeThemeId(data.theme) || getStoredTheme();
         } catch {
             return getStoredTheme();
         }

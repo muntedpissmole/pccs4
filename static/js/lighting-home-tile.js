@@ -11,6 +11,23 @@
     const placeholderEl = document.getElementById('lighting-home-placeholder');
     if (!listEl) return;
 
+    function sortByLabel(items) {
+        return items.slice().sort((a, b) =>
+            (a.label || a.name || '').localeCompare(
+                b.label || b.name || '',
+                undefined,
+                { sensitivity: 'base' },
+            ),
+        );
+    }
+
+    function reorderList() {
+        state.lights.forEach((light) => {
+            const el = document.getElementById(`lighting-home-${light.name}`);
+            if (el?.parentElement === listEl) listEl.appendChild(el);
+        });
+    }
+
     const state = {
         lights: [],
         values: {},
@@ -158,7 +175,7 @@
         if (!Array.isArray(config) || !config.length) return;
 
         clearPlaceholder();
-        state.lights = config.map((light) => ({ ...light }));
+        state.lights = sortByLabel(config.map((light) => ({ ...light })));
 
         listEl.querySelectorAll('.lighting-home-tile__item').forEach((el) => {
             const name = el.dataset.lightName;
@@ -169,6 +186,7 @@
             }
         });
 
+        reorderList();
         refreshAll();
     }
 

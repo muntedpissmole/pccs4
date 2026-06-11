@@ -6,6 +6,7 @@
     gap: var(--space-tile-gap);
     min-width: 0;
     max-width: 100%;
+    overflow: visible;
 }
 
 @media (min-width: 40rem) {

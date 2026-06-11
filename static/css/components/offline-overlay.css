@@ -41,7 +41,7 @@
     padding: 24px 32px;
     border-radius: var(--tile-radius);
     background: var(--toast-error);
-    color: var(--color-text-on-accent);
+    color: #ffffff;
     box-shadow: var(--shadow-drop-md);
 }
 
@@ -89,8 +89,8 @@
     width: 28px;
     height: 28px;
     flex-shrink: 0;
-    border: 2px solid color-mix(in srgb, var(--color-text-on-accent) 35%, transparent);
-    border-top-color: var(--color-text-on-accent);
+    border: 2px solid color-mix(in srgb, #ffffff 35%, transparent);
+    border-top-color: #ffffff;
     border-radius: 50%;
 }
 

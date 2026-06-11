@@ -25,14 +25,14 @@
     --color-text-label: #67e8f9;
     --color-text-on-accent: #0a0f14;
 
-    --tile-bg: #000000;
-    --tile-bg-hover: #000000;
+    --tile-bg: rgba(10, 10, 15, 0.82);
+    --tile-bg-hover: rgba(32, 32, 52, 0.78);
     --tile-border: rgba(255, 255, 255, 0.09);
     --tile-shine: none;
     --tile-inner-border: transparent;
-    --tile-shadow-drop: none;
-    --tile-shadow-inset-top: transparent;
-    --tile-shadow-inset-bottom: transparent;
+    --tile-shadow-drop: 0 14px 48px -12px rgba(0, 0, 0, 0.75);
+    --tile-shadow-inset-top: rgba(255, 255, 255, 0.12);
+    --tile-shadow-inset-bottom: rgba(0, 0, 0, 0.35);
     --tile-hover-lift: -1px;
     --tile-radius: 20px;
 
@@ -47,7 +47,7 @@
 
     --blur-header: none;
     --blur-surface: none;
-    --blur-tile: none;
+    --blur-tile: blur(32px) saturate(180%);
 }
 
 html.light[data-theme="minimal"] {
@@ -62,12 +62,13 @@ html.light[data-theme="minimal"] {
     --color-text-label: #0ea5e9;
     --color-text-on-accent: #ffffff;
 
-    --tile-bg: #f8fafc;
-    --tile-bg-hover: #f8fafc;
-    --tile-border: rgba(148, 163, 184, 0.45);
+    --tile-bg: rgba(255, 255, 255, 0.92);
+    --tile-bg-hover: rgba(255, 255, 255, 0.95);
+    --tile-border: rgba(255, 255, 255, 0.7);
     --tile-shadow-drop: 0 8px 25px -8px rgba(0, 0, 0, 0.12);
     --tile-shadow-inset-top: rgba(255, 255, 255, 0.6);
     --tile-shadow-inset-bottom: rgba(0, 0, 0, 0.08);
+    --blur-tile: blur(32px) saturate(180%);
 
     --color-slider-bg: rgba(226, 232, 240, 0.6);
     --color-toggle-handle: #ffffff;
@@ -89,48 +90,26 @@ html.light[data-theme="minimal"] body {
     content: none !important;
 }
 
-/* ── Tile surfaces: flat black + border only (no glass/shadow) ── */
+/* ── Tile surfaces: OLED glass (from ~/pccs — rgba(10,10,15,0.82) + inset highlight) ── */
 
 [data-theme="minimal"] .tile,
 [data-theme="minimal"] .slider-card,
 [data-theme="minimal"] .scene-btn {
-    background: #000000 !important;
-    border: 1px solid rgba(255, 255, 255, 0.09) !important;
-    border-radius: 20px !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     overflow: visible !important;
 }
 
 [data-theme="minimal"] .tile::before,
-[data-theme="minimal"] .tile::after,
 [data-theme="minimal"] .slider-card::before,
-[data-theme="minimal"] .slider-card::after,
-[data-theme="minimal"] .scene-btn::before,
-[data-theme="minimal"] .scene-btn::after {
+[data-theme="minimal"] .scene-btn::before {
     content: none !important;
     display: none !important;
 }
 
-html.light[data-theme="minimal"] .tile,
-html.light[data-theme="minimal"] .slider-card,
-html.light[data-theme="minimal"] .scene-btn {
-    background: #f8fafc !important;
-    border: 1px solid rgba(148, 163, 184, 0.45) !important;
-    box-shadow: none !important;
-}
-
-[data-theme="minimal"] .tile:hover,
-[data-theme="minimal"] .slider-card:hover {
-    background: #000000 !important;
-    border-color: rgba(255, 255, 255, 0.14) !important;
-}
-
-html.light[data-theme="minimal"] .tile:hover,
-html.light[data-theme="minimal"] .slider-card:hover {
-    background: #f8fafc !important;
-    border-color: rgba(100, 116, 139, 0.55) !important;
+[data-theme="minimal"] .tile::after,
+[data-theme="minimal"] .slider-card::after,
+[data-theme="minimal"] .scene-btn::after {
+    content: none !important;
+    display: none !important;
 }
 
 /* ── Sliders (core OLED look) ── */
@@ -274,10 +253,10 @@ html.light[data-theme="minimal"] .tile-value {
 }
 
 [data-theme="minimal"] .scene-btn.active {
-    background: #000000 !important;
+    background: rgba(20, 240, 212, 0.12) !important;
     color: var(--color-text) !important;
     border-color: #14f0d4 !important;
-    box-shadow: none !important;
+    box-shadow: 0 0 0 2px rgba(20, 240, 212, 0.3) !important;
 }
 
 [data-theme="minimal"] .scene-btn.active i {

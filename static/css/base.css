@@ -95,10 +95,10 @@ body::-webkit-scrollbar {
     width: 100%;
     max-width: var(--size-content-max);
     margin: 0 auto;
-    padding: 0 var(--space-main-x);
+    padding: 0 calc(var(--space-main-x) + var(--content-shadow-bleed));
     box-sizing: border-box;
     min-width: 0;
-    overflow-x: clip;
+    overflow-x: visible;
 }
 
 .site-title-track {
@@ -335,10 +335,13 @@ main {
     width: 100%;
     max-width: var(--size-content-max);
     margin: 0 auto;
-    padding: var(--space-main-x) var(--space-main-x) var(--space-main-bottom);
+    padding:
+        var(--space-main-x)
+        calc(var(--space-main-x) + var(--content-shadow-bleed))
+        var(--space-main-bottom);
     box-sizing: border-box;
     min-width: 0;
-    overflow-x: clip;
+    overflow-x: visible;
 }
 
 .page-stage {
@@ -346,14 +349,14 @@ main {
     grid-template-columns: 1fr;
     min-width: 0;
     max-width: 100%;
-    overflow-x: clip;
+    overflow-x: visible;
 }
 
 .page-section {
     grid-area: 1 / 1;
     min-width: 0;
     max-width: 100%;
-    overflow-x: clip;
+    overflow-x: visible;
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--duration-page-fade) ease,
@@ -370,6 +373,7 @@ main {
 .page-content {
     min-width: 0;
     max-width: 100%;
+    overflow: visible;
 }
 
 .page-content > h1 {
@@ -523,4 +527,38 @@ main::-webkit-scrollbar,
 .slider-card::-webkit-scrollbar,
 .tile::-webkit-scrollbar {
     display: none;
+}
+
+/* ── Wide viewport & fullscreen ── */
+
+/*
+ * 9-col layout needs whole-pixel column widths (see tokens.css). Frosted
+ * backdrop-filter and body blend layers make subpixel text look worse, so
+ * drop tile blur on glassmorphism at that breakpoint and in fullscreen.
+ */
+@media (min-width: 157.5625rem) {
+    html[data-theme="glassmorphism"] {
+        --blur-tile: none;
+    }
+}
+
+html:fullscreen[data-theme="glassmorphism"],
+html:fullscreen[data-theme="minimal"],
+html:-webkit-full-screen[data-theme="glassmorphism"],
+html:-webkit-full-screen[data-theme="minimal"] {
+    --blur-tile: none;
+}
+
+html:fullscreen[data-theme="glassmorphism"] .slider-track,
+html:fullscreen[data-theme="glassmorphism"] .slider-thumb,
+html:fullscreen[data-theme="glassmorphism"] .toggle-pill,
+html:fullscreen[data-theme="glassmorphism"] .relay-toggle,
+html:fullscreen[data-theme="glassmorphism"] .bug-mode-chip,
+html:-webkit-full-screen[data-theme="glassmorphism"] .slider-track,
+html:-webkit-full-screen[data-theme="glassmorphism"] .slider-thumb,
+html:-webkit-full-screen[data-theme="glassmorphism"] .toggle-pill,
+html:-webkit-full-screen[data-theme="glassmorphism"] .relay-toggle,
+html:-webkit-full-screen[data-theme="glassmorphism"] .bug-mode-chip {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }

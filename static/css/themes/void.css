@@ -32,7 +32,7 @@
     --tile-shadow-drop: none;
     --tile-shadow-inset-top: transparent;
     --tile-shadow-inset-bottom: transparent;
-    --tile-hover-lift: 0;
+    --tile-hover-lift: -2px;
 
     --shadow-dark: rgba(12, 8, 28, 0.75);
     --shadow-light: rgba(200, 140, 255, 0.08);
@@ -97,7 +97,7 @@ html.light[data-theme="void"] {
             transparent 40px,
             rgba(140, 80, 255, 0.018) 41px
         );
-    mix-blend-mode: screen;
+    mix-blend-mode: normal;
 }
 
 html.light[data-theme="void"] body::before {
@@ -137,12 +137,6 @@ html.light[data-theme="void"] body::after {
 [data-theme="void"] .toggle-pill,
 [data-theme="void"] .relay-toggle {
     box-shadow: none;
-}
-
-[data-theme="void"] .tile:hover,
-[data-theme="void"] .slider-card:hover,
-[data-theme="void"] .scene-btn:hover {
-    transform: scale(1.02);
 }
 
 [data-theme="void"] .slider-fill.bug-mode {

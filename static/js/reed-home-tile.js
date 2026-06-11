@@ -11,6 +11,23 @@
     const placeholderEl = document.getElementById('reed-home-placeholder');
     if (!listEl) return;
 
+    function sortByLabel(items) {
+        return items.slice().sort((a, b) =>
+            (a.label || a.name || '').localeCompare(
+                b.label || b.name || '',
+                undefined,
+                { sensitivity: 'base' },
+            ),
+        );
+    }
+
+    function reorderList() {
+        state.reeds.forEach((reed) => {
+            const el = document.getElementById(`reed-${reed.name}`);
+            if (el?.parentElement === listEl) listEl.appendChild(el);
+        });
+    }
+
     const state = {
         reeds: [],
         raw: {},
@@ -131,7 +148,7 @@
         if (!Array.isArray(reeds) || !reeds.length) return;
 
         clearPlaceholder();
-        state.reeds = reeds.map((reed) => ({ ...reed }));
+        state.reeds = sortByLabel(reeds.map((reed) => ({ ...reed })));
 
         listEl.querySelectorAll('.reed-tile__item').forEach((el) => {
             const name = el.dataset.reedName;
@@ -142,6 +159,7 @@
             }
         });
 
+        reorderList();
         refreshAll();
     }
 

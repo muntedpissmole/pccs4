@@ -1,0 +1,308 @@
+/* Glassmorphism */
+/*
+ * Full glassmorphism — flat frosted panels over a deep atmospheric canvas.
+ */
+
+[data-theme="glassmorphism"] {
+    --color-accent: #67e8f9;
+    --color-accent-hover: #5eead4;
+    --color-accent-deep: #0891b2;
+    --color-accent-light: rgba(165, 243, 252, 0.95);
+    --color-accent-glow: rgba(103, 232, 249, 0.55);
+    --color-accent-border: rgba(103, 232, 249, 0.38);
+    --color-accent-glow-strong: rgba(56, 189, 248, 0.72);
+
+    --color-bg: #060a14;
+    --color-bg-elevated: rgba(10, 16, 30, 0.52);
+    --color-surface: rgba(255, 255, 255, 0.07);
+    --color-surface-active: rgba(255, 255, 255, 0.11);
+
+    --color-border: rgba(103, 232, 249, 0.16);
+    --color-highlight-subtle: rgba(103, 232, 249, 0.05);
+
+    --color-text: #f0f9ff;
+    --color-text-muted: #94a3b8;
+    --color-text-label: #a5f3fc;
+    --color-text-on-accent: #042f2e;
+
+    --tile-bg: rgba(255, 255, 255, 0.1);
+    --tile-bg-hover: rgba(255, 255, 255, 0.14);
+    --tile-border: rgba(103, 232, 249, 0.16);
+    --tile-shine: none;
+    --tile-inner-border: rgba(103, 232, 249, 0.1);
+    --tile-shadow-drop: 0 18px 48px -16px rgba(0, 0, 0, 0.68);
+    --tile-shadow-inset-top: transparent;
+    --tile-shadow-inset-bottom: transparent;
+    --tile-hover-lift: -2px;
+    --tile-radius: 24px;
+
+    --shadow-dark: rgba(0, 0, 0, 0.55);
+    --shadow-light: rgba(255, 255, 255, 0.14);
+    --shadow-drop-sm: 0 8px 28px rgba(0, 0, 0, 0.38);
+    --shadow-drop-md: 0 12px 36px rgba(0, 0, 0, 0.42);
+    --shadow-accent-glow: 0 0 18px var(--color-accent-glow);
+
+    --color-slider-bg: rgba(255, 255, 255, 0.09);
+    --color-toggle-handle: rgba(255, 255, 255, 0.96);
+
+    --blur-header: blur(28px) saturate(1.75);
+    --blur-surface: blur(22px) saturate(1.65);
+    --blur-tile: blur(42px) saturate(1.9);
+}
+
+html.light[data-theme="glassmorphism"] {
+    --color-bg: #e8f4fc;
+    --color-bg-elevated: rgba(255, 255, 255, 0.58);
+    --color-surface: rgba(255, 255, 255, 0.62);
+    --color-surface-active: rgba(255, 255, 255, 0.78);
+    --color-border: rgba(56, 189, 248, 0.28);
+
+    --color-text: #0f172a;
+    --color-text-muted: #64748b;
+    --color-text-label: #0284c7;
+    --color-text-on-accent: #ffffff;
+
+    --color-accent: #38bdf8;
+    --color-accent-hover: #0ea5e9;
+    --color-accent-glow: rgba(56, 189, 248, 0.45);
+    --color-accent-border: rgba(56, 189, 248, 0.38);
+    --color-accent-glow-strong: rgba(14, 165, 233, 0.55);
+
+    --tile-bg: rgba(255, 255, 255, 0.62);
+    --tile-bg-hover: rgba(255, 255, 255, 0.74);
+    --tile-border: rgba(56, 189, 248, 0.28);
+    --tile-shine: none;
+    --tile-inner-border: rgba(56, 189, 248, 0.1);
+    --tile-shadow-drop: 0 16px 40px -14px rgba(15, 23, 42, 0.16);
+    --tile-shadow-inset-top: transparent;
+    --tile-shadow-inset-bottom: transparent;
+
+    --color-slider-bg: rgba(255, 255, 255, 0.55);
+    --blur-header: blur(24px) saturate(1.5);
+    --blur-tile: blur(36px) saturate(1.65);
+}
+
+/* ── Atmospheric canvas ── */
+
+[data-theme="glassmorphism"] body {
+    background: var(--color-bg);
+}
+
+[data-theme="glassmorphism"] body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse 90% 70% at 12% 8%, rgba(56, 189, 248, 0.28) 0%, transparent 58%),
+        radial-gradient(ellipse 75% 55% at 88% 14%, rgba(129, 140, 248, 0.24) 0%, transparent 55%),
+        radial-gradient(ellipse 80% 60% at 72% 88%, rgba(45, 212, 191, 0.18) 0%, transparent 58%),
+        radial-gradient(ellipse 65% 50% at 18% 78%, rgba(14, 165, 233, 0.14) 0%, transparent 52%),
+        linear-gradient(160deg, #04070f 0%, #08101f 42%, #0a1228 100%);
+}
+
+[data-theme="glassmorphism"] body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.03) 50%, transparent 58%),
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 3px,
+            rgba(255, 255, 255, 0.012) 3px,
+            rgba(255, 255, 255, 0.012) 4px
+        );
+    mix-blend-mode: normal;
+    opacity: 0.65;
+}
+
+html.light[data-theme="glassmorphism"] body::before {
+    background:
+        radial-gradient(ellipse 85% 65% at 10% 12%, rgba(125, 211, 252, 0.55) 0%, transparent 58%),
+        radial-gradient(ellipse 70% 55% at 92% 18%, rgba(196, 181, 253, 0.42) 0%, transparent 55%),
+        radial-gradient(ellipse 75% 60% at 78% 92%, rgba(103, 232, 249, 0.35) 0%, transparent 58%),
+        linear-gradient(165deg, #dbeafe 0%, #e0f2fe 38%, #f0f9ff 100%);
+}
+
+html.light[data-theme="glassmorphism"] body::after {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, transparent 28%);
+    mix-blend-mode: normal;
+    opacity: 0.85;
+}
+
+/* ── Frosted surfaces ── */
+
+[data-theme="glassmorphism"] .tile,
+[data-theme="glassmorphism"] .slider-card,
+[data-theme="glassmorphism"] .scene-btn,
+[data-theme="glassmorphism"] .nav-pill {
+    overflow: visible !important;
+}
+
+[data-theme="glassmorphism"] .tile::before,
+[data-theme="glassmorphism"] .slider-card::before,
+[data-theme="glassmorphism"] .scene-btn::before,
+[data-theme="glassmorphism"] .nav-pill::before {
+    content: none !important;
+    display: none !important;
+}
+
+[data-theme="glassmorphism"] .tile::after,
+[data-theme="glassmorphism"] .slider-card::after,
+[data-theme="glassmorphism"] .scene-btn::after,
+[data-theme="glassmorphism"] .nav-pill::after {
+    content: none !important;
+    display: none !important;
+}
+
+[data-theme="glassmorphism"] .site-header::before {
+    border-bottom-color: color-mix(in srgb, var(--color-accent-border) 55%, transparent);
+    box-shadow:
+        0 10px 36px -14px rgba(0, 0, 0, 0.55),
+        0 0 32px -12px rgba(56, 189, 248, 0.18);
+}
+
+/* ── Sliders ── */
+
+[data-theme="glassmorphism"] .slider-track {
+    background: rgba(255, 255, 255, 0.08) !important;
+    box-shadow:
+        inset 0 2px 8px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+}
+
+[data-theme="glassmorphism"] .slider-fill {
+    background: linear-gradient(90deg, var(--color-accent-deep), var(--color-accent), var(--color-accent-hover)) !important;
+    box-shadow:
+        0 0 16px var(--color-accent-glow),
+        0 0 32px var(--color-accent-glow-strong) !important;
+}
+
+[data-theme="glassmorphism"] .slider-fill::after {
+    background: linear-gradient(90deg, #e11d48, #f43f5e, #fb7185) !important;
+}
+
+[data-theme="glassmorphism"] .slider-fill.bug-mode {
+    box-shadow: 0 0 22px var(--color-bug-glow) !important;
+}
+
+[data-theme="glassmorphism"] .slider-thumb {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-color: var(--color-accent) !important;
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.45),
+        0 0 0 4px rgba(103, 232, 249, 0.18),
+        inset 0 2px 6px rgba(255, 255, 255, 0.75) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+[data-theme="glassmorphism"] .slider-thumb.bug-mode {
+    border-color: var(--color-bug) !important;
+}
+
+/* ── Toggles ── */
+
+[data-theme="glassmorphism"] .toggle-pill,
+[data-theme="glassmorphism"] .relay-toggle,
+[data-theme="glassmorphism"] .bug-mode-chip {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow:
+        inset 0 2px 6px rgba(0, 0, 0, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+}
+
+[data-theme="glassmorphism"] .toggle-pill.on,
+[data-theme="glassmorphism"] .relay-toggle.on {
+    background: linear-gradient(90deg, var(--color-accent-deep), var(--color-accent)) !important;
+    border-color: var(--color-accent-border) !important;
+    box-shadow:
+        0 0 20px var(--color-accent-glow-strong),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+
+[data-theme="glassmorphism"] .toggle-pill.bug-mode.on,
+[data-theme="glassmorphism"] .relay-toggle.bug-mode.on {
+    box-shadow: 0 0 22px var(--color-bug-glow) !important;
+}
+
+[data-theme="glassmorphism"] .bug-mode-chip.is-active {
+    border-color: var(--color-bug) !important;
+    box-shadow: 0 0 20px var(--color-bug-glow) !important;
+}
+
+[data-theme="glassmorphism"] .toggle-pill .toggle-knob,
+[data-theme="glassmorphism"] .relay-toggle .relay-knob {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-color: rgba(255, 255, 255, 0.65) !important;
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.38),
+        inset 0 2px 5px rgba(255, 255, 255, 0.7) !important;
+}
+
+[data-theme="glassmorphism"] .toggle-pill.on .toggle-knob,
+[data-theme="glassmorphism"] .relay-toggle.on .toggle-knob {
+    border-color: rgba(255, 255, 255, 0.9) !important;
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.4),
+        0 0 12px rgba(255, 255, 255, 0.45) !important;
+}
+
+/* ── Icons & values ── */
+
+[data-theme="glassmorphism"] .tile__icon {
+    color: var(--color-accent);
+    filter: drop-shadow(0 0 8px var(--color-accent-glow));
+}
+
+[data-theme="glassmorphism"] .slider-card-title i {
+    filter: drop-shadow(0 0 8px var(--color-accent-glow));
+}
+
+/* ── Scenes & hover ── */
+
+[data-theme="glassmorphism"] .scene-btn.active {
+    background: rgba(103, 232, 249, 0.16) !important;
+    border-color: var(--tile-border) !important;
+    box-shadow:
+        var(--tile-shadow-drop),
+        0 0 28px rgba(56, 189, 248, 0.28) !important;
+    color: var(--color-text) !important;
+}
+
+[data-theme="glassmorphism"] .scene-btn.active i {
+    color: var(--color-accent) !important;
+    filter: drop-shadow(0 0 8px var(--color-accent-glow));
+}
+
+[data-theme="glassmorphism"] .tile:hover,
+[data-theme="glassmorphism"] .slider-card:hover,
+[data-theme="glassmorphism"] .scene-btn:hover:not(.active) {
+    box-shadow: var(--tile-shadow-drop) !important;
+}
+
+[data-theme="glassmorphism"] .slider-card.rooftop-disabled {
+    filter: brightness(0.7) saturate(0.75);
+    opacity: 0.72;
+}
+
+html.light[data-theme="glassmorphism"] .toggle-pill,
+html.light[data-theme="glassmorphism"] .relay-toggle,
+html.light[data-theme="glassmorphism"] .bug-mode-chip {
+    background: rgba(255, 255, 255, 0.62) !important;
+    border-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+html.light[data-theme="glassmorphism"] .slider-track {
+    background: rgba(255, 255, 255, 0.55) !important;
+}

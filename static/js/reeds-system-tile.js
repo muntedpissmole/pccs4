@@ -9,6 +9,16 @@
     const detailEl = document.getElementById('reeds-summary-detail');
     if (!grid || !headlineEl || !detailEl) return;
 
+    function sortByLabel(items) {
+        return items.slice().sort((a, b) =>
+            (a.label || a.name || '').localeCompare(
+                b.label || b.name || '',
+                undefined,
+                { sensitivity: 'base' },
+            ),
+        );
+    }
+
     const state = {
         reeds: [],
         raw: {},
@@ -174,12 +184,12 @@
 
     function onReedsConfig(config) {
         if (!Array.isArray(config) || !config.length) return;
-        state.reeds = config.map((reed) => ({
+        state.reeds = sortByLabel(config.map((reed) => ({
             name: reed.name,
             label: reed.label,
             icon: reed.icon || 'fa-door-closed',
             closed: state.raw[reed.name] ?? true,
-        }));
+        })));
         render();
     }
 
@@ -187,10 +197,10 @@
         if (!payload) return;
         state.raw = payload.states || {};
         state.forced = payload.forced || {};
-        state.reeds = state.reeds.map((reed) => ({
+        state.reeds = sortByLabel(state.reeds.map((reed) => ({
             ...reed,
             closed: state.raw[reed.name] ?? reed.closed,
-        }));
+        })));
         render();
     }
 

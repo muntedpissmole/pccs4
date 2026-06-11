@@ -111,6 +111,11 @@ shutdown_event = threading.Event()
 _cleanup_done = False
 
 
+def _theme_sort_key(item: dict) -> tuple:
+    name = item["name"].lower()
+    return (0 if name.endswith("morphism") else 1, name)
+
+
 def _extract_css_friendly_name(filepath: str, fallback: str) -> str:
     try:
         with open(filepath, encoding="utf-8") as handle:
@@ -196,7 +201,7 @@ def api_get_themes():
             path = os.path.join(themes_dir, filename)
             fallback = base.replace("-", " ").replace("_", " ").title()
             themes.append({"file": base, "name": _extract_css_friendly_name(path, fallback)})
-    themes.sort(key=lambda item: (item["file"].lower() != "neuglass", item["name"].lower()))
+    themes.sort(key=_theme_sort_key)
     return jsonify({"themes": themes})
 
 

@@ -64,6 +64,8 @@
     const FORECAST_HOVER_THRESHOLD_PX = 14;
     const FORECAST_GRID_TEMP_STEP = 2;
     const HOUR_MS = 3600000;
+    const HALF_HOUR_MS = HOUR_MS / 2;
+    const TOOLTIP_NOW_THRESHOLD_MS = 15 * 60 * 1000;
     const AXIS_TICK_OFFSETS = [-6, 0, 6, 12];
     const EXTREMA_COLLISION_PAD = 28;
     const EXTREMA_SLOPE_OFFSET_Y = 8;
@@ -292,6 +294,41 @@
         return null;
     }
 
+    function timeAtSvgX(svgX, layout, nowMs) {
+        if (svgX == null || !Number.isFinite(svgX) || !layout) return null;
+        const markerX = nowMarkerX(layout);
+        const pph = pixelsPerHour(layout);
+        if (!pph) return null;
+        return nowMs + ((svgX - markerX) / pph) * HOUR_MS;
+    }
+
+    function formatTooltipTime(timeMs, nowMs) {
+        if (timeMs == null || !Number.isFinite(timeMs)) return null;
+
+        const rounded = Math.round(timeMs / HALF_HOUR_MS) * HALF_HOUR_MS;
+        if (Math.abs(rounded - nowMs) < TOOLTIP_NOW_THRESHOLD_MS) {
+            return 'Now';
+        }
+
+        const date = new Date(rounded);
+        const hours24 = date.getHours();
+        const minutes = date.getMinutes();
+        const ampm = hours24 >= 12 ? 'PM' : 'AM';
+        const hours = hours24 % 12 || 12;
+
+        if (minutes === 0) {
+            return `${hours} ${ampm}`;
+        }
+
+        return `${hours}:${String(minutes).padStart(2, '0')} ${ampm}`;
+    }
+
+    function formatForecastTooltip(timeMs, temp, nowMs) {
+        const timeLabel = formatTooltipTime(timeMs, nowMs);
+        const tempLabel = formatShortTemp(temp);
+        return timeLabel ? `${timeLabel} · ${tempLabel}` : tempLabel;
+    }
+
     function hideForecastTooltip() {
         if (!els.forecastTooltip) return;
         els.forecastTooltip.hidden = true;
@@ -336,13 +373,15 @@
         els.forecastTooltip.style.top = `${top}px`;
     }
 
-    function showForecastTooltip(event, temp) {
+    function showForecastTooltip(event, temp, svgX) {
         if (!els.forecastTooltip || !els.forecastArc) return;
         const arcRect = els.forecastArc.getBoundingClientRect();
         const anchorX = event.clientX - arcRect.left;
         const anchorY = event.clientY - arcRect.top;
+        const nowMs = Date.now();
+        const timeMs = timeAtSvgX(svgX, layoutParams, nowMs);
 
-        els.forecastTooltip.textContent = formatShortTemp(temp);
+        els.forecastTooltip.textContent = formatForecastTooltip(timeMs, temp, nowMs);
         els.forecastTooltip.hidden = false;
         clampForecastTooltip(anchorX, anchorY, arcRect.width, arcRect.height);
     }
@@ -390,7 +429,7 @@
                 return;
             }
 
-            showForecastTooltip(event, temp);
+            showForecastTooltip(event, temp, svgX);
         });
 
         els.forecastArc.addEventListener('mouseleave', () => {

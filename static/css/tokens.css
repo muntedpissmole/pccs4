@@ -99,7 +99,7 @@
     --space-main-y: 24px;
     --space-main-x: 20px;
     --space-main-bottom: 40px;
-    /* Extra horizontal inset so tile box-shadows are not clipped at content edges */
+    /* Horizontal bleed into outer padding so tile box-shadows are not clipped */
     --content-shadow-bleed: 20px;
     --space-heading-bottom: 8px;
     --space-tile-gap: 16px;
@@ -241,8 +241,8 @@
 /* 9-col layout @ 16px root → 157.5rem; content max snaps columns to whole px */
 @media (min-width: 157.5625rem) {
     :root {
-        /* (max − 2×(main-x + shadow-bleed) − 8×gap) / 9 → 258px columns */
-        --size-content-max: 2562px;
+        /* (max − 2×main-x − 8×gap) / 9 → 258px columns */
+        --size-content-max: 2522px;
         --space-tile-gap: 20px;
         --tile-padding: 24px;
         --tile-min-height: 168px;

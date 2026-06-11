@@ -311,11 +311,11 @@
 }
 
 .climate-tile__forecast-extrema-label--high {
-    transform: translate(-50%, 12px);
+    transform: translate(-50%, 17px);
 }
 
 .climate-tile__forecast-extrema-label--low {
-    transform: translate(-50%, calc(-100% - 12px));
+    transform: translate(-50%, calc(-100% - 17px));
 }
 
 .climate-tile__forecast-axis {

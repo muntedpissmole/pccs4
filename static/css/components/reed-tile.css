@@ -71,8 +71,8 @@
     gap: 0.2rem;
     margin: 0;
     margin-inline-start: calc(var(--tile-list-glow-bleed) / -2);
-    padding: 0;
-    padding-inline-start: calc(var(--tile-list-glow-bleed) / 2);
+    padding-block: calc(var(--tile-list-glow-bleed) / 2);
+    padding-inline: calc(var(--tile-list-glow-bleed) / 2) 0;
     width: calc(100% + var(--tile-list-glow-bleed) / 2);
     list-style: none;
     overflow-x: hidden;

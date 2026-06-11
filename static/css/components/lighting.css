@@ -2,8 +2,9 @@
 
 .lighting-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-tile-gap);
+    min-width: 0;
     max-width: 100%;
 }
 
@@ -26,6 +27,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    min-width: 0;
+    max-width: 100%;
     padding: var(--tile-padding);
     background: var(--tile-bg);
     border: 1px solid var(--tile-border);
@@ -592,4 +595,47 @@ button.relay-toggle {
     padding: var(--space-lg, 1.5rem);
     text-align: center;
     opacity: 0.7;
+}
+
+/* ── Narrow portrait (e.g. iPhone) — compact header controls ── */
+
+@media (max-width: 40rem) {
+    .slider-card-header {
+        gap: 0.5rem;
+    }
+
+    .slider-card-right {
+        gap: 0.4rem;
+    }
+
+    .value-display {
+        min-width: 2.25rem;
+        font-size: var(--font-size-sm);
+    }
+
+    .bug-mode-chip {
+        width: 2.5rem;
+        height: 2.5rem;
+        min-width: 2.5rem;
+        font-size: var(--font-size-xs);
+    }
+
+    .toggle-pill,
+    .relay-toggle {
+        width: 4.25rem;
+        height: 2.5rem;
+    }
+
+    .toggle-pill .toggle-knob,
+    .relay-toggle .relay-knob {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .toggle-pill.on .toggle-knob,
+    .relay-toggle.on .relay-knob {
+        transform: translate(1.75rem, -50%);
+        width: 2rem;
+        height: 2rem;
+    }
 }

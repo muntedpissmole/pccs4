@@ -386,9 +386,11 @@
 
     function updatePhaseTimes(times) {
         if (!times) return;
-        if (times.day_start && els.phaseDay) els.phaseDay.textContent = times.day_start;
-        if (times.evening_start && els.phaseEvening) els.phaseEvening.textContent = times.evening_start;
-        if (times.night_start && els.phaseNight) els.phaseNight.textContent = times.night_start;
+        if (times.day_start && els.phaseDay) els.phaseDay.textContent = stripLeadingZero(times.day_start);
+        if (times.evening_start && els.phaseEvening) {
+            els.phaseEvening.textContent = stripLeadingZero(times.evening_start);
+        }
+        if (times.night_start && els.phaseNight) els.phaseNight.textContent = stripLeadingZero(times.night_start);
     }
 
     window.PCCS4 = window.PCCS4 || {};

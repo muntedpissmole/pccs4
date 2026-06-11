@@ -236,8 +236,9 @@ html.light[data-theme="minimal"] .relay-toggle .relay-knob {
 
 /* ── Status tiles ── */
 
-[data-theme="minimal"] .tile__icon,
-[data-theme="minimal"] .tile i.fa-solid {
+/* Corner icon only — do not target .tile i.fa-solid; that overrides semantic
+   colours in tile bodies (bug-mode lights, offline modules, sun/moon, etc.). */
+[data-theme="minimal"] .tile__icon {
     color: #14f0d4;
     filter: drop-shadow(0 0 6px rgba(20, 240, 212, 0.65));
 }

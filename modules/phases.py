@@ -77,7 +77,8 @@ class PhaseManager:
         )
 
         self._using_fallback = False
-        self._last_good_gps_time = time.time()
+        self._ever_had_gps_fix = False
+        self._last_good_gps_time = 0.0
 
         self.load_manual_dark_mode()
 
@@ -121,6 +122,10 @@ class PhaseManager:
         if self.force_timer:
             self.force_timer.cancel()
             self.force_timer = None
+        thread = self.thread
+        if thread and thread.is_alive():
+            thread.join(timeout=5)
+        self.thread = None
 
     # ====================== MAIN LOOP ======================
     def _phase_loop(self):
@@ -129,6 +134,7 @@ class PhaseManager:
                 has_real_fix = self._has_valid_gps()
 
                 if has_real_fix:
+                    self._ever_had_gps_fix = True
                     self._last_good_gps_time = time.time()
                     if self._using_fallback:
                         logger.info("🌍 GPS fix restored - returning to live sun data")
@@ -136,9 +142,20 @@ class PhaseManager:
                     self._update_phase(use_fallback=False)
                 else:
                     now = time.time()
-                    if now - self.startup_time > self.GPS_STARTUP_TIMEOUT:
+                    if self._ever_had_gps_fix:
+                        loss_age = now - self._last_good_gps_time
+                        if loss_age > self.GPS_LOSS_TIMEOUT:
+                            if not self._using_fallback:
+                                logger.warning(
+                                    f"🌗 GPS fix lost for {int(loss_age)}s → using fallback"
+                                )
+                                self._using_fallback = True
+                            self._update_phase(use_fallback=True)
+                    elif now - self.startup_time > self.GPS_STARTUP_TIMEOUT:
                         if not self._using_fallback:
-                            logger.warning(f"🌗 No GPS fix for {int(now - self.startup_time)}s → using fallback")
+                            logger.warning(
+                                f"🌗 No GPS fix for {int(now - self.startup_time)}s → using fallback"
+                            )
                             self._using_fallback = True
                         self._update_phase(use_fallback=True)
 

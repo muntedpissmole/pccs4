@@ -155,7 +155,7 @@
 
 #tile-power .water-tile__gauge {
     width: 100%;
-    height: 10px;
+    height: var(--size-progress-bar);
 }
 
 #tile-power .water-tile__gauge-track {
@@ -182,7 +182,7 @@
     bottom: 0;
     width: 1px;
     margin-left: -0.5px;
-    background: rgba(255, 255, 255, 0.18);
+    background: color-mix(in srgb, var(--color-text-on-accent) 18%, transparent);
 }
 
 #tile-power .water-tile__gauge-markers span:nth-child(1) {
@@ -198,7 +198,7 @@
 }
 
 html.light #tile-power .water-tile__gauge-markers span {
-    background: rgba(0, 0, 0, 0.12);
+    background: color-mix(in srgb, var(--shadow-dark) 22%, transparent);
 }
 
 #tile-power .water-tile__gauge-fill {
@@ -209,9 +209,9 @@ html.light #tile-power .water-tile__gauge-markers span {
     width: var(--water-level, 0%);
     background: linear-gradient(
         90deg,
-        #0284c7 0%,
+        var(--color-accent-deep) 0%,
         var(--color-accent) 45%,
-        rgba(125, 211, 252, 0.95) 100%
+        var(--color-accent-light) 100%
     );
     box-shadow: 0 0 8px var(--color-accent-glow);
     transition:
@@ -223,21 +223,21 @@ html.light #tile-power .water-tile__gauge-markers span {
 #tile-power.is-low .water-tile__gauge-fill {
     background: linear-gradient(
         90deg,
-        #d97706 0%,
-        #f59e0b 45%,
-        #fcd34d 100%
+        var(--color-meter-warm-start) 0%,
+        var(--color-meter-warm-mid) 45%,
+        var(--color-meter-warm-end) 100%
     );
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+    box-shadow: 0 0 8px var(--color-sun-glow);
 }
 
 #tile-power.is-critical .water-tile__gauge-fill {
     background: linear-gradient(
         90deg,
-        #dc2626 0%,
-        #ef4444 45%,
-        #fca5a5 100%
+        var(--color-meter-hot-start) 0%,
+        var(--color-status-offline) 45%,
+        var(--color-meter-hot-end) 100%
     );
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.35);
+    box-shadow: 0 0 8px var(--color-status-offline-glow);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -6,6 +6,7 @@
     min-height: var(--tile-min-height);
     height: 100%;
     min-width: 0;
+    overflow: visible;
 }
 
 #tile-lighting-home .tile__label {
@@ -26,9 +27,11 @@
     display: grid;
     flex: 1;
     align-content: center;
+    justify-items: stretch;
     min-height: 0;
     min-width: 0;
     width: 100%;
+    overflow: visible;
 }
 
 .lighting-home-tile__empty,
@@ -67,13 +70,16 @@
     flex-direction: column;
     gap: 0.2rem;
     margin: 0;
-    padding-block: 0.15em;
+    margin-inline-start: calc(var(--tile-list-glow-bleed) / -2);
+    padding: 0;
+    padding-inline-start: calc(var(--tile-list-glow-bleed) / 2);
+    width: calc(100% + var(--tile-list-glow-bleed) / 2);
     list-style: none;
-    overflow-x: clip;
+    overflow-x: hidden;
     overflow-y: auto;
     min-height: 0;
     max-height: 100%;
-    align-self: center;
+    align-self: stretch;
 }
 
 .lighting-home-tile__item {
@@ -81,7 +87,9 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     column-gap: 0.55rem;
     align-items: center;
+    width: 100%;
     min-width: 0;
+    overflow: visible;
     font-size: var(--font-size-title);
     font-weight: var(--font-weight-medium);
     line-height: 1.35;
@@ -112,21 +120,35 @@
     margin-block: -0.1rem;
 }
 
-.lighting-home-tile__glow {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    box-shadow: var(--shadow-accent-glow);
+.lighting-home-tile__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-status-dot);
+    height: var(--size-status-dot);
+    flex-shrink: 0;
+    color: var(--color-accent);
+    filter: drop-shadow(0 0 4px var(--color-accent-glow));
+    transition:
+        color var(--duration-bug-mode-crossfade) ease,
+        filter var(--duration-bug-mode-crossfade) ease;
 }
 
-.lighting-home-tile__item.is-bug-mode .lighting-home-tile__glow {
-    background: var(--color-bug);
-    box-shadow: 0 0 8px var(--color-bug-glow);
+.lighting-home-tile__icon i {
+    font-size: var(--size-status-dot);
+    line-height: 1;
 }
 
-.lighting-home-tile__name {
+.lighting-home-tile__item.is-bug-mode .lighting-home-tile__icon {
+    color: var(--color-bug);
+    filter: drop-shadow(0 0 4px var(--color-bug-glow));
+}
+
+#tile-lighting-home .lighting-home-tile__name {
     min-width: 0;
+    font-size: var(--font-size-tile-label);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--letter-spacing-tile-label);
     overflow-x: clip;
     overflow-y: visible;
     color: var(--color-text);
@@ -135,13 +157,15 @@
     line-height: 1.35;
 }
 
-.lighting-home-tile__level {
-    flex-shrink: 0;
-    font-size: var(--font-size-xs);
+#tile-lighting-home .lighting-home-tile__level {
+    justify-self: end;
+    font-size: var(--font-size-tile-label);
     font-weight: var(--font-weight-medium);
     color: var(--color-accent);
     line-height: 1.35;
     font-variant-numeric: tabular-nums;
+    text-align: end;
+    transition: color var(--duration-bug-mode-crossfade) ease;
 }
 
 .lighting-home-tile__item.is-bug-mode .lighting-home-tile__level {
@@ -151,7 +175,9 @@
 @media (prefers-reduced-motion: reduce) {
     .lighting-home-tile__empty,
     .lighting-home-tile__placeholder,
-    .lighting-home-tile__item {
+    .lighting-home-tile__item,
+    .lighting-home-tile__icon,
+    #tile-lighting-home .lighting-home-tile__level {
         transition: none;
     }
 }

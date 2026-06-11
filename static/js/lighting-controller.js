@@ -5,6 +5,7 @@
     'use strict';
 
     const JUST_SET_DURATION = 2800;
+    const UI_RAMP_MS = 1000;
     const SCENE_RAMP_MS = 4000;
     const REED_RAMP_MS = 2000;
     const PHASE_RAMP_MS = 4000;
@@ -21,6 +22,7 @@
         lastRenderConfigHash: '',
         currentlyDragging: new Set(),
         userJustSet: new Set(),
+        locallyAnimating: new Set(),
     };
 
     let lastTouchPointerUp = 0;
@@ -30,10 +32,47 @@
         return window.PCCS4?.socket ?? null;
     }
 
+    function toggleAriaLabel(label, isOn) {
+        return `${label} ${isOn ? 'on' : 'off'}`;
+    }
+
+    function renderRelayToggle(name, label, isOn) {
+        return `
+            <button type="button"
+                    class="relay-toggle ${isOn ? 'on' : ''}"
+                    data-name="${name}"
+                    data-state="${isOn ? 'on' : 'off'}"
+                    aria-pressed="${isOn ? 'true' : 'false'}"
+                    aria-label="${toggleAriaLabel(label, isOn)}">
+                <span class="relay-knob" aria-hidden="true"></span>
+            </button>`;
+    }
+
+    function renderTogglePill(name, label, isOn, isBugMode = false) {
+        return `
+            <button type="button"
+                    class="toggle-pill ${isOn ? 'on' : ''}${isBugMode ? ' bug-mode' : ''}"
+                    data-name="${name}"
+                    data-state="${isOn ? 'on' : 'off'}"
+                    aria-pressed="${isOn ? 'true' : 'false'}"
+                    aria-label="${toggleAriaLabel(label, isOn)}">
+                <span class="toggle-knob" aria-hidden="true"></span>
+            </button>`;
+    }
+
+    function syncSliderRange(wrapper, value) {
+        const range = wrapper?.querySelector('.slider-range');
+        if (!range || document.activeElement === range) return;
+        const clamped = Math.max(0, Math.min(100, value || 0));
+        range.value = String(clamped);
+        range.setAttribute('aria-valuenow', String(clamped));
+    }
+
     function emitLightChange(payload) {
         const socket = getSocket();
         if (socket?.connected) {
             socket.emit('light_change', payload);
+            return;
         }
         fetch('/api/light', {
             method: 'POST',
@@ -43,19 +82,28 @@
         })
             .then((r) => (r.ok ? r.json() : null))
             .then((data) => {
-                if (data?.state) applyStateToUI(data.state);
+                if (!data?.state) return;
+                const meta = extractStateMeta(data.state);
+                applyStateToUI(data.state, {
+                    animate: meta.animate,
+                    rampMs: meta.rampMs,
+                });
             })
             .catch((err) => console.warn('[PCCS4] light_change HTTP failed', err));
     }
 
     function emitRelayChange(name, on) {
         const socket = getSocket();
-        if (!socket?.connected) {
-            console.warn('[PCCS4] relay_change skipped — socket unavailable', name);
-            return false;
+        if (socket?.connected) {
+            socket.emit('relay_change', { name, on });
+            return;
         }
-        socket.emit('relay_change', { name, on });
-        return true;
+        fetch('/api/relay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, on }),
+            keepalive: true,
+        }).catch((err) => console.warn('[PCCS4] relay_change HTTP failed', err));
     }
 
     function cancelSceneAnimations() {
@@ -74,7 +122,7 @@
         if (thumb) thumb.style.transition = transition;
     }
 
-    function animateSlider(name, to, rampMs, onComplete) {
+    function animateSlider(name, to, rampMs, onComplete, fromOverride) {
         const wrapper = document.querySelector(`.slider-wrapper[data-name="${name}"]`);
         if (!wrapper) {
             updateLightUI(name, to);
@@ -86,6 +134,7 @@
         const thumb = wrapper.querySelector('.slider-thumb');
         const transition = `width ${rampMs}ms ease, left ${rampMs}ms ease`;
         let timeoutId = null;
+        const target = Math.max(0, Math.min(100, to || 0));
 
         function cancel() {
             if (timeoutId) clearTimeout(timeoutId);
@@ -93,10 +142,17 @@
         }
 
         sceneAnimationCancels[name] = cancel;
+
+        if (fromOverride !== undefined && fromOverride !== null) {
+            setSliderMotion(wrapper, false);
+            updateLightUI(name, fromOverride);
+            void wrapper.offsetWidth;
+        }
+
         if (fill) fill.style.transition = transition;
         if (thumb) thumb.style.transition = transition;
         void wrapper.offsetWidth;
-        updateLightUI(name, to);
+        updateLightUI(name, target);
 
         timeoutId = window.setTimeout(() => {
             delete sceneAnimationCancels[name];
@@ -111,6 +167,7 @@
     function extractStateMeta(newState) {
         const trigger = newState._trigger;
         let rampMs = newState._ramp_ms;
+        if (!rampMs && trigger === 'ui') rampMs = UI_RAMP_MS;
         if (!rampMs && trigger === 'reed') rampMs = REED_RAMP_MS;
         if (!rampMs && trigger === 'phase') rampMs = PHASE_RAMP_MS;
         return {
@@ -126,7 +183,10 @@
         if (document.hidden) shouldAnimate = false;
         const effectiveRampMs = meta.rampMs || rampMs;
 
-        const protectedLights = new Set([...state.currentlyDragging]);
+        const protectedLights = new Set([
+            ...state.currentlyDragging,
+            ...state.locallyAnimating,
+        ]);
         if (!shouldAnimate) {
             state.userJustSet.forEach((name) => protectedLights.add(name));
         }
@@ -259,6 +319,8 @@
             pills.forEach((toggle) => {
                 toggle.classList.toggle('on', isOn);
                 toggle.dataset.state = isOn ? 'on' : 'off';
+                toggle.setAttribute('aria-pressed', String(isOn));
+                toggle.setAttribute('aria-label', toggleAriaLabel(light.label, isOn));
             });
 
             if (valueEl) valueEl.textContent = isOn ? 'On' : 'Off';
@@ -279,16 +341,28 @@
             if (fill) fill.style.width = `${brightness}%`;
             if (thumb) thumb.style.left = `${brightness}%`;
             if (valueEl) valueEl.textContent = `${brightness}%`;
+            syncSliderRange(wrapper, brightness);
         }
 
         const isBugMode = light.has_mode && (state.currentModes[name] || 'white') === 'red';
-        const pillOn = light.has_mode ? isBugMode : brightness > 0;
+        const pillOn = brightness > 0;
 
         pills.forEach((pill) => {
             pill.classList.toggle('on', pillOn);
             pill.classList.toggle('bug-mode', isBugMode);
             pill.dataset.state = pillOn ? 'on' : 'off';
+            pill.setAttribute('aria-pressed', String(pillOn));
+            pill.setAttribute('aria-label', toggleAriaLabel(light.label, pillOn));
         });
+
+        const bugChip = document.querySelector(`.bug-mode-chip[data-name="${name}"]`);
+        if (bugChip) {
+            const mode = isBugMode ? 'red' : 'white';
+            bugChip.classList.toggle('is-active', isBugMode);
+            bugChip.dataset.mode = mode;
+            bugChip.setAttribute('aria-pressed', String(isBugMode));
+            bugChip.setAttribute('aria-label', isBugMode ? 'Bug mode on' : 'Bug mode off');
+        }
 
         if (card) card.classList.toggle('bug-mode', isBugMode);
 
@@ -340,26 +414,41 @@
             return;
         }
 
-        if (light.has_mode) {
-            const currentMode = state.currentModes[name] || 'white';
-            const newMode = currentMode === 'white' ? 'red' : 'white';
-            state.currentModes[name] = newMode;
-            state.currentState[`${name}_mode`] = newMode;
-
-            const currentBrightness = state.currentState[name] || 0;
-            updateLightUI(name, currentBrightness);
-            emitLightChange({ name, brightness: currentBrightness, mode: newMode });
-            return;
-        }
-
         const wrapper = document.querySelector(`.slider-wrapper[data-name="${name}"]`);
         const currentBrightness = wrapper ? parseInt(wrapper.dataset.value, 10) || 0 : 0;
         const isOn = el.dataset.state === 'on';
         const newBrightness = isOn ? 0 : (parseInt(wrapper?.dataset.lastBrightness, 10) || 100);
 
         state.currentState[name] = newBrightness;
-        updateLightUI(name, newBrightness);
-        emitLightChange({ name, brightness: newBrightness });
+        state.locallyAnimating.add(name);
+        animateSlider(name, newBrightness, UI_RAMP_MS, () => {
+            state.locallyAnimating.delete(name);
+        }, currentBrightness);
+        const payload = { name, brightness: newBrightness };
+        if (light.has_mode && state.currentModes[name]) {
+            payload.mode = state.currentModes[name];
+        }
+        emitLightChange(payload);
+    }
+
+    function toggleBugMode(el) {
+        const name = el.dataset.name;
+        const light = state.lightsConfig.find((l) => l.name === name);
+        if (!light?.has_mode) return;
+
+        if (name === 'rooftop_tent' && isRooftopTentPhysicallyClosed()) return;
+
+        state.userJustSet.add(name);
+        setTimeout(() => state.userJustSet.delete(name), JUST_SET_DURATION);
+
+        const currentMode = state.currentModes[name] || 'white';
+        const newMode = currentMode === 'white' ? 'red' : 'white';
+        state.currentModes[name] = newMode;
+        state.currentState[`${name}_mode`] = newMode;
+
+        const currentBrightness = state.currentState[name] || 0;
+        updateLightUI(name, currentBrightness);
+        emitLightChange({ name, brightness: currentBrightness, mode: newMode });
     }
 
     function initUnifiedToggleListeners() {
@@ -369,6 +458,15 @@
         container.removeEventListener('click', handleLightingClick);
 
         function handleLightingClick(e) {
+            const bugChip = e.target.closest('.bug-mode-chip');
+            if (bugChip) {
+                if (bugChip.dataset.justClicked === 'true') return;
+                bugChip.dataset.justClicked = 'true';
+                setTimeout(() => delete bugChip.dataset.justClicked, 350);
+                toggleBugMode(bugChip);
+                return;
+            }
+
             const toggle = e.target.closest('.relay-toggle, .toggle-pill');
             if (!toggle) return;
 
@@ -398,6 +496,8 @@
         let startY = 0;
         let valueAtPointerStart = 0;
 
+        const range = wrapper.querySelector('.slider-range');
+
         function updatePosition(clientX) {
             const rect = inner.getBoundingClientRect();
             const percent = Math.max(
@@ -409,6 +509,7 @@
             if (fill) fill.style.width = `${percent}%`;
             if (thumb) thumb.style.left = `${percent}%`;
             if (valueEl) valueEl.textContent = `${percent}%`;
+            if (range) range.value = String(percent);
         }
 
         function startDrag() {
@@ -421,10 +522,14 @@
             if (thumb) thumb.style.transition = 'none';
         }
 
-        function commitDrag(force) {
+        function commitDrag(force, clickFinal) {
             if (!force && !isDragging) return;
 
-            const final = parseInt(wrapper.dataset.value, 10) || 0;
+            const wasDragging = isDragging;
+            const final =
+                clickFinal !== undefined
+                    ? clickFinal
+                    : parseInt(wrapper.dataset.value, 10) || 0;
             isDragging = false;
             activePointerId = null;
             wrapper.classList.remove('dragging');
@@ -433,7 +538,16 @@
             state.userJustSet.add(name);
             setTimeout(() => state.userJustSet.delete(name), JUST_SET_DURATION);
             state.currentState[name] = final;
-            updateLightUI(name, final);
+
+            const shouldAnimateLocal = !wasDragging && final !== valueAtPointerStart;
+            if (shouldAnimateLocal) {
+                state.locallyAnimating.add(name);
+                animateSlider(name, final, UI_RAMP_MS, () => {
+                    state.locallyAnimating.delete(name);
+                }, valueAtPointerStart);
+            } else {
+                updateLightUI(name, final);
+            }
 
             const light = state.lightsConfig.find((l) => l.name === name);
             const payload = { name, brightness: final };
@@ -457,8 +571,6 @@
             if (e.pointerType === 'mouse') {
                 e.preventDefault();
                 wrapper.setPointerCapture(e.pointerId);
-                startDrag();
-                updatePosition(e.clientX);
             }
         });
 
@@ -470,7 +582,7 @@
             const deltaY = Math.abs(e.clientY - startY);
 
             if (!isDragging) {
-                if (e.pointerType === 'mouse') {
+                if (e.pointerType === 'mouse' && (deltaX > 2 || deltaY > 2)) {
                     startDrag();
                 } else if (deltaX > 10 && deltaX > deltaY * 1.5) {
                     e.preventDefault();
@@ -494,9 +606,14 @@
                 /* ok */
             }
 
-            const final = parseInt(wrapper.dataset.value, 10) || 0;
-            const changed = isDragging || final !== valueAtPointerStart;
-            if (changed) commitDrag(true);
+            const rect = inner.getBoundingClientRect();
+            const clickFinal = Math.max(
+                0,
+                Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100))
+            );
+            const final = isDragging ? parseInt(wrapper.dataset.value, 10) || 0 : clickFinal;
+            const changed = isDragging || clickFinal !== valueAtPointerStart;
+            if (changed) commitDrag(true, isDragging ? undefined : clickFinal);
             else {
                 isDragging = false;
                 activePointerId = null;
@@ -513,10 +630,76 @@
         });
     }
 
+    function bindSliderRange(wrapper) {
+        const range = wrapper.querySelector('.slider-range');
+        if (!range || range.dataset.pccsRangeBound === '1') return;
+        range.dataset.pccsRangeBound = '1';
+
+        const name = wrapper.dataset.name;
+        const inner = wrapper.querySelector('.slider-inner');
+        const fill = wrapper.querySelector('.slider-fill');
+        const thumb = wrapper.querySelector('.slider-thumb');
+        const valueEl = document.getElementById(`val-${name}`);
+
+        function updateVisual(percent) {
+            wrapper.dataset.value = percent;
+            if (fill) fill.style.width = `${percent}%`;
+            if (thumb) thumb.style.left = `${percent}%`;
+            if (valueEl) valueEl.textContent = `${percent}%`;
+        }
+
+        function commitRangeValue() {
+            if (name === 'rooftop_tent' && isRooftopTentPhysicallyClosed()) return;
+
+            const final = parseInt(range.value, 10) || 0;
+            state.userJustSet.add(name);
+            setTimeout(() => state.userJustSet.delete(name), JUST_SET_DURATION);
+            state.currentState[name] = final;
+            updateLightUI(name, final);
+
+            const light = state.lightsConfig.find((l) => l.name === name);
+            const payload = { name, brightness: final };
+            if (light?.has_mode && state.currentModes[name]) {
+                payload.mode = state.currentModes[name];
+            }
+            emitLightChange(payload);
+        }
+
+        range.addEventListener('input', () => {
+            if (name === 'rooftop_tent' && isRooftopTentPhysicallyClosed()) return;
+            const percent = parseInt(range.value, 10) || 0;
+            state.currentlyDragging.add(name);
+            range.setAttribute('aria-valuenow', String(percent));
+            updateVisual(percent);
+        });
+
+        range.addEventListener('change', () => {
+            state.currentlyDragging.delete(name);
+            commitRangeValue();
+        });
+
+        range.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            commitRangeValue();
+        });
+
+        range.addEventListener('blur', () => {
+            state.currentlyDragging.delete(name);
+        });
+
+        if (inner) {
+            inner.setAttribute('aria-hidden', 'true');
+        }
+    }
+
     function initSliders() {
         document
             .querySelectorAll('.slider-wrapper:not([data-pccs-slider-bound="1"])')
-            .forEach(makeDraggable);
+            .forEach((wrapper) => {
+                makeDraggable(wrapper);
+                bindSliderRange(wrapper);
+            });
     }
 
     function renderLightingControls() {
@@ -577,11 +760,7 @@
                                 </div>
                                 <div class="slider-card-right">
                                     <div class="value-display" id="val-${relay1.name}">${state.currentState[relay1.name] ? 'On' : 'Off'}</div>
-                                    <div class="relay-toggle ${state.currentState[relay1.name] ? 'on' : ''}"
-                                         data-name="${relay1.name}"
-                                         data-state="${state.currentState[relay1.name] ? 'on' : 'off'}">
-                                        <div class="relay-knob"></div>
-                                    </div>
+                                    ${renderRelayToggle(relay1.name, relay1.label, !!state.currentState[relay1.name])}
                                 </div>
                             </div>
                             <div class="paired-relay-divider"></div>
@@ -594,11 +773,7 @@
                                 </div>
                                 <div class="slider-card-right">
                                     <div class="value-display" id="val-${relay2.name}">${state.currentState[relay2.name] ? 'On' : 'Off'}</div>
-                                    <div class="relay-toggle ${state.currentState[relay2.name] ? 'on' : ''}"
-                                         data-name="${relay2.name}"
-                                         data-state="${state.currentState[relay2.name] ? 'on' : 'off'}">
-                                        <div class="relay-knob"></div>
-                                    </div>
+                                    ${renderRelayToggle(relay2.name, relay2.label, !!state.currentState[relay2.name])}
                                 </div>
                             </div>
                         </div>
@@ -611,11 +786,17 @@
 
             const isRelay = light.type === 'relay';
             const currentVal = state.currentState[light.name] || 0;
-            const isOn = isRelay ? !!currentVal : false;
+            const isOn = isRelay ? !!currentVal : (currentVal > 0);
             const brightness = isRelay ? 0 : Math.max(0, Math.min(100, currentVal || 0));
+            const currentMode = state.currentModes[light.name]
+                || state.currentState[`${light.name}_mode`]
+                || 'white';
+            const isBugMode = light.has_mode && currentMode === 'red';
+
+            const cardBugClass = isBugMode ? ' bug-mode' : '';
 
             let html = `
-                <div class="slider-card">
+                <div class="slider-card${cardBugClass}">
                     <div class="slider-card-header">
                         <div class="slider-card-left">
                             <div class="slider-card-title">
@@ -629,30 +810,42 @@
                             </div>`;
 
             if (isRelay) {
-                html += `
-                            <div class="relay-toggle ${isOn ? 'on' : ''}"
-                                 data-name="${light.name}"
-                                 data-state="${isOn ? 'on' : 'off'}">
-                                <div class="relay-knob"></div>
-                            </div>`;
+                html += renderRelayToggle(light.name, light.label, isOn);
             } else {
-                const extraClass = light.has_mode ? 'colour-toggle' : '';
-                html += `
-                            <div class="toggle-pill ${extraClass}" data-name="${light.name}" data-state="off">
-                                <div class="toggle-knob"></div>
-                            </div>`;
+                if (light.has_mode) {
+                    html += `
+                            <button type="button"
+                                class="bug-mode-chip ${isBugMode ? 'is-active' : ''}"
+                                data-name="${light.name}"
+                                data-mode="${currentMode}"
+                                aria-label="${isBugMode ? 'Bug mode on' : 'Bug mode off'}"
+                                aria-pressed="${isBugMode}">
+                                <i class="fa-solid fa-mosquito" aria-hidden="true"></i>
+                            </button>`;
+                }
+                html += renderTogglePill(light.name, light.label, isOn, isBugMode);
             }
 
             html += '</div></div>';
 
             if (!isRelay) {
+                const sliderBugClass = isBugMode ? ' bug-mode' : '';
                 html += `
-                    <div class="slider-wrapper" data-name="${light.name}" data-value="${brightness}" data-last-brightness="${brightness || 100}">
+                    <div class="slider-wrapper${sliderBugClass}" data-name="${light.name}" data-value="${brightness}" data-last-brightness="${brightness || 100}">
                         <div class="slider-inner">
                             <div class="slider-track"></div>
-                            <div class="slider-fill" style="width: ${brightness}%"></div>
-                            <div class="slider-thumb" style="left: ${brightness}%"></div>
+                            <div class="slider-fill${sliderBugClass}" style="width: ${brightness}%"></div>
+                            <div class="slider-thumb${sliderBugClass}" style="left: ${brightness}%"></div>
                         </div>
+                        <input type="range"
+                               class="slider-range"
+                               min="0"
+                               max="100"
+                               value="${brightness}"
+                               aria-label="${light.label} brightness"
+                               aria-valuemin="0"
+                               aria-valuemax="100"
+                               aria-valuenow="${brightness}">
                     </div>`;
             }
 

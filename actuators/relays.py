@@ -33,4 +33,15 @@ class RelayActuator:
             logger.error(f"Relay {name} failed: {e}")
 
     def read_relays(self) -> Dict[str, bool]:
-        return dict(self._observed)
+        observed: Dict[str, bool] = {}
+        for name in self._names:
+            device = self._gpio.get_relay(name)
+            if device is not None:
+                try:
+                    observed[name] = bool(device.value)
+                    self._observed[name] = observed[name]
+                    continue
+                except Exception as e:
+                    logger.debug(f"Relay GPIO read {name}: {e}")
+            observed[name] = self._observed.get(name, False)
+        return observed

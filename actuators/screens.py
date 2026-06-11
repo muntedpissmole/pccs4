@@ -3,9 +3,22 @@ from __future__ import annotations
 import logging
 import subprocess
 import threading
+from pathlib import Path
 from typing import Dict, Optional
 
 logger = logging.getLogger("pccs")
+
+_SCREEN_KNOWN_HOSTS = Path.home() / ".pccs" / "screen_known_hosts"
+
+
+def _ssh_options(timeout: int = 5) -> str:
+    _SCREEN_KNOWN_HOSTS.parent.mkdir(parents=True, exist_ok=True)
+    return (
+        f"-o BatchMode=yes -o ConnectTimeout={timeout} "
+        f"-o StrictHostKeyChecking=accept-new "
+        f"-o UserKnownHostsFile={_SCREEN_KNOWN_HOSTS} "
+        f"-o PreferredAuthentications=publickey -o IdentitiesOnly=no"
+    )
 
 
 class ScreenActuator:
@@ -27,8 +40,7 @@ class ScreenActuator:
         else:
             value = "1" if is_blank else "0"
         cmd = (
-            f"ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no "
-            f"-o PreferredAuthentications=publickey -o IdentitiesOnly=no "
+            f"ssh {_ssh_options()} "
             f"{conf['username']}@{conf['host']} \"echo {value} > {bpath}\""
         )
         try:
@@ -36,8 +48,16 @@ class ScreenActuator:
             if result.returncode == 0:
                 self._observed[name] = awake
                 logger.info(f"🖥️ {'Woke' if awake else 'Slept'} screen: {conf.get('friendly', name)}")
+            else:
+                err = (result.stderr or result.stdout or "").strip()
+                logger.warning(
+                    "Screen %s SSH failed (exit %s): %s",
+                    name,
+                    result.returncode,
+                    err[:200] or "no output",
+                )
         except Exception as e:
-            logger.debug(f"Screen {name} SSH: {e}")
+            logger.warning(f"Screen {name} SSH: {e}")
 
     def read_screens(self) -> Dict[str, bool]:
         return dict(self._observed)
@@ -68,9 +88,8 @@ class ScreenActuator:
         bpath = conf.get("brightness_path")
         if bpath:
             cmd = (
-                f"ssh -o BatchMode=yes -o ConnectTimeout={int(timeout)} "
-                f"-o StrictHostKeyChecking=no -o PreferredAuthentications=publickey "
-                f"-o IdentitiesOnly=no {conf['username']}@{host} 'cat {bpath} 2>/dev/null'"
+                f"ssh {_ssh_options(int(timeout))} "
+                f"{conf['username']}@{host} 'cat {bpath} 2>/dev/null'"
             )
             try:
                 proc = subprocess.run(cmd, shell=True, timeout=timeout + 2, capture_output=True, text=True)

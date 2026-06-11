@@ -58,10 +58,12 @@ class WorldStore:
                 self._state.reed_forces.pop(reed, None)
             else:
                 self._state.reed_forces[reed] = closed
+            self._invalidate_scene_selection()
 
     def clear_all_reed_forces(self):
         with self._lock:
             self._state.reed_forces.clear()
+            self._invalidate_scene_selection()
 
     def set_phase(self, phase: str, forced: Optional[str] = None, *, invalidate: bool = False):
         with self._lock:
@@ -81,6 +83,7 @@ class WorldStore:
             self._state.light_intents[light] = LightIntent(
                 brightness=brightness, mode=mode, expires=expires, set_at=time.time()
             )
+            self._invalidate_scene_selection()
 
     def clear_light_intent(self, light: str):
         with self._lock:
@@ -90,9 +93,22 @@ class WorldStore:
         with self._lock:
             self._state.light_intents.clear()
 
+    def clear_light_intents_for_reeds(self, reeds):
+        """Clear slider intents only for lights linked to the given reeds."""
+        target = set(reeds)
+        with self._lock:
+            for light in list(self._state.light_intents.keys()):
+                reed = self._light_to_reed.get(light)
+                if reed and reed in target:
+                    del self._state.light_intents[light]
+
     def clear_active_scene(self):
         with self._lock:
             self._state.active_scene = None
+
+    def clear_last_scene(self):
+        with self._lock:
+            self._state.last_scene = None
 
     def set_relay_intent(self, relay: str, on: bool, expires: IntentExpiry = "manual"):
         with self._lock:
@@ -142,6 +158,13 @@ class WorldStore:
             reed = self._light_to_reed.get(light)
             if reed and reed in transitioned:
                 del self._state.light_intents[light]
+        self._invalidate_scene_selection()
 
     def _invalidate_intents_for_phase_change(self):
         self._state.light_intents.clear()
+        self._invalidate_scene_selection()
+
+    def _invalidate_scene_selection(self):
+        """Drop active scene on phase change, reed event, or manual slider."""
+        self._state.active_scene = None
+        self._state.last_scene = None

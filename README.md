@@ -272,7 +272,7 @@ sudo systemctl restart nginx
 ---
 10. Install Git, clone the project, install the virtual environment (venv) and install more dependencies:
 ```bash
-git clone git@github.com:muntedpissmole/PCCS.git "$PCCS_HOME"
+git clone git@github.com:muntedpissmole/pccs4.git "$PCCS_HOME"
 
 cd "$PCCS_HOME"
 python3 -m venv --system-site-packages venv

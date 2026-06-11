@@ -40,6 +40,7 @@ class ArduinoManager:
         self.RESPONSE_DELAY = config.getfloat('arduino', 'response_delay', 0.04)
         self.RGB_RED_SWITCH_RAMP = config.getint('arduino', 'rgb_red_switch_ramp_ms', 180)
         self.RGB_MODE_SWITCH_RAMP = config.getint('arduino', 'rgb_mode_switch_ramp_ms', 250)
+        self._last_disconnect_warn = 0.0
 
     def _load_all_controls(self):
         """Load PWM, RGB, and Relay controls with custom ordering"""
@@ -167,6 +168,12 @@ class ArduinoManager:
     def send_command(self, cmd: str, expect: str = None) -> str | None:
         """Send cmd, optionally wait for a response line starting with `expect`."""
         if not self.ser or not self.ser.is_open:
+            now = time.time()
+            if now - self._last_disconnect_warn > 60:
+                logger.warning(
+                    "Arduino not connected — lighting commands skipped until serial is available"
+                )
+                self._last_disconnect_warn = now
             return None
 
         with self.serial_lock:

@@ -13,7 +13,7 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: var(--space-system-body-gap);
     min-width: 0;
 }
 
@@ -23,7 +23,7 @@
     align-items: flex-end;
     justify-content: space-between;
     gap: 0.35rem 0.75rem;
-    padding-bottom: 0.65rem;
+    padding-bottom: var(--space-system-summary-pad);
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -36,21 +36,21 @@
 
 .gps-status-tile__status-dot {
     flex-shrink: 0;
-    width: 0.65rem;
-    height: 0.65rem;
+    width: var(--size-status-dot);
+    height: var(--size-status-dot);
     border-radius: 50%;
     background: var(--color-text-muted);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-border) 60%, transparent);
 }
 
 #tile-gps-status.is-fix .gps-status-tile__status-dot {
-    background: #4ade80;
-    box-shadow: 0 0 10px rgba(74, 222, 128, 0.55);
+    background: var(--color-status-online);
+    box-shadow: 0 0 8px var(--color-status-online-glow);
 }
 
 #tile-gps-status.is-no-fix .gps-status-tile__status-dot {
-    background: #f87171;
-    box-shadow: 0 0 10px rgba(248, 113, 113, 0.45);
+    background: var(--color-status-offline);
+    box-shadow: 0 0 8px var(--color-status-offline-glow);
 }
 
 #tile-gps-status.is-no-hardware .gps-status-tile__status-dot {
@@ -103,27 +103,27 @@
     padding: 0.55rem 0.65rem;
     border: 1px solid var(--color-border);
     border-radius: calc(var(--tile-radius) * 0.3);
-    background: rgba(0, 0, 0, 0.14);
+    background: color-mix(in srgb, var(--color-device-frame) 50%, transparent);
 }
 
 html.light .gps-status-tile__metric {
-    background: rgba(0, 0, 0, 0.03);
+    background: var(--color-surface-inset-light);
 }
 
 .gps-status-tile__metric.is-good {
-    border-color: rgba(74, 222, 128, 0.4);
+    border-color: color-mix(in srgb, var(--color-status-online-text) 40%, transparent);
 }
 
 .gps-status-tile__metric.is-warn {
-    border-color: rgba(251, 191, 36, 0.45);
+    border-color: color-mix(in srgb, var(--color-sun) 45%, transparent);
 }
 
 .gps-status-tile__metric.is-bad {
-    border-color: rgba(248, 113, 113, 0.45);
+    border-color: color-mix(in srgb, var(--color-status-offline-text) 45%, transparent);
 }
 
 .gps-status-tile__metric-label {
-    font-size: 0.65rem;
+    font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-muted);
     letter-spacing: 0.05em;
@@ -153,14 +153,10 @@ html.light .gps-status-tile__metric {
     flex-direction: column;
     gap: 0.45rem;
     min-width: 0;
-    padding: 0.65rem 0.7rem;
+    padding: 0.55rem 0.65rem;
     border: 1px solid var(--color-border);
-    border-radius: calc(var(--tile-radius) * 0.35);
-    background: rgba(0, 0, 0, 0.12);
-}
-
-html.light .gps-status-tile__card {
-    background: rgba(0, 0, 0, 0.03);
+    border-radius: calc(var(--tile-radius) * 0.3);
+    background: var(--color-metric-surface);
 }
 
 .gps-status-tile__card-title {
@@ -209,13 +205,9 @@ html.light .gps-status-tile__card {
 
 .gps-status-tile__nmea {
     border: 1px solid var(--color-border);
-    border-radius: calc(var(--tile-radius) * 0.35);
-    background: rgba(0, 0, 0, 0.12);
+    border-radius: var(--radius-sm);
+    background: var(--color-metric-surface);
     overflow: hidden;
-}
-
-html.light .gps-status-tile__nmea {
-    background: rgba(0, 0, 0, 0.03);
 }
 
 .gps-status-tile__nmea-summary {
@@ -299,11 +291,11 @@ html.light .gps-status-tile__nmea {
     padding: 2px;
     border: 1px solid var(--color-border);
     border-radius: calc(var(--tile-radius) * 0.3);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--color-surface-inset);
 }
 
 html.light .gps-status-tile__segmented {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--color-surface-inset-light);
 }
 
 .gps-status-tile__segment {

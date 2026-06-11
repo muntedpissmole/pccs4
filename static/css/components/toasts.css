@@ -79,7 +79,7 @@
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.14);
+    background: color-mix(in srgb, var(--toast-text) 14%, transparent);
     color: inherit;
     font-size: 0.95rem;
     line-height: 1;
@@ -88,7 +88,7 @@
 }
 
 .toast__close:hover {
-    background: rgba(255, 255, 255, 0.24);
+    background: color-mix(in srgb, var(--toast-text) 24%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

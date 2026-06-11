@@ -48,9 +48,7 @@
                 }
                 const rampMs = data.ramp_ms || window.PCCS4?.lighting?.getSceneRampMs?.();
                 window.PCCS4?.lighting?.onStateUpdate(data.state, { animate: true, rampMs });
-                if (data.state.last_scene) {
-                    setActiveScene(data.state.last_scene);
-                }
+                setActiveScene(data.state.last_scene || null);
                 state.activatingScene = null;
             })
             .catch((err) => {
@@ -61,34 +59,48 @@
     }
 
     function onStateUpdate(payload) {
-        const sceneKey = payload?.last_scene;
-        if (!sceneKey) return;
-        if (state.activatingScene && state.activatingScene !== sceneKey) return;
+        const sceneKey = payload?.last_scene || null;
+        if (state.activatingScene && sceneKey && state.activatingScene !== sceneKey) return;
         setActiveScene(sceneKey);
         state.activatingScene = null;
     }
 
+    function getSceneGridColumns() {
+        if (window.matchMedia('(min-width: 157.5625rem)').matches) return 6;
+        if (window.matchMedia('(max-width: 40rem)').matches) return 1;
+        if (window.matchMedia('(max-width: 64rem)').matches) return 2;
+        return 3;
+    }
+
     function fixLastRowStretching(container) {
+        const cols = getSceneGridColumns();
         const total = state.currentScenes.length;
-        if (total <= 3) return;
+        if (total <= cols) return;
 
-        const remainder = total % 3;
+        const remainder = total % cols;
         if (remainder === 0) return;
-
-        const buttons = Array.from(container.children);
-        const lastRowStart = total - remainder;
 
         container.querySelectorAll('.last-row').forEach((el) => {
             Array.from(el.children).forEach((kid) => container.appendChild(kid));
             el.remove();
         });
 
+        const buttons = Array.from(container.children).filter(
+            (el) => el.classList?.contains('scene-btn'),
+        );
+
+        buttons.forEach((btn) => {
+            btn.style.gridColumn = '';
+        });
+
+        const lastRowStart = total - remainder;
+
         if (remainder === 1) {
             buttons[lastRowStart].style.gridColumn = '1 / -1';
             return;
         }
 
-        if (remainder === 2) {
+        if (remainder === 2 && cols >= 2) {
             const btn1 = buttons[lastRowStart];
             const btn2 = buttons[lastRowStart + 1];
             const wrapper = document.createElement('div');
@@ -152,10 +164,20 @@
         }
     }
 
+    let resizeTimer = null;
+
+    function onResize() {
+        const container = document.getElementById('scenes-grid');
+        if (!container || !state.currentScenes.length) return;
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => fixLastRowStretching(container), 100);
+    }
+
     function init() {
         if (!document.getElementById('scenes-grid')) return;
         renderScenes();
         loadScenes();
+        window.addEventListener('resize', onResize);
     }
 
     window.PCCS4 = window.PCCS4 || {};

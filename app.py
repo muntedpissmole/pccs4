@@ -23,6 +23,7 @@ from modules.phases import PhaseManager
 from modules.sensors import SensorManager
 from modules.toasts import ToastManager
 from modules.ui_state import ConfigManager
+
 import modules.toasts
 from network import build_network_status
 from sonos import get_sonos_status, set_muted, set_sonos_manager, set_transport, set_volume
@@ -298,6 +299,17 @@ def api_light_change():
     if state is None:
         return jsonify({"ok": False}), 400
     return jsonify({"ok": True, "state": state})
+
+
+@app.route("/api/relay", methods=["POST"])
+def api_relay_change():
+    data = request.get_json(silent=True) or {}
+    name = data.get("name")
+    if name not in runtime.compiled.relay_names:
+        logger.warning(f"relay_change ignored (http) — unknown relay: {name}")
+        return jsonify({"ok": False}), 400
+    runtime.set_relay_intent(name, bool(data.get("on", False)))
+    return jsonify({"ok": True})
 
 
 @app.route("/api/explain")

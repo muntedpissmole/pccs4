@@ -194,7 +194,7 @@
                 ${statRow('Network', view.primary_ip
                     ? `${view.primary_ip}${view.primary_iface ? ` · ${view.primary_iface}` : ''}`
                     : '—')}
-                ${statRow('PCCS4', view.app_version ? `v${view.app_version}` : '—')}
+                ${statRow('App Version', view.app_version ? `v${view.app_version}` : '—')}
                 ${statRow('Python', view.python_version)}
                 ${statRow('Flask', view.flask_version)}
                 ${statRow('Booted', view.boot_time)}

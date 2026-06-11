@@ -99,7 +99,10 @@
                             <circle class="water-tile__ring-track" cx="60" cy="60" r="52"></circle>
                             <circle class="water-tile__ring-fill" id="water-gauge-fill" cx="60" cy="60" r="52"></circle>
                         </svg>
-                        <p class="water-tile__percent" id="water-percent" aria-live="polite">—%</p>
+                        <div class="water-tile__readout" aria-live="polite">
+                            <p class="water-tile__percent" id="water-percent">—%</p>
+                            <p class="water-tile__litres" id="water-litres" hidden>— L</p>
+                        </div>
                     </div>
                 </div>
             </article>
@@ -292,7 +295,7 @@
                                     <span class="climate-tile__daily-range-label">Today</span>
                                     <span class="climate-tile__daily-range-value" id="weather-daily-range">—° – —°</span>
                                 </p>
-                                <p class="climate-tile__feels" id="weather-feels" hidden>Feels —°C</p>
+                                <p class="climate-tile__feels" id="weather-feels">Feels —°C</p>
                             </div>
                         </div>
                     </div>
@@ -300,10 +303,12 @@
                     <div class="climate-tile__forecast" aria-label="24-hour temperature forecast">
                         <div class="climate-tile__forecast-arc" id="weather-forecast-arc">
                             <svg class="climate-tile__forecast-svg" aria-hidden="true">
+                                <g id="weather-forecast-grid" class="climate-tile__forecast-grid"></g>
                                 <line id="weather-forecast-now-line" class="climate-tile__forecast-now-line"></line>
                                 <path id="weather-forecast-path" class="climate-tile__forecast-path"></path>
                                 <circle id="weather-current-marker" class="climate-tile__forecast-marker" r="5"></circle>
                             </svg>
+                            <span id="weather-forecast-tooltip" class="climate-tile__forecast-tooltip" role="tooltip" hidden></span>
                             <div class="climate-tile__forecast-extrema" id="weather-forecast-extrema"></div>
                             <div class="climate-tile__forecast-axis" id="weather-forecast-axis"></div>
                         </div>
@@ -313,26 +318,26 @@
 
                     <div class="climate-tile__cold-strip" id="climate-cold-strip">
                         <div class="climate-tile__cold-item">
+                            <i class="fa-solid fa-kitchen-set climate-tile__cold-icon" aria-hidden="true"></i>
                             <span class="climate-tile__cold-label">Fridge</span>
                             <span class="climate-tile__cold-temp" id="temp-fridge">—°C</span>
                             <span class="climate-tile__cold-status" id="fridge-status">—</span>
                         </div>
                         <div class="climate-tile__cold-item">
+                            <i class="fa-solid fa-icicles climate-tile__cold-icon climate-tile__cold-icon--freezer" aria-hidden="true"></i>
                             <span class="climate-tile__cold-label">Freezer</span>
                             <span class="climate-tile__cold-temp" id="temp-freezer">—°C</span>
                         </div>
                     </div>
 
                     <div class="climate-tile__footer">
-                        <div class="climate-tile__meta">
+                        <div class="climate-tile__meta" aria-label="Humidity">
                             <i class="fa-solid fa-droplet climate-tile__meta-icon" aria-hidden="true"></i>
-                            <span class="climate-tile__meta-label">Humidity</span>
                             <span class="climate-tile__meta-value" id="temp-humidity">—%</span>
                         </div>
                         <p class="climate-tile__hint" id="weather-hint" aria-live="polite">—</p>
-                        <div class="climate-tile__meta">
+                        <div class="climate-tile__meta" aria-label="Tonight low">
                             <i class="fa-solid fa-moon climate-tile__meta-icon climate-tile__meta-icon--moon" aria-hidden="true"></i>
-                            <span class="climate-tile__meta-label">Tonight</span>
                             <span class="climate-tile__meta-value" id="weather-low-tonight">—°</span>
                         </div>
                     </div>
@@ -363,22 +368,30 @@
                     <div class="system-tile__panel">
                         <ul class="system-tile__modules" aria-label="Module connectivity">
                             <li class="system-tile__module is-unknown" id="system-module-mppt">
-                                <span class="system-tile__status" aria-hidden="true"></span>
+                                <span class="system-tile__icon" aria-hidden="true">
+                                    <i class="fa-solid fa-solar-panel"></i>
+                                </span>
                                 <span class="system-tile__name">Solar</span>
                                 <span class="system-tile__state" aria-live="polite">—</span>
                             </li>
                             <li class="system-tile__module is-unknown" id="system-module-shunt">
-                                <span class="system-tile__status" aria-hidden="true"></span>
+                                <span class="system-tile__icon" aria-hidden="true">
+                                    <i class="fa-solid fa-battery-half"></i>
+                                </span>
                                 <span class="system-tile__name">Shunt</span>
                                 <span class="system-tile__state" aria-live="polite">—</span>
                             </li>
                             <li class="system-tile__module is-unknown" id="system-module-arduino">
-                                <span class="system-tile__status" aria-hidden="true"></span>
+                                <span class="system-tile__icon" aria-hidden="true">
+                                    <i class="fa-solid fa-microchip"></i>
+                                </span>
                                 <span class="system-tile__name">Arduino</span>
                                 <span class="system-tile__state" aria-live="polite">—</span>
                             </li>
                             <li class="system-tile__module is-unknown" id="system-module-gps">
-                                <span class="system-tile__status" aria-hidden="true"></span>
+                                <span class="system-tile__icon" aria-hidden="true">
+                                    <i class="fa-solid fa-satellite-dish"></i>
+                                </span>
                                 <span class="system-tile__name">GPS</span>
                                 <span class="system-tile__state" aria-live="polite">—</span>
                             </li>

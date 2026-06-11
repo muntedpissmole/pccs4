@@ -10,6 +10,7 @@ from actuators.relays import RelayActuator
 from actuators.screens import ScreenActuator
 from engine.config_compile import compile_config
 from engine.policy import desired_outputs
+from engine.precedence import any_reed_open
 from engine.reconcile import ANIMATED_RAMP_SOURCES, Reconciler
 from engine.world import WorldStore
 from inputs.reeds import ReedInput
@@ -69,8 +70,11 @@ class PCCSRuntime:
         }.get(source, self.compiled.reed_ramp_ms)
 
     def reconcile(self, ramp_source: str = "auto"):
-        with self._reconcile_lock:
-            self.reconciler.reconcile(ramp_source=ramp_source)
+        try:
+            with self._reconcile_lock:
+                self.reconciler.reconcile(ramp_source=ramp_source)
+        except Exception as e:
+            logger.warning(f"Reconcile ({ramp_source}): {e}")
         if ramp_source in ANIMATED_RAMP_SOURCES:
             self._schedule_post_ramp_read(self._ramp_ms_for_source(ramp_source))
 
@@ -157,10 +161,25 @@ class PCCSRuntime:
         self.socketio.emit("reed_diag_update", self.get_reed_diag_json())
 
     def on_reeds_updated(self, reeds: dict, transitioned_reeds: list):
+        snap_before = self.world.snapshot()
+        open_before = any_reed_open(snap_before, self.compiled)
         self.world.update_reeds(reeds, transition_reeds=transitioned_reeds)
-        for reed in transitioned_reeds or []:
-            self.reconciler.invalidate_commanded_for_reed(reed)
-        self._emit_state(self._preview_ui_state("reed"))
+        transitioned = list(transitioned_reeds or [])
+        snap_after = self.world.snapshot()
+        open_after = any_reed_open(snap_after, self.compiled)
+        include_ambient = open_before != open_after
+        affected_lights: set[str] = set()
+        for reed in transitioned:
+            affected_lights |= self.reconciler.invalidate_commanded_for_reed(
+                reed, include_ambient=False
+            )
+        if include_ambient:
+            affected_lights |= self.reconciler.invalidate_ambient_lights()
+        affected_reeds = set()
+        for reed in transitioned:
+            affected_reeds |= self.reconciler._reeds_for_invalidation(reed)
+        self.world.clear_light_intents_for_reeds(affected_reeds)
+        self._emit_state(self._preview_partial_ui_state("reed", affected_lights))
         self._emit_reeds()
         self._reconcile_async("reed")
 
@@ -183,22 +202,22 @@ class PCCSRuntime:
             logger.warning(f"Unknown scene: {scene_key}")
             return
 
-        # One-shot: command scene levels via a transient active_scene, then release.
-        # No intents are stored — reeds, automation, and manual UI take over afterward.
+        # Ramp to scene levels; cleared on reed event, phase change, slider, or another scene.
         self.world.clear_all_light_intents()
         self.world.set_active_scene(scene_key)
-        try:
-            self.reconcile(ramp_source="scene")
-        finally:
-            self.world.clear_active_scene()
+        self.reconcile(ramp_source="scene")
 
         from modules.toasts import toast_manager
         if toast_manager and scene.get("name"):
-            title = "All Off" if scene.get("all_off") else None
+            all_off = scene.get("all_off")
+            all_off_exceptions = all_off and bool(scene.get("lights"))
+            title = "All Off" if all_off and not all_off_exceptions else None
             toast_manager.success(
-                f"{scene['name']} activated" if not scene.get("all_off") else "All lights turned off",
+                f"{scene['name']} activated"
+                if not all_off or all_off_exceptions
+                else "All lights turned off",
                 title=title or scene["name"],
-                duration=4000 if scene.get("all_off") else 3500,
+                duration=4000 if all_off and not all_off_exceptions else 3500,
             )
 
     @staticmethod
@@ -215,25 +234,50 @@ class PCCSRuntime:
                 return False
         return bool(closed)
 
+    def _reed_force_affected_lights(
+        self, reed_names, *, include_ambient: bool
+    ) -> set[str]:
+        affected: set[str] = set()
+        for reed_name in reed_names:
+            affected |= self.reconciler.invalidate_commanded_for_reed(
+                reed_name, include_ambient=False
+            )
+        if include_ambient:
+            affected |= self.reconciler.invalidate_ambient_lights()
+        return affected
+
     def force_reed(self, name: str, closed: Optional[bool]) -> dict:
         closed = self._coerce_reed_closed(closed)
+        snap_before = self.world.snapshot()
+        open_before = any_reed_open(snap_before, self.compiled)
+
         if name == "all" and closed is None:
             self.world.clear_all_reed_forces()
-            for reed in self.compiled.reed_names:
-                self.reconciler.invalidate_commanded_for_reed(reed)
+            reed_names = list(self.compiled.reed_names)
         elif closed is None:
+            if name not in self.compiled.reed_names:
+                logger.warning(f"force_reed ignored — unknown reed: {name}")
+                return self.get_ui_state()
             self.world.set_reed_force(name, None)
+            reed_names = [name]
         else:
             if name not in self.compiled.reed_names:
                 logger.warning(f"force_reed ignored — unknown reed: {name}")
                 return self.get_ui_state()
             self.world.set_reed_force(name, closed)
-        # Match phase force: operator overrides clear slider intents so policy
-        # reflects the forced reed state, not stale manual levels.
-        self.world.clear_all_light_intents()
-        if name != "all":
-            self.reconciler.invalidate_commanded_for_reed(name)
-        preview = self._preview_ui_state("reed")
+            reed_names = [name]
+
+        snap_after = self.world.snapshot()
+        include_ambient = open_before != any_reed_open(snap_after, self.compiled)
+        affected_lights = self._reed_force_affected_lights(
+            reed_names, include_ambient=include_ambient
+        )
+        affected_reeds = set()
+        for reed_name in reed_names:
+            affected_reeds |= self.reconciler._reeds_for_invalidation(reed_name)
+        self.world.clear_light_intents_for_reeds(affected_reeds)
+
+        preview = self._preview_partial_ui_state("reed", affected_lights)
         self._emit_state(preview)
         self._emit_reeds()
         self._reconcile_async("reed")
@@ -257,7 +301,16 @@ class PCCSRuntime:
 
     def _preview_ui_state(self, ramp_source: str) -> dict:
         """Desired UI levels from policy — no hardware I/O (for instant slider animation)."""
-        desired = desired_outputs(self.world.snapshot(), self.compiled)
+        return self._preview_partial_ui_state(ramp_source, None)
+
+    def _preview_partial_ui_state(
+        self, ramp_source: str, affected_lights: Optional[set]
+    ) -> dict:
+        """Policy preview; when affected_lights is set, leave other lights unchanged."""
+        world = self.world.snapshot()
+        desired = desired_outputs(world, self.compiled)
+        if affected_lights is not None:
+            self.reconciler._preserve_lights_except(desired, world, affected_lights)
         state = self.reconciler.build_ui_state(desired)
         if ramp_source in ANIMATED_RAMP_SOURCES:
             state.update({
@@ -304,8 +357,8 @@ class PCCSRuntime:
         self.reconcile(ramp_source="startup")
 
     def start_background_threads(self):
+        """Background hardware read + drift reporting only — no periodic policy reconcile."""
         threading.Thread(target=self._sync_loop, daemon=True, name="HardwareSync").start()
-        threading.Thread(target=self._reconcile_loop, daemon=True, name="SafetyReconcile").start()
 
     def _sync_loop(self):
         while not self._shutdown.is_set():
@@ -316,14 +369,6 @@ class PCCSRuntime:
                     self.reconciler.report_hardware_drift()
             except Exception as e:
                 logger.debug(f"Hardware sync: {e}")
-
-    def _reconcile_loop(self):
-        while not self._shutdown.is_set():
-            time.sleep(self.compiled.reconcile_interval_s)
-            try:
-                self.reconcile(ramp_source="auto")
-            except Exception as e:
-                logger.debug(f"Safety reconcile: {e}")
 
     def stop(self):
         self._shutdown.set()

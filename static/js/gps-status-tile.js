@@ -63,7 +63,7 @@
     const els = {
         headline: document.getElementById('gps-headline'),
         detail: document.getElementById('gps-detail'),
-        coords: document.getElementById('gps-coords'),
+        coords: document.getElementById('gps-status-coords'),
         metrics: document.getElementById('gps-metrics'),
         navigation: document.getElementById('gps-navigation'),
         clock: document.getElementById('gps-clock'),

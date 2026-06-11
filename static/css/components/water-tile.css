@@ -71,9 +71,17 @@
         stroke var(--duration-fast) ease;
 }
 
-#tile-water .water-tile__percent {
+#tile-water .water-tile__readout {
     position: relative;
     z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+#tile-water .water-tile__percent {
     margin: 0;
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-semibold);
@@ -82,14 +90,40 @@
     font-variant-numeric: tabular-nums;
 }
 
+#tile-water .water-tile__litres {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-accent);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow:
+        0 0 6px var(--color-accent-glow),
+        0 0 12px var(--color-accent-glow-strong);
+}
+
 #tile-water.is-low .water-tile__ring-fill {
-    stroke: #f59e0b;
-    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.35));
+    stroke: var(--color-meter-warm-mid);
+    filter: drop-shadow(0 0 8px var(--color-sun-glow));
+}
+
+#tile-water.is-low .water-tile__litres {
+    color: var(--color-meter-warm-mid);
+    text-shadow:
+        0 0 6px color-mix(in srgb, var(--color-sun) 45%, transparent),
+        0 0 12px var(--color-sun-glow);
 }
 
 #tile-water.is-critical .water-tile__ring-fill {
-    stroke: #ef4444;
-    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.35));
+    stroke: var(--color-status-offline);
+    filter: drop-shadow(0 0 8px var(--color-status-offline-glow));
+}
+
+#tile-water.is-critical .water-tile__litres {
+    color: var(--color-status-offline);
+    text-shadow:
+        0 0 6px color-mix(in srgb, var(--color-status-offline) 45%, transparent),
+        0 0 12px var(--color-status-offline-glow);
 }
 
 @media (prefers-reduced-motion: reduce) {

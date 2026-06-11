@@ -46,6 +46,12 @@
         return `${getLevel(light)}%`;
     }
 
+    function iconClass(icon, fallback = 'fa-lightbulb') {
+        const raw = (icon || fallback).trim();
+        const name = raw.replace(/^fa-(solid|regular|brands)\s+/, '').trim();
+        return name.startsWith('fa-') ? `fa-solid ${name}` : `fa-solid fa-${name}`;
+    }
+
     function setOverlayVisible(el, visible) {
         if (!el) return;
         el.classList.toggle('is-visible', visible);
@@ -92,7 +98,9 @@
         el.className = 'lighting-home-tile__item';
         el.dataset.lightName = light.name;
         el.innerHTML = `
-            <span class="lighting-home-tile__glow" aria-hidden="true"></span>
+            <span class="lighting-home-tile__icon" aria-hidden="true">
+                <i class="${iconClass(light.icon)}"></i>
+            </span>
             <span class="lighting-home-tile__name"></span>
             <span class="lighting-home-tile__level" aria-live="polite"></span>`;
         el.querySelector('.lighting-home-tile__name').textContent = light.label;

@@ -85,6 +85,9 @@ class GPSModule:
         self._toast_cooldown = config.getfloat('gps', 'toast_cooldown')
 
         self._gps_port_unhealthy_warned = False
+        self._stop_event = threading.Event()
+        self._reader_thread: threading.Thread | None = None
+        self._sun_thread: threading.Thread | None = None
 
         logger.debug("📍 GPSModule initialized")
 
@@ -216,8 +219,16 @@ class GPSModule:
         logger.error("No GPS hardware found on any configured port")
         return False
 
+    def stop_reader(self) -> None:
+        """Signal background GPS threads to exit and wait briefly."""
+        self._stop_event.set()
+        for thread in (self._reader_thread, self._sun_thread):
+            if thread and thread.is_alive():
+                thread.join(timeout=5)
+
     def cleanup(self) -> None:
-        """Release the GPS serial port so a restart can reclaim it."""
+        """Stop reader threads and release the GPS serial port."""
+        self.stop_reader()
         if not self.serial:
             return
         try:
@@ -241,14 +252,24 @@ class GPSModule:
             return False
 
     def start_reader(self) -> None:
+        if self._reader_thread and self._reader_thread.is_alive():
+            return
+        self._stop_event.clear()
         self.init_geolocator()
-        threading.Thread(target=self._reader_loop, daemon=True, name="GPS_Reader").start()
-        threading.Thread(target=self._sun_refresh_loop, daemon=True, name="SunRefresh").start()
+        self._reader_thread = threading.Thread(
+            target=self._reader_loop, daemon=True, name="GPS_Reader"
+        )
+        self._sun_thread = threading.Thread(
+            target=self._sun_refresh_loop, daemon=True, name="SunRefresh"
+        )
+        self._reader_thread.start()
+        self._sun_thread.start()
 
     def _reader_loop(self) -> None:
-        while True:
+        while not self._stop_event.is_set():
             if not self.serial or not getattr(self.serial, 'is_open', False):
-                time.sleep(0.5)
+                if self._stop_event.wait(0.5):
+                    break
                 continue
 
             try:
@@ -385,8 +406,8 @@ class GPSModule:
 
     # === Background tasks ===
     def _sun_refresh_loop(self) -> None:
-        while True:
-            time.sleep(self.config.getfloat('gps', 'sun_update_interval'))
+        interval = self.config.getfloat('gps', 'sun_update_interval')
+        while not self._stop_event.wait(interval):
             if self.state.get("latitude") and self.state.get("fix_quality", 0) >= 1:
                 self._update_sun_times()
 

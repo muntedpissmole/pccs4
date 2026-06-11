@@ -134,7 +134,7 @@
 .sonos-tile__progress-bar {
     position: relative;
     width: 100%;
-    height: 8px;
+    height: var(--size-progress-bar);
     border-radius: var(--radius-pill);
     background: var(--color-highlight-subtle);
     border: 1px solid var(--color-border);
@@ -150,9 +150,9 @@
     width: var(--sonos-progress, 0%);
     background: linear-gradient(
         90deg,
-        #0284c7 0%,
+        var(--color-accent-deep) 0%,
         var(--color-accent) 55%,
-        rgba(125, 211, 252, 0.95) 100%
+        var(--color-accent-light) 100%
     );
     box-shadow: 0 0 8px var(--color-accent-glow);
     transition: width var(--duration-fast) var(--ease-standard);
@@ -251,6 +251,11 @@
     border-color: var(--color-accent-hover);
 }
 
+.sonos-tile__transport-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .sonos-tile__transport-btn:active,
 .sonos-tile__mute-btn:active {
     transform: scale(0.95);
@@ -282,7 +287,7 @@
 .sonos-tile__volume-track {
     position: relative;
     width: 100%;
-    height: 8px;
+    height: var(--size-progress-bar);
     border-radius: var(--radius-pill);
     background: var(--color-highlight-subtle);
     border: 1px solid var(--color-border);
@@ -305,9 +310,9 @@
     width: var(--sonos-volume, 0%);
     background: linear-gradient(
         90deg,
-        #0284c7 0%,
+        var(--color-accent-deep) 0%,
         var(--color-accent) 55%,
-        rgba(125, 211, 252, 0.95) 100%
+        var(--color-accent-light) 100%
     );
 }
 
@@ -369,8 +374,12 @@
     margin-top: 8px;
     border-radius: 50%;
     border: 2px solid var(--color-accent);
-    background: var(--color-text-on-accent);
-    box-shadow: 0 2px 8px var(--shadow-dark);
+    background: var(--color-toggle-handle);
+    box-shadow:
+        2px 2px 4px var(--shadow-dark),
+        -2px -2px 4px var(--shadow-light),
+        inset 2px 2px 6px var(--color-slider-thumb-inner-light),
+        inset -2px -2px 6px var(--color-slider-thumb-inner-dark);
     cursor: grab;
 }
 
@@ -385,8 +394,12 @@
     height: 28px;
     border-radius: 50%;
     border: 2px solid var(--color-accent);
-    background: var(--color-text-on-accent);
-    box-shadow: 0 2px 8px var(--shadow-dark);
+    background: var(--color-toggle-handle);
+    box-shadow:
+        2px 2px 4px var(--shadow-dark),
+        -2px -2px 4px var(--shadow-light),
+        inset 2px 2px 6px var(--color-slider-thumb-inner-light),
+        inset -2px -2px 6px var(--color-slider-thumb-inner-dark);
     cursor: grab;
 }
 

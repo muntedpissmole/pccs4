@@ -22,6 +22,12 @@
         return state.raw[name] === false;
     }
 
+    function iconClass(icon, fallback = 'fa-door-closed') {
+        const raw = (icon || fallback).trim();
+        const name = raw.replace(/^fa-(solid|regular|brands)\s+/, '').trim();
+        return name.startsWith('fa-') ? `fa-solid ${name}` : `fa-solid fa-${name}`;
+    }
+
     function setOverlayVisible(el, visible) {
         if (!el) return;
         el.classList.toggle('is-visible', visible);
@@ -68,7 +74,9 @@
         el.className = 'reed-tile__item is-open';
         el.dataset.reedName = reed.name;
         el.innerHTML = `
-            <span class="reed-tile__status" aria-hidden="true"></span>
+            <span class="reed-tile__icon" aria-hidden="true">
+                <i class="${iconClass(reed.icon)}"></i>
+            </span>
             <span class="reed-tile__name"></span>
             <span class="reed-tile__state" aria-live="polite">Open</span>`;
         el.querySelector('.reed-tile__name').textContent = reed.label;

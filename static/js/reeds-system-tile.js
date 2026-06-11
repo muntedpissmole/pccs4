@@ -31,19 +31,19 @@
         return reed.closed;
     }
 
-    function sourceLabel(reed) {
+    function sourceLines(reed) {
         if (isForced(reed.name)) {
-            const forcedText = getEffectiveClosed(reed) ? 'Forced closed' : 'Forced open';
+            const primary = getEffectiveClosed(reed) ? 'Forced closed' : 'Forced open';
+            let secondary = null;
             if (Object.prototype.hasOwnProperty.call(state.raw, reed.name)) {
                 const sensorClosed = state.raw[reed.name];
-                const sensorText = sensorClosed ? 'sensor closed' : 'sensor open';
                 if (sensorClosed !== state.forced[reed.name]) {
-                    return `${forcedText} · ${sensorText}`;
+                    secondary = sensorClosed ? 'sensor closed' : 'sensor open';
                 }
             }
-            return forcedText;
+            return { primary, secondary };
         }
-        return 'Live sensor';
+        return { primary: 'Live sensor', secondary: null };
     }
 
     function renderSummary() {
@@ -68,6 +68,7 @@
     function renderCard(reed) {
         const closed = getEffectiveClosed(reed);
         const forced = isForced(reed.name);
+        const source = sourceLines(reed);
 
         const modifiers = [
             closed ? 'is-closed' : 'is-open',
@@ -107,9 +108,12 @@
                 </div>
 
                 <div class="reeds-system-tile__footer">
-                    <span class="reeds-system-tile__source${forced ? ' is-override' : ''}" aria-live="polite">
-                        ${sourceLabel(reed)}
-                    </span>
+                    <div class="reeds-system-tile__source${forced ? ' is-override' : ''}" aria-live="polite">
+                        <span class="reeds-system-tile__source-primary">${source.primary}</span>
+                        ${source.secondary
+                            ? `<span class="reeds-system-tile__source-secondary">${source.secondary}</span>`
+                            : ''}
+                    </div>
                     <button type="button"
                             class="reeds-system-tile__clear"
                             data-reed-action="clear"

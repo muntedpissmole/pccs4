@@ -25,6 +25,8 @@
     /* ── Accent ── */
     --color-accent: #4fc3f7;
     --color-accent-hover: #38bdf8;
+    --color-accent-deep: #0284c7;
+    --color-accent-light: rgba(125, 211, 252, 0.95);
     --color-accent-glow: rgba(79, 195, 247, 0.35);
     --color-accent-border: rgba(79, 195, 247, 0.25);
 
@@ -40,6 +42,7 @@
     --tile-border: rgba(255, 255, 255, 0.1);
     --tile-radius: 24px;
     --tile-padding: 20px;
+    --tile-list-glow-bleed: 14px;
     --tile-min-height: 150px;
     --tile-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
     --tile-inner-border: rgba(255, 255, 255, 0.04);
@@ -98,22 +101,28 @@
     --space-main-bottom: 40px;
     --space-heading-bottom: 8px;
     --space-tile-gap: 16px;
+    --space-system-body-gap: 1rem;
+    --space-system-summary-pad: 0.75rem;
     --space-span2-content-inline: clamp(2rem, 11vw, 4.75rem);
 
     /* ── Mode buttons (appearance tile) ── */
     --size-mode-btn-height: var(--size-nav-height);
+    --size-progress-bar: 8px;
+    --system-card-min: 9.5rem;
     --space-mode-btn-gap: 8px;
     --space-mode-btn-inset: 8px;
     --space-mode-btn-x: 12px;
 
     /* ── Radii ── */
     --radius-pill: 9999px;
+    --radius-sm: calc(var(--tile-radius) * 0.35);
 
     /* ── Typography ── */
     --font-family: system-ui, -apple-system, sans-serif;
     --font-size-root: 16px;
 
     /* Type scale — all sizes derive from --font-size-root */
+    --font-size-2xs: calc(var(--font-size-root) * 0.65);   /* 10.4px */
     --font-size-xs: calc(var(--font-size-root) * 0.625);   /* 10px */
     --font-size-sm: calc(var(--font-size-root) * 0.8125);  /* 13px */
     --font-size-md: var(--font-size-root);                 /* 16px */
@@ -132,6 +141,20 @@
     --font-size-datetime-date: var(--font-size-lg);
     --font-size-tile-icon: var(--font-size-xl);
 
+    /* ── Surfaces & meters ── */
+    --color-surface-inset: rgba(0, 0, 0, 0.2);
+    --color-surface-inset-light: rgba(0, 0, 0, 0.04);
+    --color-device-frame: rgba(0, 0, 0, 0.28);
+    --color-overlay-scrim: rgba(0, 0, 0, 0.72);
+    --color-metric-surface: rgba(0, 0, 0, 0.14);
+    --color-meter-warm-start: #d97706;
+    --color-meter-warm-mid: #f59e0b;
+    --color-meter-warm-end: #fcd34d;
+    --color-meter-hot-start: #dc2626;
+    --color-meter-hot-end: #fca5a5;
+    --color-phase-night-start: #475569;
+    --color-phase-night-end: #64748b;
+
     /* ── Date/time tile ── */
     --color-sun: #fbbf24;
     --color-sun-glow: rgba(251, 191, 36, 0.28);
@@ -142,7 +165,7 @@
     --space-datetime-gap: 2px;
     --space-datetime-phase-gap: 12px;
     --space-datetime-curve-pad-y: 1.2em;
-    --space-datetime-footer-pad: 6px;
+    --space-datetime-footer-pad: 10px;
     --space-datetime-pad-y: 12px;
     --size-datetime-curve-height: 52px;
     --size-datetime-curve-width: 240px;
@@ -164,7 +187,22 @@
     --duration-nav: 0.25s;
     --duration-page-fade: 0.28s;
     --duration-tile-list-fade: 1s;
+    /* Bug-mode UI colour crossfade; matches lighting.ui_ramp_time_ms in pccs.conf */
+    --duration-bug-mode-crossfade: 1s;
     --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ── Status indicators ── */
+    --color-status-online: #22c55e;
+    --color-status-online-text: #4ade80;
+    --color-status-offline: #ef4444;
+    --color-status-offline-text: #f87171;
+    --color-status-online-glow: rgba(34, 197, 94, 0.45);
+    --color-status-offline-glow: rgba(239, 68, 68, 0.35);
+    --size-status-dot: 8px;
+
+    /* ── Focus rings ── */
+    --focus-ring-width: 2px;
+    --focus-ring-offset: 2px;
 
     /* ── Toasts ── */
     --toast-success: #10b981;
@@ -235,4 +273,8 @@ html.light {
 
     --shadow-drop-sm: 0 4px 20px rgba(0, 0, 0, 0.12);
     --shadow-drop-md: 0 8px 25px -8px rgba(0, 0, 0, 0.12);
+
+    --color-surface-inset: rgba(0, 0, 0, 0.04);
+    --color-device-frame: rgba(0, 0, 0, 0.06);
+    --color-metric-surface: rgba(0, 0, 0, 0.03);
 }

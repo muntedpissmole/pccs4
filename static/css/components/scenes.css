@@ -2,10 +2,11 @@
 
 .scenes-grid__loading {
     margin: 0;
-    padding: 2rem 1rem;
+    padding: 0.75rem 0;
     text-align: center;
     color: var(--color-text-muted);
     font-size: var(--font-size-sm);
+    line-height: 1.4;
 }
 
 .scenes-grid {
@@ -24,6 +25,12 @@
 @media (min-width: 40.0625rem) and (max-width: 64rem) {
     .scenes-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 157.5625rem) {
+    .scenes-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
     }
 }
 
@@ -89,7 +96,7 @@
 .scene-btn.active {
     background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
     color: var(--color-text-on-accent);
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: color-mix(in srgb, var(--color-text-on-accent) 30%, transparent);
     box-shadow: 0 0 28px var(--color-accent-glow-strong);
 }
 

@@ -172,34 +172,34 @@
                 </div>
 
                 ${view.reachable ? `
-                    <div class="sonos-system-tile__progress" aria-hidden="true">
-                        <div class="sonos-system-tile__progress-bar">
-                            <div class="sonos-system-tile__progress-fill" style="width:${progress}%"></div>
+                    <div class="sonos-tile__progress" aria-hidden="true">
+                        <div class="sonos-tile__progress-bar">
+                            <div class="sonos-tile__progress-fill" style="--sonos-progress: ${progress}%"></div>
                         </div>
-                        <div class="sonos-system-tile__times">
+                        <div class="sonos-tile__times">
                             <span>${formatTime(view.elapsed_seconds)}</span>
                             <span>${formatTime(view.duration_seconds)}</span>
                         </div>
                     </div>
                 ` : ''}
 
-                <div class="sonos-system-tile__transport" role="group" aria-label="${name} playback">
+                <div class="sonos-tile__transport" role="group" aria-label="${name} playback">
                     <button type="button"
-                            class="sonos-system-tile__transport-btn"
+                            class="sonos-tile__transport-btn"
                             data-sonos-action="previous"
                             aria-label="Previous track"
                             ${controlsDisabled ? 'disabled' : ''}>
                         <i class="fa-solid fa-backward-step" aria-hidden="true"></i>
                     </button>
                     <button type="button"
-                            class="sonos-system-tile__transport-btn sonos-system-tile__transport-btn--primary"
+                            class="sonos-tile__transport-btn sonos-tile__transport-btn--primary"
                             data-sonos-action="toggle"
                             aria-label="${view.playing ? 'Pause' : 'Play'}"
                             ${controlsDisabled ? 'disabled' : ''}>
                         <i class="fa-solid ${view.playing ? 'fa-pause' : 'fa-play'}" aria-hidden="true"></i>
                     </button>
                     <button type="button"
-                            class="sonos-system-tile__transport-btn"
+                            class="sonos-tile__transport-btn"
                             data-sonos-action="next"
                             aria-label="Next track"
                             ${controlsDisabled ? 'disabled' : ''}>
@@ -207,24 +207,31 @@
                     </button>
                 </div>
 
-                <div class="sonos-system-tile__volume">
+                <div class="sonos-tile__volume-group">
                     <button type="button"
-                            class="sonos-system-tile__mute-btn"
+                            class="sonos-tile__mute-btn${view.muted ? ' is-muted' : ''}"
                             data-sonos-action="mute"
                             aria-label="${view.muted ? 'Unmute' : 'Mute'}"
                             aria-pressed="${view.muted ? 'true' : 'false'}"
                             ${controlsDisabled ? 'disabled' : ''}>
                         <i class="fa-solid ${view.muted ? 'fa-volume-xmark' : 'fa-volume-high'}" aria-hidden="true"></i>
                     </button>
-                    <input type="range"
-                           class="sonos-system-tile__volume-slider"
-                           data-sonos-volume="${name}"
-                           min="0"
-                           max="100"
-                           value="${view.volume}"
-                           aria-label="${name} volume"
-                           ${controlsDisabled ? 'disabled' : ''}>
-                    <span class="sonos-system-tile__volume-pct">${view.volume}%</span>
+                    <div class="sonos-tile__volume-wrap">
+                        <div class="sonos-tile__volume-track">
+                            <div class="sonos-tile__volume-fill-clip" aria-hidden="true">
+                                <div class="sonos-tile__volume-fill" style="--sonos-volume: ${view.volume}%"></div>
+                            </div>
+                        </div>
+                        <input type="range"
+                               class="sonos-tile__volume"
+                               data-sonos-volume="${name}"
+                               min="0"
+                               max="100"
+                               value="${view.volume}"
+                               aria-label="${name} volume"
+                               ${controlsDisabled ? 'disabled' : ''}>
+                    </div>
+                    <span class="sonos-tile__volume-pct">${view.volume}%</span>
                 </div>
 
                 <div class="sonos-system-tile__footer">
@@ -242,16 +249,171 @@
             </article>`;
     }
 
-    function render(extra) {
+    function setCardText(card, selector, text) {
+        const el = card.querySelector(selector);
+        if (el) el.textContent = text;
+    }
+
+    function updateCardInPlace(card, name, { skipVolume = false } = {}) {
+        const view = getSpeakerView(name);
+        const isActive = name === state.activeSpeaker;
+        const progress = view.duration_seconds > 0
+            ? Math.min(100, (view.elapsed_seconds / view.duration_seconds) * 100)
+            : 0;
+        const controlsDisabled = !state.enabled || !view.reachable || !isActive;
+
+        card.className = [
+            'sonos-system-tile__card',
+            isActive ? 'is-active' : '',
+            view.reachable ? 'is-live' : 'is-offline',
+            view.playing ? 'is-playing' : 'is-paused',
+            view.muted ? 'is-muted' : '',
+        ].filter(Boolean).join(' ');
+
+        setCardText(card, '.sonos-system-tile__track', view.title);
+        setCardText(card, '.sonos-system-tile__artist', view.artist);
+
+        const artImg = card.querySelector('.sonos-system-tile__art[src]');
+        if (view.album_art) {
+            if (artImg) {
+                if (artImg.getAttribute('src') !== view.album_art) {
+                    artImg.setAttribute('src', view.album_art);
+                }
+            } else {
+                const placeholder = card.querySelector('.sonos-system-tile__art--placeholder');
+                if (placeholder) {
+                    const img = document.createElement('img');
+                    img.className = 'sonos-system-tile__art';
+                    img.src = view.album_art;
+                    img.alt = '';
+                    img.decoding = 'async';
+                    placeholder.replaceWith(img);
+                }
+            }
+        }
+
+        const progressFill = card.querySelector('.sonos-tile__progress-fill');
+        if (progressFill) {
+            progressFill.style.setProperty('--sonos-progress', `${progress}%`);
+        }
+
+        const times = card.querySelectorAll('.sonos-tile__times span');
+        if (times.length >= 2) {
+            times[0].textContent = formatTime(view.elapsed_seconds);
+            times[1].textContent = formatTime(view.duration_seconds);
+        }
+
+        card.querySelectorAll('[data-sonos-action]').forEach((button) => {
+            const action = button.dataset.sonosAction;
+            if (action === 'select') return;
+            button.disabled = controlsDisabled;
+        });
+
+        const playBtn = card.querySelector('[data-sonos-action="toggle"]');
+        if (playBtn) {
+            playBtn.setAttribute('aria-label', view.playing ? 'Pause' : 'Play');
+            const icon = playBtn.querySelector('i');
+            if (icon) {
+                icon.className = `fa-solid ${view.playing ? 'fa-pause' : 'fa-play'}`;
+            }
+        }
+
+        const muteBtn = card.querySelector('[data-sonos-action="mute"]');
+        if (muteBtn) {
+            muteBtn.classList.toggle('is-muted', view.muted);
+            muteBtn.setAttribute('aria-label', view.muted ? 'Unmute' : 'Mute');
+            muteBtn.setAttribute('aria-pressed', view.muted ? 'true' : 'false');
+            const icon = muteBtn.querySelector('i');
+            if (icon) {
+                icon.className = `fa-solid ${view.muted ? 'fa-volume-xmark' : 'fa-volume-high'}`;
+            }
+        }
+
+        if (!skipVolume) {
+            const slider = card.querySelector('[data-sonos-volume]');
+            if (slider && document.activeElement !== slider) {
+                slider.value = String(view.volume);
+                slider.disabled = controlsDisabled;
+            }
+            updateCardVolumeUi(card, view.volume);
+        }
+
+        const linkDot = card.querySelector('.sonos-system-tile__link');
+        if (linkDot) {
+            linkDot.classList.toggle('is-up', view.reachable);
+            linkDot.classList.toggle('is-down', !view.reachable);
+            const linkText = linkDot.querySelector('span:last-child');
+            if (linkText) {
+                linkText.textContent = view.reachable
+                    ? (view.playing ? 'Playing' : 'Paused')
+                    : 'Offline';
+            }
+        }
+
+        const selectBtn = card.querySelector('[data-sonos-action="select"]');
+        if (selectBtn) {
+            selectBtn.classList.toggle('is-selected', isActive);
+            selectBtn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            selectBtn.textContent = isActive ? 'Active' : 'Select';
+        }
+    }
+
+    function ensureCard(name) {
+        const existing = grid.querySelector(`[data-speaker-name="${CSS.escape(name)}"]`);
+        if (existing) return existing;
+
+        const wrap = document.createElement('div');
+        wrap.innerHTML = renderCard(name);
+        return wrap.firstElementChild;
+    }
+
+    function syncSpeakerGrid(extra) {
         renderSummary(extra);
+
         if (!state.enabled) {
             grid.innerHTML = `<p class="sonos-system-tile__empty">${availabilityMessage(extra)}</p>`;
             return;
         }
+
         const names = state.speakers.length ? state.speakers : [];
-        grid.innerHTML = names.length
-            ? names.map(renderCard).join('')
-            : '<p class="sonos-system-tile__empty">Searching for Sonos speakers…</p>';
+        if (!names.length) {
+            grid.innerHTML = '<p class="sonos-system-tile__empty">Searching for Sonos speakers…</p>';
+            return;
+        }
+
+        const emptyMsg = grid.querySelector('.sonos-system-tile__empty');
+        if (emptyMsg) emptyMsg.remove();
+
+        const keep = new Set(names);
+        grid.querySelectorAll('[data-speaker-name]').forEach((card) => {
+            if (!keep.has(card.dataset.speakerName)) {
+                card.remove();
+            }
+        });
+
+        names.forEach((name) => {
+            const skipVolume = state.volumeDrag === name;
+            let card = grid.querySelector(`[data-speaker-name="${CSS.escape(name)}"]`);
+            if (!card) {
+                card = ensureCard(name);
+                grid.appendChild(card);
+            } else {
+                updateCardInPlace(card, name, { skipVolume });
+            }
+        });
+
+        names.forEach((name, index) => {
+            const card = grid.querySelector(`[data-speaker-name="${CSS.escape(name)}"]`);
+            if (!card) return;
+            const current = grid.children[index];
+            if (current !== card) {
+                grid.insertBefore(card, current || null);
+            }
+        });
+    }
+
+    function render(extra) {
+        syncSpeakerGrid(extra);
     }
 
     function onAvailabilityUpdate(data) {
@@ -302,7 +464,15 @@
         if (normalized.speaker === state.activeSpeaker) {
             syncHomeTile(normalized);
         }
-        render();
+        const card = grid.querySelector(`[data-speaker-name="${CSS.escape(normalized.speaker)}"]`);
+        if (card) {
+            updateCardInPlace(card, normalized.speaker, {
+                skipVolume: state.volumeDrag === normalized.speaker,
+            });
+            renderSummary();
+        } else {
+            render();
+        }
     }
 
     function emitCommand(command, { speaker, value } = {}) {
@@ -371,7 +541,12 @@
         }
         const cached = state.speakerStates[name];
         if (cached) syncHomeTile(cached);
-        render();
+        grid.querySelectorAll('[data-speaker-name]').forEach((card) => {
+            updateCardInPlace(card, card.dataset.speakerName, {
+                skipVolume: state.volumeDrag === card.dataset.speakerName,
+            });
+        });
+        renderSummary();
     }
 
     grid.addEventListener('click', (event) => {
@@ -408,13 +583,20 @@
         state.volumeDrag = slider.dataset.sonosVolume;
     });
 
+    function updateCardVolumeUi(card, level) {
+        if (!card) return;
+        const vol = Math.max(0, Math.min(100, Math.round(Number(level) || 0)));
+        const fill = card.querySelector('.sonos-tile__volume-fill');
+        if (fill) fill.style.setProperty('--sonos-volume', `${vol}%`);
+        const pct = card.querySelector('.sonos-tile__volume-pct');
+        if (pct) pct.textContent = `${vol}%`;
+    }
+
     grid.addEventListener('input', (event) => {
         const slider = event.target.closest('[data-sonos-volume]');
         if (!slider || slider.disabled) return;
 
-        const card = slider.closest('[data-speaker-name]');
-        const pct = card?.querySelector('.sonos-system-tile__volume-pct');
-        if (pct) pct.textContent = `${slider.value}%`;
+        updateCardVolumeUi(slider.closest('[data-speaker-name]'), slider.value);
     });
 
     grid.addEventListener('pointerup', () => {

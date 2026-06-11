@@ -24,6 +24,7 @@ class SensorManager:
         # ====================== CALIBRATION FROM CONFIG ======================
         self.WATER_R_EMPTY = config.getfloat('sensors', 'water_resistance_empty')
         self.WATER_R_FULL = config.getfloat('sensors', 'water_resistance_full')
+        self.WATER_CAPACITY_LITRES = config.getfloat('tanks', 'water_litres', fallback=0)
 
         # Analog input pins (via Arduino)
         self.WATER_PIN = config.getint('arduino analog', 'water_pin')
@@ -144,7 +145,7 @@ class SensorManager:
         if now - self._last_vcc_warn > 60:
             logger.warning("   ⚠️ Failed to read VCC")
             self._last_vcc_warn = now
-        return 5.0
+        return None
 
     def _calculate_level_percent(self, adc, vcc, r_empty, r_full):
         if adc is None or vcc is None:
@@ -156,9 +157,6 @@ class SensorManager:
         pct = (r_empty - sensor_r) / (r_empty - r_full) * 100
         return round(max(0, min(100, pct)))
 
-    def _calculate_water(self, adc, vcc):
-        return self._calculate_level_percent(adc, vcc, self.WATER_R_EMPTY, self.WATER_R_FULL) or 0
-
     def update_sensors(self):
         logger.debug("🔄 Updating sensors (water + temperature)...")
         
@@ -168,10 +166,23 @@ class SensorManager:
         fridge_temp  = self._read_ds18b20(self.FRIDGE_TEMP_ID) if self.FRIDGE_TEMP_ID else None
         freezer_temp = self._read_ds18b20(self.FREEZER_TEMP_ID) if self.FREEZER_TEMP_ID else None
 
-        water_pct = self._calculate_water(adc_water, vcc)
+        water_pct = None
+        if adc_water is not None and vcc is not None:
+            water_pct = self._calculate_level_percent(
+                adc_water, vcc, self.WATER_R_EMPTY, self.WATER_R_FULL
+            )
+        if water_pct is None:
+            water_pct = self.last_reading.get("water_percent")
+            if adc_water is None and water_pct is not None:
+                logger.debug("   💧 Water ADC read failed — holding last level %.0f%%", water_pct)
+            elif adc_water is not None and vcc is None and water_pct is not None:
+                logger.debug("   💧 VCC read failed — holding last level %.0f%%", water_pct)
+
+        water_capacity = self.WATER_CAPACITY_LITRES if self.WATER_CAPACITY_LITRES > 0 else None
 
         sensor_data = {
             "water_percent": water_pct,
+            "water_capacity_litres": water_capacity,
             "temp_c": outside_temp if outside_temp is not None else None,  # legacy key
             "outside_temp_c": outside_temp,
             "fridge_temp_c": fridge_temp,

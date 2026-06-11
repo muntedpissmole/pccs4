@@ -22,6 +22,8 @@
         lowTonight: document.getElementById('weather-low-tonight'),
         forecastArc: document.getElementById('weather-forecast-arc'),
         forecastPath: document.getElementById('weather-forecast-path'),
+        forecastTooltip: document.getElementById('weather-forecast-tooltip'),
+        forecastGrid: document.getElementById('weather-forecast-grid'),
         forecastNowLine: document.getElementById('weather-forecast-now-line'),
         forecastMarker: document.getElementById('weather-current-marker'),
         forecastAxis: document.getElementById('weather-forecast-axis'),
@@ -43,6 +45,8 @@
     let layoutParams = null;
     let curveReady = false;
     let lastHourlyForecast = [];
+    let lastForecastPoints = [];
+    let lastForecastSegments = [];
     let lastCurrentTemp = null;
     let geometryAttempts = 0;
     const FORECAST_SVG_HEIGHT = 40;
@@ -57,9 +61,15 @@
     const NOW_POSITION_RATIO = 0.34;
     const VISIBLE_HOURS = 20;
     const SCROLL_TICK_MS = 60000;
+    const FORECAST_HOVER_THRESHOLD_PX = 14;
+    const FORECAST_GRID_TEMP_STEP = 2;
     const HOUR_MS = 3600000;
     const AXIS_TICK_OFFSETS = [-6, 0, 6, 12];
     const EXTREMA_COLLISION_PAD = 28;
+    const EXTREMA_SLOPE_OFFSET_Y = 8;
+    const EXTREMA_MIN_SLOPE = 0.15;
+    const TOOLTIP_EDGE_PAD = 6;
+    const TOOLTIP_CURSOR_GAP = 8;
     const OUTLOOK_DAYS = 4;
     const OUTLOOK_START_INDEX = 1;
 
@@ -190,21 +200,7 @@
 
         const feels = storedFeelsLike();
         const hasFeels = feels !== null && feels !== undefined && !Number.isNaN(Number(feels));
-        if (!hasFeels) {
-            els.feels.hidden = true;
-            return;
-        }
-
-        const outside = currentOutsideTemp();
-        const differs = outside != null
-            && Math.abs(Math.round(Number(feels)) - Math.round(Number(outside))) >= 1;
-
-        if (differs) {
-            els.feels.hidden = false;
-            els.feels.textContent = `Feels ${formatTemp(feels)}`;
-        } else {
-            els.feels.hidden = true;
-        }
+        els.feels.textContent = hasFeels ? `Feels ${formatTemp(feels)}` : 'Feels —°C';
     }
 
     function formatHumidity(value) {
@@ -258,6 +254,149 @@
         els.forecastPath.setAttribute('d', pathD);
         const svg = els.forecastArc?.querySelector('.climate-tile__forecast-svg');
         svg?.setAttribute('viewBox', `0 0 ${layout.viewBoxW} ${layout.h}`);
+    }
+
+    function clientPointToSvg(clientX, clientY, layout) {
+        const svgEl = els.forecastArc?.querySelector('.climate-tile__forecast-svg');
+        if (!svgEl || !layout) return null;
+        const svgRect = svgEl.getBoundingClientRect();
+        if (!svgRect.width || !svgRect.height) return null;
+        return {
+            x: (clientX - svgRect.left) * (layout.viewBoxW / svgRect.width),
+            y: (clientY - svgRect.top) * (layout.h / svgRect.height),
+        };
+    }
+
+    function clientXToSvgX(clientX, layout) {
+        const point = clientPointToSvg(clientX, 0, layout);
+        return point?.x ?? null;
+    }
+
+    function tempAtSvgX(svgX, points) {
+        if (!points.length || svgX == null || !Number.isFinite(svgX)) return null;
+
+        if (svgX <= points[0].x) return points[0].temp;
+        const last = points[points.length - 1];
+        if (svgX >= last.x) return last.temp;
+
+        for (let i = 0; i < points.length - 1; i += 1) {
+            const p0 = points[i];
+            const p1 = points[i + 1];
+            if (svgX < p0.x || svgX > p1.x) continue;
+            const span = p1.x - p0.x;
+            if (!span) return p0.temp;
+            const ratio = (svgX - p0.x) / span;
+            return p0.temp + ratio * (p1.temp - p0.temp);
+        }
+
+        return null;
+    }
+
+    function hideForecastTooltip() {
+        if (!els.forecastTooltip) return;
+        els.forecastTooltip.hidden = true;
+        els.forecastTooltip.textContent = '';
+        els.forecastTooltip.style.transform = '';
+    }
+
+    function clampForecastTooltip(anchorX, anchorY, arcWidth, arcHeight) {
+        if (!els.forecastTooltip) return;
+
+        els.forecastTooltip.style.left = '0';
+        els.forecastTooltip.style.top = '0';
+        els.forecastTooltip.style.transform = 'none';
+
+        const tipWidth = els.forecastTooltip.offsetWidth;
+        const tipHeight = els.forecastTooltip.offsetHeight;
+
+        let left = anchorX - tipWidth / 2;
+        let top = anchorY - tipHeight - TOOLTIP_CURSOR_GAP;
+
+        if (top < TOOLTIP_EDGE_PAD) {
+            top = anchorY + TOOLTIP_CURSOR_GAP;
+        }
+
+        if (top + tipHeight > arcHeight - TOOLTIP_EDGE_PAD) {
+            top = Math.max(
+                TOOLTIP_EDGE_PAD,
+                anchorY - tipHeight - TOOLTIP_CURSOR_GAP
+            );
+        }
+
+        left = Math.max(
+            TOOLTIP_EDGE_PAD,
+            Math.min(left, arcWidth - tipWidth - TOOLTIP_EDGE_PAD)
+        );
+        top = Math.max(
+            TOOLTIP_EDGE_PAD,
+            Math.min(top, arcHeight - tipHeight - TOOLTIP_EDGE_PAD)
+        );
+
+        els.forecastTooltip.style.left = `${left}px`;
+        els.forecastTooltip.style.top = `${top}px`;
+    }
+
+    function showForecastTooltip(event, temp) {
+        if (!els.forecastTooltip || !els.forecastArc) return;
+        const arcRect = els.forecastArc.getBoundingClientRect();
+        const anchorX = event.clientX - arcRect.left;
+        const anchorY = event.clientY - arcRect.top;
+
+        els.forecastTooltip.textContent = formatShortTemp(temp);
+        els.forecastTooltip.hidden = false;
+        clampForecastTooltip(anchorX, anchorY, arcRect.width, arcRect.height);
+    }
+
+    function isNearForecastPath(clientX, clientY) {
+        if (!layoutParams || lastForecastPoints.length < 2) return false;
+
+        const point = clientPointToSvg(clientX, clientY, layoutParams);
+        if (!point) return false;
+
+        const lineY = markerY(lastForecastPoints, lastForecastSegments, point.x);
+        if (lineY == null || !Number.isFinite(lineY)) return false;
+
+        const svgEl = els.forecastArc?.querySelector('.climate-tile__forecast-svg');
+        const svgRect = svgEl?.getBoundingClientRect();
+        if (!svgRect?.height) return false;
+
+        const thresholdSvg = FORECAST_HOVER_THRESHOLD_PX * (layoutParams.h / svgRect.height);
+        return Math.abs(point.y - lineY) <= thresholdSvg;
+    }
+
+    function setForecastPathHover(active) {
+        if (!els.forecastArc) return;
+        els.forecastArc.classList.toggle('is-path-hover', Boolean(active));
+    }
+
+    function bindForecastPathHover() {
+        if (!els.forecastArc || els.forecastArc.dataset.hoverBound) return;
+        els.forecastArc.dataset.hoverBound = 'true';
+
+        els.forecastArc.addEventListener('mousemove', (event) => {
+            if (!isNearForecastPath(event.clientX, event.clientY)) {
+                setForecastPathHover(false);
+                hideForecastTooltip();
+                return;
+            }
+
+            setForecastPathHover(true);
+
+            const svgX = clientXToSvgX(event.clientX, layoutParams);
+            const temp = tempAtSvgX(svgX, lastForecastPoints);
+            if (temp == null) {
+                setForecastPathHover(false);
+                hideForecastTooltip();
+                return;
+            }
+
+            showForecastTooltip(event, temp);
+        });
+
+        els.forecastArc.addEventListener('mouseleave', () => {
+            setForecastPathHover(false);
+            hideForecastTooltip();
+        });
     }
 
     function svgPointToContainer(pt, layout) {
@@ -314,6 +453,30 @@
         }
         const norm = (Number(temp) - min) / span;
         return band.top + (1 - norm) * usable;
+    }
+
+    function verticalFitTransform(globalMin, globalMax, layout, referencePoints) {
+        const band = curveVerticalBand(layout);
+        const bandHeight = band.bottom - band.top;
+        const refYs = referencePoints.map((point) =>
+            tempToY(point.temp, globalMin, globalMax, layout)
+        );
+        const minY = Math.min(...refYs);
+        const maxY = Math.max(...refYs);
+        const span = maxY - minY;
+
+        return (rawY) => {
+            if (span < 0.5) return band.top + bandHeight / 2;
+            return band.top + ((rawY - minY) / span) * bandHeight;
+        };
+    }
+
+    function displayTempToY(temp, globalMin, globalMax, layout, referencePoints) {
+        const toDisplayY = verticalFitTransform(globalMin, globalMax, layout, referencePoints);
+        return clampCurveY(
+            toDisplayY(tempToY(temp, globalMin, globalMax, layout)),
+            layout
+        );
     }
 
     function fitPointsToVerticalBand(points, layout) {
@@ -529,6 +692,46 @@
         return { high, low };
     }
 
+    function findPointIndex(points, target) {
+        return points.findIndex((point) => (
+            point.x === target.x && point.y === target.y && point.temp === target.temp
+        ));
+    }
+
+    function adjacentSlopes(points, index) {
+        const slopes = { before: 0, after: 0 };
+        if (index > 0) {
+            const dx = points[index].x - points[index - 1].x;
+            if (dx) slopes.before = (points[index].y - points[index - 1].y) / dx;
+        }
+        if (index < points.length - 1) {
+            const dx = points[index + 1].x - points[index].x;
+            if (dx) slopes.after = (points[index + 1].y - points[index].y) / dx;
+        }
+        return slopes;
+    }
+
+    function extremaVerticalOffsetY(kind, slopes) {
+        const steepness = Math.max(Math.abs(slopes.before), Math.abs(slopes.after));
+        if (steepness < EXTREMA_MIN_SLOPE) return 0;
+
+        const amount = Math.min(
+            EXTREMA_SLOPE_OFFSET_Y,
+            Math.max(4, steepness * 14)
+        );
+
+        if (kind === 'high') {
+            if (slopes.after >= EXTREMA_MIN_SLOPE) return amount;
+            if (slopes.before <= -EXTREMA_MIN_SLOPE) return -amount;
+        } else if (slopes.after <= -EXTREMA_MIN_SLOPE) {
+            return -amount;
+        } else if (slopes.before >= EXTREMA_MIN_SLOPE) {
+            return amount;
+        }
+
+        return 0;
+    }
+
     function renderForecastExtrema(points, layout) {
         if (!els.forecastExtrema) return;
         els.forecastExtrema.replaceChildren();
@@ -541,6 +744,10 @@
         const addLabel = (point, kind) => {
             if (!point) return;
             const pos = svgPointToExtrema({ x: point.x, y: point.y }, layout);
+            const index = findPointIndex(points, point);
+            if (index >= 0) {
+                pos.y += extremaVerticalOffsetY(kind, adjacentSlopes(points, index));
+            }
             labels.push({ point, kind, pos });
         };
 
@@ -564,6 +771,29 @@
             label.style.top = `${pos.y}px`;
             els.forecastExtrema.append(label);
         });
+    }
+
+    function renderForecastGrid(layout, globalMin, globalMax, points) {
+        if (!els.forecastGrid) return;
+        els.forecastGrid.replaceChildren();
+        if (!layout || !points.length) return;
+
+        const { min, max } = displayTempRange(globalMin, globalMax);
+        const start = Math.floor(min / FORECAST_GRID_TEMP_STEP) * FORECAST_GRID_TEMP_STEP;
+        const end = Math.ceil(max / FORECAST_GRID_TEMP_STEP) * FORECAST_GRID_TEMP_STEP;
+        const x1 = layout.inset;
+        const x2 = layout.viewBoxW - layout.inset;
+        const svgNs = 'http://www.w3.org/2000/svg';
+
+        for (let temp = start; temp <= end; temp += FORECAST_GRID_TEMP_STEP) {
+            const y = displayTempToY(temp, globalMin, globalMax, layout, points);
+            const line = document.createElementNS(svgNs, 'line');
+            line.setAttribute('x1', String(x1));
+            line.setAttribute('x2', String(x2));
+            line.setAttribute('y1', y.toFixed(2));
+            line.setAttribute('y2', y.toFixed(2));
+            els.forecastGrid.append(line);
+        }
     }
 
     function renderForecastAxis(nowMs, layout) {
@@ -660,25 +890,32 @@
         if (!curveReady || !layoutParams) return;
 
         const nowMs = Date.now();
-        const { points, markerX } = buildScrollPoints(
+        const { points, globalMin, globalMax, markerX } = buildScrollPoints(
             lastHourlyForecast,
             nowMs,
             layoutParams
         );
 
         if (points.length < 2) {
+            lastForecastPoints = [];
+            lastForecastSegments = [];
+            hideForecastTooltip();
             els.forecastArc.classList.add('is-empty');
             els.forecastArc.classList.remove('has-marker');
             els.forecastPath?.setAttribute('d', '');
+            if (els.forecastGrid) els.forecastGrid.replaceChildren();
             if (els.forecastAxis) els.forecastAxis.replaceChildren();
             if (els.forecastExtrema) els.forecastExtrema.replaceChildren();
             return;
         }
 
         els.forecastArc.classList.remove('is-empty');
+        lastForecastPoints = points;
 
         const { pathD, segments } = buildHourlyPath(points);
+        lastForecastSegments = segments;
         applyForecastPath(pathD, layoutParams);
+        renderForecastGrid(layoutParams, globalMin, globalMax, points);
         updateNowLine(layoutParams);
         renderForecastAxis(nowMs, layoutParams);
         renderForecastExtrema(points, layoutParams);
@@ -788,7 +1025,6 @@
             normalizeHourlyForecast(lastWeather),
             currentOutsideTemp()
         );
-        applyFeelsLike();
     }
 
     function updateWeatherData(data) {
@@ -899,6 +1135,8 @@
     setInterval(fetchApiWeather, API_WEATHER_INTERVAL_MS);
 
     if (els.forecastArc) {
+        bindForecastPathHover();
+
         requestAnimationFrame(() => {
             updateForecastGeometry();
             requestAnimationFrame(updateForecastGeometry);

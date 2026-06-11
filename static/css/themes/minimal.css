@@ -138,7 +138,7 @@ html.light[data-theme="minimal"] .slider-card:hover {
 [data-theme="minimal"] .slider-track {
     background: rgba(45, 55, 70, 0.28) !important;
     border-radius: 9999px;
-    height: 6px;
+    height: var(--size-progress-bar);
     top: 50%;
     transform: translateY(-50%);
     box-shadow: none !important;
@@ -147,7 +147,7 @@ html.light[data-theme="minimal"] .slider-card:hover {
 [data-theme="minimal"] .slider-fill {
     background: linear-gradient(to right, #14f0d4, #5fffe8) !important;
     box-shadow: 0 0 8px rgba(20, 240, 212, 0.65) !important;
-    height: 6px;
+    height: var(--size-progress-bar);
     top: 50%;
     transform: translateY(-50%);
 }
@@ -162,19 +162,20 @@ html.light[data-theme="minimal"] .slider-card:hover {
     height: 64px;
 }
 
-[data-theme="minimal"] .slider-fill.bug-mode {
+[data-theme="minimal"] .slider-fill::after {
     background: linear-gradient(to right, #e11d48, #f43f5e) !important;
+}
+
+[data-theme="minimal"] .slider-fill.bug-mode {
     box-shadow: 0 0 8px rgba(225, 29, 72, 0.92) !important;
 }
 
 [data-theme="minimal"] .slider-thumb.bug-mode {
     border-color: #e11d48 !important;
-    box-shadow:
-        4px 4px 8px rgba(0, 0, 0, 0.75),
-        -4px -4px 8px rgba(255, 255, 255, 0.04),
-        inset 3px 3px 8px rgba(255, 255, 255, 0.55),
-        inset -3px -3px 8px rgba(0, 0, 0, 0.6),
-        0 0 0 4px rgba(225, 29, 72, 0.25) !important;
+}
+
+[data-theme="minimal"] .slider-thumb::after {
+    box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.25) !important;
 }
 
 /* ── Toggles: clean off state, solid teal on ── */
@@ -223,9 +224,13 @@ html.light[data-theme="minimal"] .relay-toggle .relay-knob {
         0 0 6px rgba(255, 255, 255, 0.7) !important;
 }
 
+[data-theme="minimal"] .toggle-pill::after,
+[data-theme="minimal"] .relay-toggle::after {
+    background: #e11d48 !important;
+}
+
 [data-theme="minimal"] .toggle-pill.bug-mode.on,
 [data-theme="minimal"] .relay-toggle.bug-mode.on {
-    background: #e11d48 !important;
     box-shadow: 0 0 14px rgba(225, 29, 72, 0.92) !important;
 }
 

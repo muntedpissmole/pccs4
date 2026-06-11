@@ -10,7 +10,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-PCCS4_VERSION = "0.4.0"
+from modules.version import get_version
+
+PCCS4_VERSION = get_version()
 
 _runtime = None
 _gps_module = None

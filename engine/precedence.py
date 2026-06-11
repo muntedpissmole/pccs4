@@ -120,6 +120,11 @@ def _scene_resolve(light: str, world: WorldState, cfg: CompiledConfig) -> Option
         return None
 
     if scene.get("all_off"):
+        setting = scene.get("lights", {}).get(light)
+        if setting:
+            sl = _scene_level(light, setting, cfg)
+            if sl:
+                return ResolvedLight(sl[0], sl[1], "scene")
         return ResolvedLight(0, "white", "scene_all_off")
 
     phase_target = None
@@ -168,7 +173,7 @@ def resolve_light(light: str, world: WorldState, cfg: CompiledConfig) -> Resolve
 
     1. User intent — temporary UI levels until phase/reed override
     2. Reed closed — reed-linked automation off (includes operator force via effective_reed_closed)
-    3. Active scene — transient only while set_scene() is reconciling; never persisted
+    3. Active scene — until phase change, reed event, manual override, or another scene
     4. Automation — ambient / reed phase tables
     5. Fallback — off
     6. Safety clamp — rooftop tent cannot be on when reed closed (hard guard)

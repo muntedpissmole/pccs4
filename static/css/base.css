@@ -290,12 +290,43 @@ body::-webkit-scrollbar {
 }
 
 .fullscreen-btn:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
 }
 
 .fullscreen-btn:active {
     transform: scale(0.95);
+}
+
+/* ── Focus rings — keyboard navigation ── */
+
+.nav-pill__item:focus-visible,
+.sonos-tile__transport-btn:focus-visible,
+.sonos-tile__mute-btn:focus-visible,
+.sonos-system-tile__select:focus-visible,
+.screens-system-tile__segment:focus-visible,
+.screens-system-tile__refresh:focus-visible,
+.reeds-system-tile__segment:focus-visible,
+.reeds-system-tile__clear:focus-visible,
+.phases-tile__segment:focus-visible,
+.phases-tile__clear:focus-visible,
+.gps-status-tile__segment:focus-visible,
+.gps-status-tile__clear:focus-visible,
+.gps-status-tile__nmea-summary:focus-visible,
+.mode-btn:focus-visible,
+.appearance-tile__theme-select:focus-visible,
+.scene-btn:focus-visible,
+.bug-mode-chip:focus-visible,
+.toggle-pill:focus-visible,
+.relay-toggle:focus-visible,
+.slider-range:focus-visible,
+.wifi-system-tile__scan:focus-visible,
+.wifi-system-tile__network:focus-visible,
+.wifi-system-tile__cancel:focus-visible,
+.wifi-system-tile__submit:focus-visible,
+.toast__close:focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-accent);
+    outline-offset: var(--focus-ring-offset);
 }
 
 /* ── Page sections & fade transition ── */

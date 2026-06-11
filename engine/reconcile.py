@@ -50,6 +50,7 @@ class Reconciler:
         )
         self._active_drifts: Dict[str, str] = {}
         self._pending_reed_command: set[str] = set()
+        self._pending_reed_screens: set[str] = set()
         self._last_emit_meta: Dict[str, object] = {}
 
     def _reeds_for_invalidation(self, reed_name: str) -> set[str]:
@@ -59,14 +60,30 @@ class Reconciler:
             reeds.add(dependent)
         return reeds
 
-    def invalidate_commanded_for_reed(self, reed_name: str) -> set[str]:
-        """Drop commanded/observed cache for outputs tied to a reed so hardware is re-sent."""
+    def _lights_for_reeds(self, reeds: set[str]) -> set[str]:
         lights: set[str] = set()
-        for reed in self._reeds_for_invalidation(reed_name):
+        for reed in reeds:
             for light, mapped_reed in self.cfg.light_to_reed.items():
                 if mapped_reed == reed:
                     lights.add(light)
-        if reed_name in self.cfg.reed_names:
+        return lights
+
+    def invalidate_ambient_lights(self) -> set[str]:
+        """Drop commanded cache for ambient lights (when any-reed-open state flips)."""
+        lights = set(self.cfg.ambient_lights)
+        for light in lights:
+            self._commanded_lights.pop(light, None)
+            self._commanded_at.pop(light, None)
+            self._pending_reed_command.add(light)
+        return lights
+
+    def invalidate_commanded_for_reed(
+        self, reed_name: str, *, include_ambient: bool = False
+    ) -> set[str]:
+        """Drop commanded cache for outputs tied to a reed so hardware is re-sent."""
+        reeds = self._reeds_for_invalidation(reed_name)
+        lights = self._lights_for_reeds(reeds)
+        if include_ambient:
             lights.update(self.cfg.ambient_lights)
 
         for light in lights:
@@ -76,8 +93,10 @@ class Reconciler:
 
         if self.screens:
             for screen_name, screen in self.cfg.screens.items():
-                if screen.get("linked_reed") == reed_name:
+                linked = screen.get("linked_reed")
+                if linked in reeds or linked == reed_name:
                     self._commanded_screens.pop(screen_name, None)
+                    self._pending_reed_screens.add(screen_name)
 
         return lights
 
@@ -107,6 +126,16 @@ class Reconciler:
                 )
                 if light in self.cfg.rgb_lights and light in self._last_desired.light_modes:
                     desired.light_modes[light] = self._last_desired.light_modes[light]
+            elif light in self._commanded_lights:
+                cmd_b, cmd_m = self._commanded_lights[light]
+                desired.lights[light] = (cmd_b, cmd_m)
+                if light in self.cfg.rgb_lights:
+                    desired.light_modes[light] = cmd_m
+                desired.light_sources[light] = (
+                    self._last_desired.light_sources.get(light, "unchanged")
+                    if self._last_desired
+                    else "unchanged"
+                )
             elif light in world.observed_lights:
                 obs = world.observed_lights[light]
                 mode = world.observed_light_modes.get(light, "white")
@@ -124,6 +153,8 @@ class Reconciler:
         now = time.time()
         scene_pass = ramp_source == "scene"
         ui_pass = ramp_source == "ui"
+        reed_pass = ramp_source == "reed"
+        reed_affected = set(self._pending_reed_command) if reed_pass else set()
 
         for light, (brightness, mode) in desired.lights.items():
             source = desired.light_sources.get(light, "fallback")
@@ -131,13 +162,14 @@ class Reconciler:
                 continue
             if ui_pass and light not in world.light_intents:
                 continue
+            if reed_pass and light not in reed_affected:
+                continue
 
             target_m = mode or "white"
             cmd_b, cmd_m = self._commanded_lights.get(light, (-1, ""))
             needs_mode = light in self.cfg.rgb_lights and cmd_m != target_m
-            force_reed = ramp_source == "reed" and light in self._pending_reed_command
             if (
-                force_reed
+                reed_pass
                 or self._should_recommand_light(light, brightness, cmd_b, world)
                 or needs_mode
             ):
@@ -157,7 +189,7 @@ class Reconciler:
                         brightness,
                         target_m if light in self.cfg.rgb_lights else None,
                     )
-                if force_reed:
+                if reed_pass:
                     self._pending_reed_command.discard(light)
 
         for relay, on in desired.relays.items():
@@ -171,9 +203,13 @@ class Reconciler:
 
         if self.screens:
             for screen, awake in desired.screens.items():
+                if reed_pass and screen not in self._pending_reed_screens:
+                    continue
                 if self._commanded_screens.get(screen) != awake:
                     self.screens.set_screen(screen, awake)
                     self._commanded_screens[screen] = awake
+                if reed_pass:
+                    self._pending_reed_screens.discard(screen)
 
         if scene_pass:
             scene_lights = {
@@ -184,6 +220,8 @@ class Reconciler:
             self._preserve_lights_except(desired, world, scene_lights)
         elif ui_pass:
             self._preserve_lights_except(desired, world, set(world.light_intents.keys()))
+        elif reed_pass:
+            self._preserve_lights_except(desired, world, reed_affected)
 
         self._last_desired = desired
 

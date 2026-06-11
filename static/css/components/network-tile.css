@@ -132,11 +132,11 @@
 }
 
 .network-tile__ping.is-slow {
-    color: #fbbf24;
+    color: var(--color-sun);
 }
 
 .network-tile__ping.is-bad {
-    color: #f87171;
+    color: var(--color-status-offline-text);
 }
 
 #tile-network.is-offline .network-tile__status-text,

@@ -6,6 +6,7 @@
     min-height: var(--tile-min-height);
     height: 100%;
     min-width: 0;
+    overflow: visible;
 }
 
 #tile-reeds .tile__label {
@@ -26,9 +27,11 @@
     display: grid;
     flex: 1;
     align-content: center;
+    justify-items: stretch;
     min-height: 0;
     min-width: 0;
     width: 100%;
+    overflow: visible;
 }
 
 .reed-tile__empty,
@@ -67,13 +70,16 @@
     flex-direction: column;
     gap: 0.2rem;
     margin: 0;
-    padding-block: 0.15em;
+    margin-inline-start: calc(var(--tile-list-glow-bleed) / -2);
+    padding: 0;
+    padding-inline-start: calc(var(--tile-list-glow-bleed) / 2);
+    width: calc(100% + var(--tile-list-glow-bleed) / 2);
     list-style: none;
-    overflow-x: clip;
+    overflow-x: hidden;
     overflow-y: auto;
     min-height: 0;
     max-height: 100%;
-    align-self: center;
+    align-self: stretch;
 }
 
 .reed-tile__item {
@@ -81,7 +87,9 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     column-gap: 0.55rem;
     align-items: center;
+    width: 100%;
     min-width: 0;
+    overflow: visible;
     font-size: var(--font-size-title);
     font-weight: var(--font-weight-medium);
     line-height: 1.35;
@@ -112,21 +120,27 @@
     margin-block: -0.1rem;
 }
 
-.reed-tile__status {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--color-text-muted);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+.reed-tile__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-status-dot);
+    height: var(--size-status-dot);
+    flex-shrink: 0;
+    color: var(--color-accent);
+    filter: drop-shadow(0 0 4px var(--color-accent-glow));
 }
 
-.reed-tile__item.is-open .reed-tile__status {
-    background: var(--color-accent);
-    box-shadow: var(--shadow-accent-glow);
+.reed-tile__icon i {
+    font-size: var(--size-status-dot);
+    line-height: 1;
 }
 
-.reed-tile__name {
+#tile-reeds .reed-tile__name {
     min-width: 0;
+    font-size: var(--font-size-tile-label);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--letter-spacing-tile-label);
     overflow-x: clip;
     overflow-y: visible;
     color: var(--color-text);
@@ -135,13 +149,14 @@
     line-height: 1.35;
 }
 
-.reed-tile__state {
-    flex-shrink: 0;
-    font-size: var(--font-size-xs);
+#tile-reeds .reed-tile__state {
+    justify-self: end;
+    font-size: var(--font-size-tile-label);
     font-weight: var(--font-weight-medium);
     color: var(--color-accent);
     line-height: 1.35;
     font-variant-numeric: tabular-nums;
+    text-align: end;
 }
 
 .reed-tile__item.is-forced .reed-tile__state {

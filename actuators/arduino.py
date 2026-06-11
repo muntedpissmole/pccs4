@@ -27,6 +27,9 @@ class ArduinoActuator:
     ):
         from engine.explain import format_light_command
 
+        if not self._arduino.is_connected():
+            return
+
         if name in self._cfg.rgb_lights:
             self._arduino.set_rgb_bug_light(name, brightness, mode or "white", ramp_ms)
         elif name in self._cfg.pwm_lights:

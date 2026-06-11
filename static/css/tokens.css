@@ -76,10 +76,10 @@
 
     /* ── Header & nav ── */
     --size-header-height: 64px;
-    --size-nav-height: 44px;
+    --size-nav-height: 56px;
     --size-nav-icon: 18px;
     --space-pill-pad-inset: 5px;
-    --space-nav-pad-y: 8px;
+    --space-nav-pad-y: 6px;
     --space-pill-pad-x: 9px;
     --line-height-nav: 1.45;
     --space-nav-gap: 4px;
@@ -91,6 +91,7 @@
 
     /* ── Spacing ── */
     --space-header-x: 20px;
+    --space-header-y: 10px;
     --space-header-gap: 16px;
     --space-main-y: 24px;
     --space-main-x: 20px;

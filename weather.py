@@ -41,12 +41,17 @@ _SUMMARIES = {
 _UNAVAILABLE: dict[str, Any] = {
     "summary": None,
     "temperature_c": None,
+    "feels_like_c": None,
     "wind_kmh": None,
+    "wind_direction_deg": None,
     "rain_chance_percent": None,
     "humidity_percent": None,
+    "cloud_cover_percent": None,
     "low_tonight_c": None,
     "temp_min": None,
     "temp_max": None,
+    "hourly_forecast": [],
+    "daily_forecast": [],
     "weather_code": None,
     "is_day": None,
     "source": "unavailable",
@@ -80,7 +85,11 @@ def _fetch_open_meteo(lat: float, lng: float) -> dict[str, Any] | None:
         f"?latitude={lat}&longitude={lng}"
         "&models=gfs_seamless"
         "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode"
-        "&current=relative_humidity_2m,temperature_2m,weather_code,is_day,wind_speed_10m"
+        "&hourly=temperature_2m"
+        "&past_hours=6"
+        "&forecast_hours=24"
+        "&current=relative_humidity_2m,temperature_2m,weather_code,is_day,"
+        "wind_speed_10m,wind_direction_10m,apparent_temperature,cloud_cover"
         "&timezone=auto"
     )
     try:
@@ -110,8 +119,11 @@ def get_weather_status() -> dict[str, Any]:
     payload: dict[str, Any] = {
         "summary": _summary_for_code(code),
         "temperature_c": current.get("temperature_2m"),
+        "feels_like_c": current.get("apparent_temperature"),
         "wind_kmh": current.get("wind_speed_10m"),
+        "wind_direction_deg": current.get("wind_direction_10m"),
         "humidity_percent": current.get("relative_humidity_2m"),
+        "cloud_cover_percent": current.get("cloud_cover"),
         "weather_code": code,
         "is_day": bool(current.get("is_day") == 1),
         "latitude": lat,
@@ -120,9 +132,36 @@ def get_weather_status() -> dict[str, Any]:
         "timestamp": datetime.now().isoformat(timespec="seconds"),
     }
 
+    hourly = data.get("hourly") or {}
+    hour_times = hourly.get("time") or []
+    hour_temps = hourly.get("temperature_2m") or []
+    hour_count = min(len(hour_times), len(hour_temps))
+    if hour_count:
+        payload["hourly_forecast"] = [
+            {
+                "time": hour_times[i],
+                "temperature_c": hour_temps[i],
+            }
+            for i in range(hour_count)
+            if hour_temps[i] is not None
+        ]
+
+    day_times = daily.get("time") or []
     mins = daily.get("temperature_2m_min") or []
     maxs = daily.get("temperature_2m_max") or []
+    day_codes = daily.get("weathercode") or []
     rain = daily.get("precipitation_probability_max") or []
+    day_count = min(len(day_times), len(mins), len(maxs), len(day_codes))
+    if day_count:
+        payload["daily_forecast"] = [
+            {
+                "date": day_times[i],
+                "weather_code": day_codes[i],
+                "temp_min": mins[i],
+                "temp_max": maxs[i],
+            }
+            for i in range(day_count)
+        ]
     if mins:
         payload["temp_min"] = mins[0]
         payload["low_tonight_c"] = mins[0]

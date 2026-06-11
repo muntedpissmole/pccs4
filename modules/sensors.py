@@ -32,6 +32,7 @@ class SensorManager:
         # Leave blank to auto-detect first available 28* device.
         self.OUTSIDE_TEMP_ID = (config.get('sensors', 'outside_temp_sensor', fallback='') or '').strip() or None
         self.FRIDGE_TEMP_ID  = (config.get('sensors', 'fridge_temp_sensor', fallback='') or '').strip() or None
+        self.FREEZER_TEMP_ID = (config.get('sensors', 'freezer_temp_sensor', fallback='') or '').strip() or None
         # ========================================================
 
         self._last_analog_warn = 0.0
@@ -165,6 +166,7 @@ class SensorManager:
         vcc         = self._read_vcc()
         outside_temp = self._read_ds18b20(self.OUTSIDE_TEMP_ID)
         fridge_temp  = self._read_ds18b20(self.FRIDGE_TEMP_ID) if self.FRIDGE_TEMP_ID else None
+        freezer_temp = self._read_ds18b20(self.FREEZER_TEMP_ID) if self.FREEZER_TEMP_ID else None
 
         water_pct = self._calculate_water(adc_water, vcc)
 
@@ -173,6 +175,7 @@ class SensorManager:
             "temp_c": outside_temp if outside_temp is not None else None,  # legacy key
             "outside_temp_c": outside_temp,
             "fridge_temp_c": fridge_temp,
+            "freezer_temp_c": freezer_temp,
             "temp_valid": outside_temp is not None,
         }
 

@@ -1,5 +1,5 @@
 /**
- * PCCS4 Climate tile — outside/fridge temps, wind, rain, conditions, min/max.
+ * PCCS4 Climate tile — outside/fridge temps, 24h scrolling forecast, hints.
  */
 (function () {
     'use strict';
@@ -10,13 +10,24 @@
     const els = {
         outside: document.getElementById('temp-outside'),
         fridge: document.getElementById('temp-fridge'),
-        range: document.getElementById('temp-range'),
+        freezer: document.getElementById('temp-freezer'),
+        fridgeItem: document.querySelector('#climate-cold-strip .climate-tile__cold-item:first-child'),
+        fridgeStatus: document.getElementById('fridge-status'),
         humidity: document.getElementById('temp-humidity'),
         weatherIcon: document.getElementById('climate-weather-icon'),
         summary: document.getElementById('weather-summary'),
-        wind: document.getElementById('weather-wind'),
-        rain: document.getElementById('weather-rain'),
+        dailyRange: document.getElementById('weather-daily-range'),
+        dailyRangeWrap: document.getElementById('weather-daily-range-wrap'),
+        feels: document.getElementById('weather-feels'),
         lowTonight: document.getElementById('weather-low-tonight'),
+        forecastArc: document.getElementById('weather-forecast-arc'),
+        forecastPath: document.getElementById('weather-forecast-path'),
+        forecastNowLine: document.getElementById('weather-forecast-now-line'),
+        forecastMarker: document.getElementById('weather-current-marker'),
+        forecastAxis: document.getElementById('weather-forecast-axis'),
+        forecastExtrema: document.getElementById('weather-forecast-extrema'),
+        outlook: document.getElementById('weather-outlook'),
+        hint: document.getElementById('weather-hint'),
     };
 
     if (!els.outside) return;
@@ -26,12 +37,174 @@
     let lng = home?.longitude ?? 145.711;
     let sensorOutside = null;
     let sensorFridge = null;
+    let sensorFreezer = null;
+    let forecastOutside = null;
+    let lastWeather = {};
+    let layoutParams = null;
+    let curveReady = false;
+    let lastHourlyForecast = [];
+    let lastCurrentTemp = null;
+    let geometryAttempts = 0;
+    const FORECAST_SVG_HEIGHT = 40;
+    const FORECAST_AXIS_RESERVE = 14;
+    const FORECAST_CURVE_TOP_PAD = 0;
+    const FORECAST_CURVE_BOTTOM_PAD = 4;
+    const FORECAST_NOW_LINE_BOTTOM_PAD = 8;
+    const MARKER_RADIUS = 5;
+    const CURVE_STROKE_PAD = 2;
+    const FORECAST_CURVE_INSET = 0;
+    const MIN_DISPLAY_TEMP_SPAN = 2;
+    const NOW_POSITION_RATIO = 0.34;
+    const VISIBLE_HOURS = 20;
+    const SCROLL_TICK_MS = 60000;
+    const HOUR_MS = 3600000;
+    const AXIS_TICK_OFFSETS = [-6, 0, 6, 12];
+    const EXTREMA_COLLISION_PAD = 28;
+    const OUTLOOK_DAYS = 4;
+    const OUTLOOK_START_INDEX = 1;
 
-    function formatTemp(value) {
+
+    function formatTemp(value, suffix = '°C') {
         if (value === null || value === undefined || Number.isNaN(Number(value))) {
-            return '—°C';
+            return `—${suffix}`;
         }
-        return `${Math.round(Number(value))}°C`;
+        return `${Math.round(Number(value))}${suffix}`;
+    }
+
+    function formatShortTemp(value) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) {
+            return '—°';
+        }
+        return `${Math.round(Number(value))}°`;
+    }
+
+    function formatDailyRange(min, max) {
+        const hasMin = min !== null && min !== undefined && !Number.isNaN(Number(min));
+        const hasMax = max !== null && max !== undefined && !Number.isNaN(Number(max));
+        if (!hasMin && !hasMax) return null;
+        if (hasMin && hasMax) {
+            return `${formatShortTemp(min)} – ${formatShortTemp(max)}`;
+        }
+        return formatShortTemp(hasMin ? min : max);
+    }
+
+    function applyDailyRange(min, max) {
+        if (!els.dailyRange || !els.dailyRangeWrap) return;
+        const text = formatDailyRange(min, max);
+        if (!text) {
+            els.dailyRangeWrap.hidden = true;
+            return;
+        }
+        els.dailyRange.textContent = text;
+        els.dailyRangeWrap.hidden = false;
+    }
+
+    function storedFeelsLike() {
+        return lastWeather.feels_like_c
+            ?? lastWeather.apparent_temperature
+            ?? lastWeather.feels_like;
+    }
+
+    function normalizeDailyForecast(data) {
+        const raw = data?.daily_forecast;
+        if (!Array.isArray(raw)) return [];
+        return raw
+            .map((day) => ({
+                date: day?.date ?? day?.time ?? null,
+                weather_code: day?.weather_code ?? day?.code ?? null,
+                temp_min: day?.temp_min ?? day?.temperature_min ?? day?.min ?? null,
+                temp_max: day?.temp_max ?? day?.temperature_max ?? day?.max ?? null,
+            }))
+            .filter((day) => (
+                day.date
+                && day.temp_min != null
+                && day.temp_max != null
+                && !Number.isNaN(Number(day.temp_min))
+                && !Number.isNaN(Number(day.temp_max))
+            ));
+    }
+
+    function outlookDayLabel(dateValue, index) {
+        if (index === 0) return 'Tomorrow';
+        const parsed = new Date(dateValue);
+        if (Number.isNaN(parsed.getTime())) return '—';
+        return parsed.toLocaleDateString(undefined, { weekday: 'short' });
+    }
+
+    function renderOutlook(daily) {
+        if (!els.outlook) return;
+
+        const days = daily.slice(OUTLOOK_START_INDEX, OUTLOOK_START_INDEX + OUTLOOK_DAYS);
+        els.outlook.replaceChildren();
+
+        if (!days.length) {
+            els.outlook.hidden = true;
+            return;
+        }
+
+        days.forEach((day, index) => {
+            const tile = document.createElement('article');
+            tile.className = 'climate-tile__outlook-day';
+
+            const label = document.createElement('span');
+            label.className = 'climate-tile__outlook-label';
+            label.textContent = outlookDayLabel(day.date, index);
+
+            const icon = document.createElement('i');
+            icon.className = `fa-solid ${getWeatherIcon(day.weather_code, true)} climate-tile__outlook-icon`;
+            icon.setAttribute('aria-hidden', 'true');
+
+            const temps = document.createElement('span');
+            temps.className = 'climate-tile__outlook-temps';
+
+            const max = document.createElement('span');
+            max.className = 'climate-tile__outlook-max';
+            max.textContent = formatShortTemp(day.temp_max);
+
+            const min = document.createElement('span');
+            min.className = 'climate-tile__outlook-min';
+            min.textContent = formatShortTemp(day.temp_min);
+
+            temps.append(max, min);
+            tile.append(label, icon, temps);
+            tile.setAttribute(
+                'aria-label',
+                `${label.textContent}: high ${max.textContent}, low ${min.textContent}`
+            );
+            els.outlook.append(tile);
+        });
+
+        els.outlook.hidden = false;
+    }
+
+    function applyOutlook(data) {
+        const daily = normalizeDailyForecast(data);
+        if (daily.length) {
+            lastWeather.daily_forecast = daily;
+        }
+        renderOutlook(normalizeDailyForecast(lastWeather));
+    }
+
+    function applyFeelsLike() {
+        if (!els.feels) return;
+
+        const feels = storedFeelsLike();
+        const hasFeels = feels !== null && feels !== undefined && !Number.isNaN(Number(feels));
+        if (!hasFeels) {
+            els.feels.hidden = true;
+            return;
+        }
+
+        const outside = currentOutsideTemp();
+        const differs = outside != null
+            && Math.abs(Math.round(Number(feels)) - Math.round(Number(outside))) >= 1;
+
+        if (differs) {
+            els.feels.hidden = false;
+            els.feels.textContent = `Feels ${formatTemp(feels)}`;
+        } else {
+            els.feels.hidden = true;
+        }
     }
 
     function formatHumidity(value) {
@@ -39,29 +212,6 @@
             return '—%';
         }
         return `${Math.round(Number(value))}%`;
-    }
-
-    function formatWind(value) {
-        if (value === null || value === undefined || Number.isNaN(Number(value))) {
-            return '— km/h';
-        }
-        return `${Math.round(Number(value))} km/h`;
-    }
-
-    function formatPercent(value) {
-        if (value === null || value === undefined || Number.isNaN(Number(value))) {
-            return '—%';
-        }
-        return `${Math.round(Number(value))}%`;
-    }
-
-    function formatRange(min, max) {
-        const hasMin = min !== null && min !== undefined && !Number.isNaN(Number(min));
-        const hasMax = max !== null && max !== undefined && !Number.isNaN(Number(max));
-        if (!hasMin && !hasMax) return '—° / —°';
-        const minText = hasMin ? `${Math.round(Number(min))}°` : '—°';
-        const maxText = hasMax ? `${Math.round(Number(max))}°` : '—°';
-        return `${minText} / ${maxText}`;
     }
 
     function getWeatherIcon(code, isDay) {
@@ -97,6 +247,519 @@
         els.weatherIcon.className = `fa-solid ${icon} tile__icon`;
     }
 
+    function currentOutsideTemp() {
+        if (sensorOutside != null) return Number(sensorOutside);
+        if (forecastOutside != null) return Number(forecastOutside);
+        return null;
+    }
+
+    function applyForecastPath(pathD, layout) {
+        if (!els.forecastPath || !layout) return;
+        els.forecastPath.setAttribute('d', pathD);
+        const svg = els.forecastArc?.querySelector('.climate-tile__forecast-svg');
+        svg?.setAttribute('viewBox', `0 0 ${layout.viewBoxW} ${layout.h}`);
+    }
+
+    function svgPointToContainer(pt, layout) {
+        if (!els.forecastArc || !layout) return { x: 0, y: 0 };
+        const arcRect = els.forecastArc.getBoundingClientRect();
+        const svgEl = els.forecastArc.querySelector('.climate-tile__forecast-svg');
+        if (!svgEl || !arcRect.width) return { x: 0, y: 0 };
+        const svgRect = svgEl.getBoundingClientRect();
+        const scaleX = svgRect.width / layout.viewBoxW;
+        const scaleY = svgRect.height / layout.h;
+        return {
+            x: (svgRect.left - arcRect.left) + pt.x * scaleX,
+            y: (svgRect.top - arcRect.top) + pt.y * scaleY,
+        };
+    }
+
+    function parseForecastTime(value) {
+        if (!value) return null;
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+    }
+
+    function nowMarkerX(layout) {
+        const usable = layout.viewBoxW - layout.inset * 2;
+        return layout.inset + usable * NOW_POSITION_RATIO;
+    }
+
+    function pixelsPerHour(layout) {
+        return (layout.viewBoxW - layout.inset * 2) / VISIBLE_HOURS;
+    }
+
+    function displayTempRange(globalMin, globalMax) {
+        const span = Math.max(Number(globalMax) - Number(globalMin), MIN_DISPLAY_TEMP_SPAN);
+        return {
+            min: Number(globalMin),
+            max: Number(globalMin) + span,
+        };
+    }
+
+    function curveVerticalBand(layout) {
+        return {
+            top: layout.yTop,
+            bottom: layout.yBottom - layout.yPad - CURVE_STROKE_PAD,
+        };
+    }
+
+    function tempToY(temp, globalMin, globalMax, layout) {
+        const { min, max } = displayTempRange(globalMin, globalMax);
+        const span = max - min;
+        const band = curveVerticalBand(layout);
+        const usable = band.bottom - band.top;
+        if (!Number.isFinite(Number(temp))) {
+            return band.top + usable / 2;
+        }
+        const norm = (Number(temp) - min) / span;
+        return band.top + (1 - norm) * usable;
+    }
+
+    function fitPointsToVerticalBand(points, layout) {
+        if (!points.length) return points;
+
+        const band = curveVerticalBand(layout);
+        const bandHeight = band.bottom - band.top;
+        const ys = points.map((point) => point.y);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+        const span = maxY - minY;
+
+        if (span < 0.5) {
+            const centerY = band.top + bandHeight / 2;
+            return points.map((point) => ({ ...point, y: centerY }));
+        }
+
+        return points.map((point) => ({
+            ...point,
+            y: band.top + ((point.y - minY) / span) * bandHeight,
+        }));
+    }
+
+    function clampCurveY(y, layout) {
+        const band = curveVerticalBand(layout);
+        return Math.min(band.bottom, Math.max(band.top, y));
+    }
+
+    function normalizeHourlyForecast(data) {
+        const raw = data?.hourly_forecast;
+        if (!Array.isArray(raw)) return [];
+        return raw
+            .map((hour) => ({
+                time: hour?.time ?? null,
+                temperature_c: hour?.temperature_c ?? hour?.temperature ?? hour?.temp ?? null,
+            }))
+            .filter((hour) => hour.time && hour.temperature_c != null && !Number.isNaN(Number(hour.temperature_c)));
+    }
+
+    function buildScrollPoints(hourly, nowMs, layout) {
+        const markerX = nowMarkerX(layout);
+        const pph = pixelsPerHour(layout);
+        const points = [];
+
+        hourly.forEach((hour) => {
+            const timeMs = parseForecastTime(hour.time);
+            if (timeMs == null) return;
+            const hoursFromNow = (timeMs - nowMs) / HOUR_MS;
+            points.push({
+                x: markerX + hoursFromNow * pph,
+                temp: Number(hour.temperature_c),
+                timeMs,
+            });
+        });
+
+        points.sort((a, b) => a.x - b.x);
+
+        const temps = points.map((point) => point.temp);
+        const globalMin = temps.length ? Math.min(...temps) : 0;
+        const globalMax = temps.length ? Math.max(...temps) : 0;
+
+        const rawPoints = points.map((point) => ({
+            x: point.x,
+            y: tempToY(point.temp, globalMin, globalMax, layout),
+            temp: point.temp,
+            timeMs: point.timeMs,
+        }));
+
+        return {
+            points: fitPointsToVerticalBand(rawPoints, layout).map((point) => ({
+                ...point,
+                y: clampCurveY(point.y, layout),
+            })),
+            globalMin,
+            globalMax,
+            markerX,
+        };
+    }
+
+    function buildHourlyPath(points) {
+        if (points.length < 2) {
+            if (points.length === 1) {
+                const p = points[0];
+                return { pathD: `M ${p.x.toFixed(1)} ${p.y.toFixed(1)}`, segments: [] };
+            }
+            return { pathD: '', segments: [] };
+        }
+
+        let pathD = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+        const segments = [];
+
+        for (let i = 0; i < points.length - 1; i += 1) {
+            const p0 = points[i];
+            const p1 = points[i + 1];
+            const cpx = (p0.x + p1.x) / 2;
+            const cpy = (p0.y + p1.y) / 2;
+            pathD += ` Q ${cpx.toFixed(1)} ${cpy.toFixed(1)} ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+            segments.push({
+                x0: p0.x,
+                y0: p0.y,
+                x1: cpx,
+                y1: cpy,
+                x2: p1.x,
+                y2: p1.y,
+            });
+        }
+
+        return { pathD, segments };
+    }
+
+    function quadraticBezier(t, v0, v1, v2) {
+        const mt = 1 - t;
+        return mt * mt * v0 + 2 * mt * t * v1 + t * t * v2;
+    }
+
+    function yOnQuadraticSegmentAtX(seg, targetX) {
+        const minX = Math.min(seg.x0, seg.x2) - 0.5;
+        const maxX = Math.max(seg.x0, seg.x2) + 0.5;
+        if (targetX < minX || targetX > maxX) return null;
+
+        let lo = 0;
+        let hi = 1;
+        for (let i = 0; i < 24; i += 1) {
+            const mid = (lo + hi) / 2;
+            const x = quadraticBezier(mid, seg.x0, seg.x1, seg.x2);
+            if (x < targetX) lo = mid;
+            else hi = mid;
+        }
+
+        const t = (lo + hi) / 2;
+        return quadraticBezier(t, seg.y0, seg.y1, seg.y2);
+    }
+
+    function yOnPathAtX(segments, targetX) {
+        for (const seg of segments) {
+            const y = yOnQuadraticSegmentAtX(seg, targetX);
+            if (y != null && Number.isFinite(y)) return y;
+        }
+        return null;
+    }
+
+    function yAtXFromPoints(points, targetX) {
+        if (!points.length) return null;
+
+        for (let i = 0; i < points.length - 1; i += 1) {
+            const p0 = points[i];
+            const p1 = points[i + 1];
+            if (targetX < p0.x || targetX > p1.x) continue;
+            const dx = p1.x - p0.x;
+            if (!dx) return p0.y;
+            const t = (targetX - p0.x) / dx;
+            return p0.y + t * (p1.y - p0.y);
+        }
+
+        if (targetX <= points[0].x) return points[0].y;
+        return points[points.length - 1].y;
+    }
+
+    function markerY(points, segments, markerX) {
+        const onPath = yOnPathAtX(segments, markerX);
+        if (onPath != null && Number.isFinite(onPath)) return onPath;
+        const interpolated = yAtXFromPoints(points, markerX);
+        return interpolated != null && Number.isFinite(interpolated) ? interpolated : null;
+    }
+
+    function formatAxisTime(nowMs, hourOffset) {
+        if (hourOffset === 0) return 'Now';
+        const date = new Date(nowMs + hourOffset * HOUR_MS);
+        const hours24 = date.getHours();
+        const ampm = hours24 >= 12 ? 'PM' : 'AM';
+        const hours = hours24 % 12 || 12;
+        return `${hours} ${ampm}`;
+    }
+
+    function svgPointToExtrema(pt, layout) {
+        if (!els.forecastExtrema || !layout) return { x: 0, y: 0 };
+        const extremaRect = els.forecastExtrema.getBoundingClientRect();
+        const svgEl = els.forecastArc?.querySelector('.climate-tile__forecast-svg');
+        if (!svgEl || !extremaRect.width) return { x: 0, y: 0 };
+        const svgRect = svgEl.getBoundingClientRect();
+        const scaleX = svgRect.width / layout.viewBoxW;
+        const scaleY = svgRect.height / layout.h;
+        return {
+            x: (svgRect.left - extremaRect.left) + pt.x * scaleX,
+            y: (svgRect.top - extremaRect.top) + pt.y * scaleY,
+        };
+    }
+
+    function resolveExtremaPoint(points, temp, layout) {
+        const candidates = points.filter((point) => point.temp === temp);
+        if (!candidates.length) return null;
+
+        const viewMax = layout.viewBoxW;
+        const inView = candidates.filter((point) => point.x >= 0 && point.x <= viewMax);
+        if (!inView.length) return null;
+
+        const markerX = nowMarkerX(layout);
+        return inView.reduce((best, point) => (
+            Math.abs(point.x - markerX) < Math.abs(best.x - markerX) ? point : best
+        ));
+    }
+
+    function findExtremaPoints(points, layout) {
+        if (!points.length) return { high: null, low: null };
+
+        const maxTemp = Math.max(...points.map((point) => point.temp));
+        const minTemp = Math.min(...points.map((point) => point.temp));
+        const high = resolveExtremaPoint(points, maxTemp, layout);
+        const low = maxTemp === minTemp
+            ? null
+            : resolveExtremaPoint(points, minTemp, layout);
+
+        return { high, low };
+    }
+
+    function renderForecastExtrema(points, layout) {
+        if (!els.forecastExtrema) return;
+        els.forecastExtrema.replaceChildren();
+
+        const { high, low } = findExtremaPoints(points, layout);
+        if (!high && !low) return;
+
+        const labels = [];
+
+        const addLabel = (point, kind) => {
+            if (!point) return;
+            const pos = svgPointToExtrema({ x: point.x, y: point.y }, layout);
+            labels.push({ point, kind, pos });
+        };
+
+        addLabel(high, 'high');
+        addLabel(low, 'low');
+
+        if (labels.length === 2) {
+            const dx = Math.abs(labels[0].pos.x - labels[1].pos.x);
+            const dy = Math.abs(labels[0].pos.y - labels[1].pos.y);
+            if (dx < EXTREMA_COLLISION_PAD && dy < 18) {
+                labels[0].pos.x -= EXTREMA_COLLISION_PAD / 2;
+                labels[1].pos.x += EXTREMA_COLLISION_PAD / 2;
+            }
+        }
+
+        labels.forEach(({ point, kind, pos }) => {
+            const label = document.createElement('span');
+            label.className = `climate-tile__forecast-extrema-label climate-tile__forecast-extrema-label--${kind}`;
+            label.textContent = formatShortTemp(point.temp);
+            label.style.left = `${pos.x}px`;
+            label.style.top = `${pos.y}px`;
+            els.forecastExtrema.append(label);
+        });
+    }
+
+    function renderForecastAxis(nowMs, layout) {
+        if (!els.forecastAxis) return;
+        els.forecastAxis.replaceChildren();
+
+        const markerX = nowMarkerX(layout);
+        const pph = pixelsPerHour(layout);
+        const arcHeight = els.forecastArc?.clientHeight || 0;
+
+        AXIS_TICK_OFFSETS.forEach((offset) => {
+            const tick = document.createElement('span');
+            tick.className = 'climate-tile__forecast-tick';
+            if (offset === 0) tick.classList.add('climate-tile__forecast-tick--now');
+            tick.textContent = formatAxisTime(nowMs, offset);
+
+            const pos = svgPointToContainer(
+                { x: markerX + offset * pph, y: layout.h },
+                layout
+            );
+            tick.style.left = `${pos.x}px`;
+            tick.style.top = `${arcHeight - 2}px`;
+            els.forecastAxis.append(tick);
+        });
+    }
+
+    function updateNowLine(layout) {
+        if (!els.forecastNowLine || !layout) return;
+        const x = nowMarkerX(layout);
+        els.forecastNowLine.setAttribute('x1', x);
+        els.forecastNowLine.setAttribute('x2', x);
+        els.forecastNowLine.setAttribute('y1', layout.yTop);
+        els.forecastNowLine.setAttribute('y2', layout.yBottom - FORECAST_NOW_LINE_BOTTOM_PAD);
+    }
+
+    function updateForecastMarker(points, segments, markerX, layout) {
+        if (!els.forecastMarker || !els.forecastArc) return;
+
+        const y = markerY(points, segments, markerX);
+        if (y == null) {
+            els.forecastArc.classList.remove('has-marker');
+            return;
+        }
+
+        const band = curveVerticalBand(layout);
+        const clampedY = Math.min(band.bottom, Math.max(band.top, y));
+
+        els.forecastMarker.setAttribute('cx', markerX);
+        els.forecastMarker.setAttribute('cy', clampedY);
+        els.forecastArc.classList.add('has-marker');
+    }
+
+    function updateForecastGeometry() {
+        if (!els.forecastArc) return;
+
+        const w = Math.round(els.forecastArc.clientWidth || els.forecastArc.getBoundingClientRect().width);
+        if (!w || w < 48) {
+            if (geometryAttempts < 24) {
+                geometryAttempts += 1;
+                setTimeout(updateForecastGeometry, 120);
+            }
+            return;
+        }
+
+        geometryAttempts = 0;
+        const arcHeight = Math.round(els.forecastArc.clientHeight || 0);
+        const drawableHeight = Math.max(
+            28,
+            arcHeight - FORECAST_AXIS_RESERVE
+        );
+        const h = Math.max(FORECAST_SVG_HEIGHT, drawableHeight);
+        const inset = FORECAST_CURVE_INSET;
+
+        layoutParams = {
+            viewBoxW: w,
+            h,
+            inset,
+            yTop: FORECAST_CURVE_TOP_PAD,
+            yBottom: h - FORECAST_CURVE_BOTTOM_PAD,
+            yPad: 2,
+        };
+
+        curveReady = true;
+        els.forecastArc.classList.add('is-ready');
+        updateForecastCurve(lastHourlyForecast, lastCurrentTemp);
+    }
+
+    function updateForecastCurve(hourly, current) {
+        if (!els.forecastArc) return;
+
+        lastHourlyForecast = Array.isArray(hourly) ? hourly : [];
+        lastCurrentTemp = current;
+
+        if (!curveReady || !layoutParams) return;
+
+        const nowMs = Date.now();
+        const { points, markerX } = buildScrollPoints(
+            lastHourlyForecast,
+            nowMs,
+            layoutParams
+        );
+
+        if (points.length < 2) {
+            els.forecastArc.classList.add('is-empty');
+            els.forecastArc.classList.remove('has-marker');
+            els.forecastPath?.setAttribute('d', '');
+            if (els.forecastAxis) els.forecastAxis.replaceChildren();
+            if (els.forecastExtrema) els.forecastExtrema.replaceChildren();
+            return;
+        }
+
+        els.forecastArc.classList.remove('is-empty');
+
+        const { pathD, segments } = buildHourlyPath(points);
+        applyForecastPath(pathD, layoutParams);
+        updateNowLine(layoutParams);
+        renderForecastAxis(nowMs, layoutParams);
+        renderForecastExtrema(points, layoutParams);
+        updateForecastMarker(points, segments, markerX, layoutParams);
+    }
+
+    function fridgeState(temp) {
+        if (temp === null || temp === undefined || Number.isNaN(Number(temp))) {
+            return { label: '—', className: '' };
+        }
+        const t = Number(temp);
+        if (t < 2) return { label: 'Cold', className: 'climate-tile__cold-status--cold' };
+        if (t <= 6) return { label: 'OK', className: 'climate-tile__cold-status--ok' };
+        if (t <= 10) return { label: 'Warm', className: 'climate-tile__cold-status--warm' };
+        return { label: 'Check', className: 'climate-tile__cold-status--alert' };
+    }
+
+    function applyColdTemp(el, temp) {
+        if (!el) return;
+        el.textContent = (temp === null || temp === undefined || Number.isNaN(Number(temp)))
+            ? '—°C'
+            : formatTemp(temp);
+    }
+
+    function applyFridge(temp) {
+        if (!els.fridge) return;
+
+        applyColdTemp(els.fridge, temp);
+
+        const missing = temp === null || temp === undefined || Number.isNaN(Number(temp));
+        if (els.fridgeItem) els.fridgeItem.classList.toggle('is-empty', missing);
+
+        if (els.fridgeStatus) {
+            if (missing) {
+                els.fridgeStatus.textContent = '—';
+                els.fridgeStatus.className = 'climate-tile__cold-status';
+                return;
+            }
+            const state = fridgeState(temp);
+            els.fridgeStatus.textContent = state.label;
+            els.fridgeStatus.className = `climate-tile__cold-status${state.className ? ` ${state.className}` : ''}`;
+        }
+    }
+
+    function applyFreezer(temp) {
+        applyColdTemp(els.freezer, temp);
+    }
+
+    function applyHint(data) {
+        if (!els.hint) return;
+
+        const rain = data.rain_chance_percent ?? data.precipitation_probability ?? data.rain_chance;
+        const humidity = data.humidity_percent ?? data.humidity ?? data.relative_humidity;
+        const cloud = data.cloud_cover_percent ?? data.cloud_cover;
+        const wind = data.wind_kmh ?? data.wind_speed;
+
+        let text = 'Comfortable conditions';
+        let className = 'climate-tile__hint';
+
+        if (rain !== null && rain !== undefined && Number(rain) >= 55) {
+            text = 'Rain likely today';
+            className += ' climate-tile__hint--rain';
+        } else if (rain !== null && rain !== undefined && Number(rain) >= 30) {
+            text = 'Showers possible today';
+            className += ' climate-tile__hint--rain';
+        } else if (cloud !== null && cloud !== undefined && Number(cloud) >= 75) {
+            text = 'Overcast — limited solar';
+            className += ' climate-tile__hint--solar';
+        } else if (humidity !== null && humidity !== undefined && Number(humidity) >= 82) {
+            text = 'Humid — ventilate when you can';
+        } else if (
+            wind !== null && wind !== undefined && Number(wind) <= 14 &&
+            (rain === null || rain === undefined || Number(rain) < 20)
+        ) {
+            text = 'Calm and dry — good drying weather';
+        }
+
+        els.hint.textContent = text;
+        els.hint.className = className;
+    }
+
     function applySensorTemps(data) {
         if (!data) return;
 
@@ -110,37 +773,44 @@
             sensorFridge = data.fridge_temp_c;
         }
 
+        if (data.freezer_temp_c != null) {
+            sensorFreezer = data.freezer_temp_c;
+        }
+
         if (sensorOutside != null && els.outside) {
             els.outside.textContent = formatTemp(sensorOutside);
         }
 
-        if (sensorFridge != null && els.fridge) {
-            els.fridge.textContent = formatTemp(sensorFridge);
-        } else if (data.fridge_temp_c == null && els.fridge && sensorFridge == null) {
-            els.fridge.textContent = '—°C';
-        }
+        applyFridge(sensorFridge);
+        applyFreezer(sensorFreezer);
+
+        updateForecastCurve(
+            normalizeHourlyForecast(lastWeather),
+            currentOutsideTemp()
+        );
+        applyFeelsLike();
     }
 
     function updateWeatherData(data) {
         if (!data) return;
+        lastWeather = { ...lastWeather, ...data };
 
         if (data.summary !== undefined && els.summary) {
             els.summary.textContent = data.summary || '—';
         }
 
-        const wind = data.wind_kmh ?? data.wind_speed;
-        if (wind !== undefined && els.wind) {
-            els.wind.textContent = formatWind(wind);
-        }
-
-        const rain = data.rain_chance_percent ?? data.precipitation_probability ?? data.rain_chance;
-        if (rain !== undefined && els.rain) {
-            els.rain.textContent = formatPercent(rain);
+        const tempMin = data.temp_min ?? data.temperature_min ?? data.daily_min;
+        const tempMax = data.temp_max ?? data.temperature_max ?? data.daily_max;
+        if (tempMin !== undefined || tempMax !== undefined) {
+            applyDailyRange(
+                tempMin !== undefined ? tempMin : lastWeather.temp_min,
+                tempMax !== undefined ? tempMax : lastWeather.temp_max
+            );
         }
 
         const low = data.low_tonight_c ?? data.low_tonight ?? data.overnight_low;
         if (low !== undefined && els.lowTonight) {
-            els.lowTonight.textContent = formatTemp(low);
+            els.lowTonight.textContent = formatShortTemp(low);
         }
 
         const code = data.weather_code ?? data.code;
@@ -154,9 +824,18 @@
             els.humidity.textContent = formatHumidity(humidity);
         }
 
-        if ((data.temp_min !== undefined || data.temp_max !== undefined) && els.range) {
-            els.range.textContent = formatRange(data.temp_min, data.temp_max);
+        applyFeelsLike();
+        applyOutlook(data);
+
+        const hourlyForecast = normalizeHourlyForecast(data);
+        if (hourlyForecast.length) {
+            lastWeather.hourly_forecast = hourlyForecast;
         }
+        updateForecastCurve(
+            normalizeHourlyForecast(lastWeather),
+            currentOutsideTemp()
+        );
+        applyHint(data);
     }
 
     function setLocation(newLat, newLng) {
@@ -197,11 +876,13 @@
 
         applySensorTemps(data);
 
-        if (sensorOutside == null) {
-            const forecastOutside = data.temperature_c ?? data.outside_temp ?? data.temp;
-            if (forecastOutside !== undefined && els.outside) {
-                els.outside.textContent = formatTemp(forecastOutside);
-            }
+        const apiTemp = data.temperature_c ?? data.outside_temp ?? data.temp;
+        if (apiTemp !== undefined && apiTemp !== null) {
+            forecastOutside = apiTemp;
+        }
+
+        if (sensorOutside == null && forecastOutside != null && els.outside) {
+            els.outside.textContent = formatTemp(forecastOutside);
         }
 
         updateWeatherData(data);
@@ -216,6 +897,36 @@
     fetchApiWeather();
     setInterval(fetchSensors, SENSOR_POLL_INTERVAL_MS);
     setInterval(fetchApiWeather, API_WEATHER_INTERVAL_MS);
+
+    if (els.forecastArc) {
+        requestAnimationFrame(() => {
+            updateForecastGeometry();
+            requestAnimationFrame(updateForecastGeometry);
+        });
+
+        let resizeTimer;
+        const queueForecastGeometry = () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(updateForecastGeometry, 140);
+        };
+
+        window.addEventListener('resize', queueForecastGeometry);
+
+        if (typeof ResizeObserver !== 'undefined') {
+            const forecastObserver = new ResizeObserver(queueForecastGeometry);
+            forecastObserver.observe(els.forecastArc);
+            const forecastWrap = els.forecastArc.parentElement;
+            if (forecastWrap) forecastObserver.observe(forecastWrap);
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) updateForecastGeometry();
+        });
+
+        setInterval(() => {
+            updateForecastCurve(lastHourlyForecast, lastCurrentTemp);
+        }, SCROLL_TICK_MS);
+    }
 
     window.PCCS4 = window.PCCS4 || {};
     window.PCCS4.climate = {

@@ -283,39 +283,57 @@
                 <i class="fa-solid fa-cloud tile__icon" id="climate-weather-icon" aria-hidden="true"></i>
                 <p class="tile__label">Weather</p>
                 <div class="climate-tile__body">
-                    <div class="climate-tile__hero">
-                        <p class="climate-tile__hero-summary" id="weather-summary">—</p>
-                        <p class="climate-tile__hero-temp" id="temp-outside" aria-live="polite">—°C</p>
-                        <div class="climate-tile__hero-stats">
-                            <div class="climate-tile__hero-stat">
-                                <span class="climate-tile__hero-label">Wind</span>
-                                <span class="climate-tile__hero-value" id="weather-wind">— km/h</span>
-                            </div>
-                            <div class="climate-tile__hero-stat">
-                                <span class="climate-tile__hero-label">Rain</span>
-                                <span class="climate-tile__hero-value" id="weather-rain">—%</span>
-                            </div>
-                            <div class="climate-tile__hero-stat">
-                                <span class="climate-tile__hero-label">Fridge</span>
-                                <span class="climate-tile__hero-value" id="temp-fridge">—°C</span>
+                    <div class="climate-tile__head">
+                        <div class="climate-tile__temp-block">
+                            <p class="climate-tile__temp" id="temp-outside" aria-live="polite">—°C</p>
+                            <div class="climate-tile__detail">
+                                <p class="climate-tile__summary" id="weather-summary">—</p>
+                                <p class="climate-tile__daily-range" id="weather-daily-range-wrap" hidden>
+                                    <span class="climate-tile__daily-range-label">Today</span>
+                                    <span class="climate-tile__daily-range-value" id="weather-daily-range">—° – —°</span>
+                                </p>
+                                <p class="climate-tile__feels" id="weather-feels" hidden>Feels —°C</p>
                             </div>
                         </div>
                     </div>
+
+                    <div class="climate-tile__forecast" aria-label="24-hour temperature forecast">
+                        <div class="climate-tile__forecast-arc" id="weather-forecast-arc">
+                            <svg class="climate-tile__forecast-svg" aria-hidden="true">
+                                <line id="weather-forecast-now-line" class="climate-tile__forecast-now-line"></line>
+                                <path id="weather-forecast-path" class="climate-tile__forecast-path"></path>
+                                <circle id="weather-current-marker" class="climate-tile__forecast-marker" r="5"></circle>
+                            </svg>
+                            <div class="climate-tile__forecast-extrema" id="weather-forecast-extrema"></div>
+                            <div class="climate-tile__forecast-axis" id="weather-forecast-axis"></div>
+                        </div>
+                    </div>
+
+                    <div class="climate-tile__outlook" id="weather-outlook" aria-label="4-day forecast" hidden></div>
+
+                    <div class="climate-tile__cold-strip" id="climate-cold-strip">
+                        <div class="climate-tile__cold-item">
+                            <span class="climate-tile__cold-label">Fridge</span>
+                            <span class="climate-tile__cold-temp" id="temp-fridge">—°C</span>
+                            <span class="climate-tile__cold-status" id="fridge-status">—</span>
+                        </div>
+                        <div class="climate-tile__cold-item">
+                            <span class="climate-tile__cold-label">Freezer</span>
+                            <span class="climate-tile__cold-temp" id="temp-freezer">—°C</span>
+                        </div>
+                    </div>
+
                     <div class="climate-tile__footer">
                         <div class="climate-tile__meta">
-                            <i class="fa-solid fa-temperature-half climate-tile__meta-icon" aria-hidden="true"></i>
-                            <span class="climate-tile__meta-label">Min/Max</span>
-                            <span class="climate-tile__meta-value" id="temp-range">—° / —°</span>
-                        </div>
-                        <div class="climate-tile__meta">
-                            <i class="fa-solid fa-droplet climate-tile__meta-icon climate-tile__meta-icon--humidity" aria-hidden="true"></i>
+                            <i class="fa-solid fa-droplet climate-tile__meta-icon" aria-hidden="true"></i>
                             <span class="climate-tile__meta-label">Humidity</span>
                             <span class="climate-tile__meta-value" id="temp-humidity">—%</span>
                         </div>
+                        <p class="climate-tile__hint" id="weather-hint" aria-live="polite">—</p>
                         <div class="climate-tile__meta">
-                            <i class="fa-solid fa-moon climate-tile__meta-icon climate-tile__meta-icon--night" aria-hidden="true"></i>
+                            <i class="fa-solid fa-moon climate-tile__meta-icon climate-tile__meta-icon--moon" aria-hidden="true"></i>
                             <span class="climate-tile__meta-label">Tonight</span>
-                            <span class="climate-tile__meta-value" id="weather-low-tonight">—°C</span>
+                            <span class="climate-tile__meta-value" id="weather-low-tonight">—°</span>
                         </div>
                     </div>
                 </div>

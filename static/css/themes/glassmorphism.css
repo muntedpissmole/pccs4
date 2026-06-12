@@ -394,11 +394,6 @@ html.light[data-theme="glassmorphism"] .appearance-tile__theme-select option {
     text-overflow: ellipsis;
 }
 
-[data-theme="glassmorphism"] .page-section {
-    transition: visibility var(--duration-page-fade) ease;
-    opacity: 1;
-}
-
 [data-theme="glassmorphism"] .nav-pill__item:active {
     transform: none !important;
 }

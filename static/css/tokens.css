@@ -187,7 +187,7 @@
     /* ── Motion ── */
     --duration-fast: 0.2s;
     --duration-nav: 0.25s;
-    --duration-page-fade: 0.28s;
+    --duration-page-fade: 0.45s;
     --duration-tile-list-fade: 1s;
     /* Bug-mode UI colour crossfade; matches lighting.ui_ramp_time_ms in pccs.conf */
     --duration-bug-mode-crossfade: 1s;

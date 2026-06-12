@@ -7,7 +7,7 @@
     const indicator = nav.querySelector('.nav-pill__indicator');
     const sections = [...stage.querySelectorAll('.page-section')];
     const fadeMs = parseFloat(getComputedStyle(document.documentElement)
-        .getPropertyValue('--duration-page-fade')) * 1000 || 280;
+        .getPropertyValue('--duration-page-fade')) * 1000 || 450;
 
     let switching = false;
 
@@ -44,16 +44,23 @@
         switching = true;
         setNavActive(sectionId);
 
-        if (current) {
-            current.classList.remove('active');
-            await waitForFade();
-            current.hidden = true;
-        }
-
         next.hidden = false;
         void next.offsetWidth;
+
+        if (current) {
+            current.classList.add('is-leaving');
+        }
         next.classList.add('active');
+        if (current) {
+            current.classList.remove('active');
+        }
+
         await waitForFade();
+
+        if (current) {
+            current.classList.remove('is-leaving');
+            current.hidden = true;
+        }
 
         document.dispatchEvent(new CustomEvent('pccs4:section-change', {
             detail: { sectionId },

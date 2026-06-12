@@ -368,6 +368,7 @@ main {
     min-width: 0;
     max-width: 100%;
     overflow-x: visible;
+    z-index: 0;
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--duration-page-fade) ease,
@@ -376,9 +377,16 @@ main {
 }
 
 .page-section.active {
+    z-index: 1;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
+}
+
+.page-section.is-leaving {
+    z-index: 2;
+    pointer-events: none;
+    visibility: visible;
 }
 
 .page-content {
@@ -404,6 +412,7 @@ main {
 
 @media (prefers-reduced-motion: reduce) {
     .page-section,
+    .page-section.is-leaving,
     .nav-pill__indicator,
     .site-title-track,
     .nav-pill__item,

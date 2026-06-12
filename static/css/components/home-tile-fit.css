@@ -1,0 +1,9 @@
+/* 1280×800 kiosk hack — applied via JS when home content is shorter than the viewport */
+
+html.home-tile-fit-1280 main {
+    padding-bottom: 20px;
+}
+
+html.home-tile-fit-1280 #home .tile-grid > .tile {
+    min-height: 0;
+}

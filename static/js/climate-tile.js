@@ -1003,13 +1003,21 @@
         applyColdTemp(els.freezer, temp);
     }
 
+    function isCurrentlyDay(data) {
+        const raw = data?.is_day ?? data?.isDay
+            ?? lastWeather?.is_day ?? lastWeather?.isDay;
+        if (raw === true || raw === 1) return true;
+        if (raw === false || raw === 0) return false;
+        return null;
+    }
+
     function applyHint(data) {
         if (!els.hint) return;
 
         const rain = data.rain_chance_percent ?? data.precipitation_probability ?? data.rain_chance;
-        const humidity = data.humidity_percent ?? data.humidity ?? data.relative_humidity;
         const cloud = data.cloud_cover_percent ?? data.cloud_cover;
         const wind = data.wind_kmh ?? data.wind_speed;
+        const isDay = isCurrentlyDay(data);
 
         let text = 'Comfortable conditions';
         let className = 'climate-tile__hint';
@@ -1021,15 +1029,18 @@
             text = 'Showers possible today';
             className += ' climate-tile__hint--rain';
         } else if (cloud !== null && cloud !== undefined && Number(cloud) >= 75) {
-            text = 'Overcast — limited solar';
-            className += ' climate-tile__hint--solar';
-        } else if (humidity !== null && humidity !== undefined && Number(humidity) >= 82) {
-            text = 'Humid — ventilate when you can';
+            if (isDay === true) {
+                text = 'Overcast — limited solar';
+                className += ' climate-tile__hint--solar';
+            } else {
+                text = 'Overcast skies';
+            }
         } else if (
+            isDay === true &&
             wind !== null && wind !== undefined && Number(wind) <= 14 &&
             (rain === null || rain === undefined || Number(rain) < 20)
         ) {
-            text = 'Calm and dry — good drying weather';
+            text = 'Calm and dry';
         }
 
         els.hint.textContent = text;

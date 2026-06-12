@@ -2,6 +2,7 @@
 @import url("css/tokens.css");
 @import url("css/base.css");
 @import url("css/components/tiles.css");
+@import url("css/components/home-tile-fit.css");
 @import url("css/components/datetime-tile.css");
 @import url("css/components/climate-tile.css");
 @import url("css/components/water-tile.css");

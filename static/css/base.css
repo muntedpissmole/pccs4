@@ -545,34 +545,14 @@ main::-webkit-scrollbar,
 
 /* ── Wide viewport & fullscreen ── */
 
-/*
- * 9-col layout needs whole-pixel column widths (see tokens.css). Frosted
- * backdrop-filter and body blend layers make subpixel text look worse, so
- * drop tile blur on glassmorphism at that breakpoint and in fullscreen.
- */
+/* 9-col layout needs whole-pixel column widths (see tokens.css). */
 @media (min-width: 157.5625rem) {
-    html[data-theme="glassmorphism"] {
+    html[data-theme="minimal"] {
         --blur-tile: none;
     }
 }
 
-html:fullscreen[data-theme="glassmorphism"],
 html:fullscreen[data-theme="minimal"],
-html:-webkit-full-screen[data-theme="glassmorphism"],
 html:-webkit-full-screen[data-theme="minimal"] {
     --blur-tile: none;
-}
-
-html:fullscreen[data-theme="glassmorphism"] .slider-track,
-html:fullscreen[data-theme="glassmorphism"] .slider-thumb,
-html:fullscreen[data-theme="glassmorphism"] .toggle-pill,
-html:fullscreen[data-theme="glassmorphism"] .relay-toggle,
-html:fullscreen[data-theme="glassmorphism"] .bug-mode-chip,
-html:-webkit-full-screen[data-theme="glassmorphism"] .slider-track,
-html:-webkit-full-screen[data-theme="glassmorphism"] .slider-thumb,
-html:-webkit-full-screen[data-theme="glassmorphism"] .toggle-pill,
-html:-webkit-full-screen[data-theme="glassmorphism"] .relay-toggle,
-html:-webkit-full-screen[data-theme="glassmorphism"] .bug-mode-chip {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
 }

@@ -24,7 +24,10 @@
 @import url("css/components/reeds-system-tile.css");
 @import url("css/components/screens-system-tile.css");
 @import url("css/components/offline-overlay.css");
+@import url("css/components/confirm-dialog.css");
 @import url("css/components/toasts.css");
 @import url("css/components/toast-test-tile.css");
 @import url("css/components/sonos-system-tile.css");
 @import url("css/components/wifi-system-tile.css");
+@import url("css/components/victron-system-tile.css");
+@import url("css/components/shutdown-system-tile.css");

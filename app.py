@@ -5,6 +5,7 @@ from __future__ import annotations
 import atexit
 import logging
 import os
+import subprocess
 import sys
 import threading
 from datetime import datetime
@@ -164,6 +165,13 @@ def index():
 @app.route("/api/power")
 def api_power():
     return jsonify(get_power_status())
+
+
+@app.route("/api/victron")
+def api_victron():
+    if victron_module:
+        return jsonify(victron_module.get_state())
+    return jsonify({"stale": True, "shunt": {"configured": False}, "mppt": {"configured": False}})
 
 
 @app.route("/api/gps")
@@ -437,6 +445,32 @@ def api_get_screens():
 @app.route("/api/screens/status")
 def api_get_screens_status():
     return jsonify({"screens": _screens_list(probe=True)})
+
+
+@app.route("/api/system/shutdown", methods=["POST"])
+def api_system_shutdown():
+    """Shut down remote touchscreens, then this Pi."""
+    logger.warning("System shutdown requested via API")
+
+    if runtime.screen_actuator:
+        runtime.screen_actuator.shutdown_all()
+
+    def _shutdown_host():
+        import time
+
+        time.sleep(2)
+        cleanup()
+        try:
+            subprocess.Popen(
+                ["sudo", "-n", "shutdown", "-h", "now"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as e:
+            logger.error(f"Host shutdown failed: {e}")
+
+    threading.Thread(target=_shutdown_host, daemon=True).start()
+    return jsonify({"ok": True, "message": "Shutting down…"})
 
 
 @app.route("/api/phases")

@@ -25,6 +25,7 @@
         window.PCCS4.explain?.refresh?.();
         window.PCCS4.reedsSystem?.refresh?.();
         window.PCCS4.screensSystem?.loadScreens?.();
+        window.PCCS4.shutdownSystem?.loadTargets?.();
         window.PCCS4.wifi?.refresh?.({ quiet: true });
         window.sonosSystemTile?.fetchStatus?.();
     }

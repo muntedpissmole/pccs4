@@ -125,6 +125,7 @@
         // Victron / power tile
         socket.on('victron_update', (data) => {
             window.powerTile?.onVictronUpdate?.(data);
+            window.victronSystemTile?.onVictronUpdate?.(data);
         });
 
         // Network

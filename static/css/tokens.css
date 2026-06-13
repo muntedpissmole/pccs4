@@ -217,6 +217,7 @@
     --z-header: 100;
     --z-nav-item: 1;
     --z-offline: 5000;
+    --z-dialog: 6000;
     --z-toast: 10000;
 
     /* ── Lighting controls ── */

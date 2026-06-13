@@ -59,6 +59,32 @@
         </div>
     </div>
 
+    <div id="shutdown-confirm-dialog"
+         class="confirm-dialog is-hidden"
+         hidden
+         role="alertdialog"
+         aria-modal="true"
+         aria-labelledby="shutdown-confirm-title"
+         aria-describedby="shutdown-confirm-message"
+         aria-hidden="true">
+        <div class="confirm-dialog__panel">
+            <div class="confirm-dialog__header">
+                <i class="fa-solid fa-power-off confirm-dialog__icon" aria-hidden="true"></i>
+                <div class="confirm-dialog__copy">
+                    <p class="confirm-dialog__title" id="shutdown-confirm-title">Shut down all devices?</p>
+                    <p class="confirm-dialog__message" id="shutdown-confirm-message">
+                        This will power off the PCCS Pi and all configured touchscreens. This cannot be undone.
+                    </p>
+                </div>
+            </div>
+            <ul class="confirm-dialog__targets" id="shutdown-confirm-targets" aria-label="Devices to shut down"></ul>
+            <div class="confirm-dialog__actions">
+                <button type="button" class="confirm-dialog__cancel" id="shutdown-confirm-cancel">Cancel</button>
+                <button type="button" class="confirm-dialog__confirm" id="shutdown-confirm-confirm">Shut down</button>
+            </div>
+        </div>
+    </div>
+
     <header class="site-header">
         <div class="site-header__inner">
             <div class="site-title-track">

@@ -49,6 +49,7 @@ class VictronManager:
         self._stop_event = threading.Event()
         self._last_emit_ts = 0.0
         self._last_data_ts = 0.0
+        self._device_last_ts: dict[str, float] = {}
         self._known_devices = {}
 
         self.state = {
@@ -64,6 +65,8 @@ class VictronManager:
             "charge_state": None,
             "temperature": None,
             "last_update": None,
+            "shunt": self._empty_shunt_state(),
+            "mppt": self._empty_mppt_state(),
         }
 
         self.device_keys = {}
@@ -116,6 +119,9 @@ class VictronManager:
         """Return a copy of current state for socket / API consumers."""
         s = self.state.copy()
         s["stale"] = self._is_stale()
+        s["shunt"] = self._device_state_view("shunt", self.shunt_address)
+        s["mppt"] = self._device_state_view("mppt", self.mppt_address)
+        s.pop("_last_stale", None)
         if s.get("last_update") is None and self.state.get("last_update"):
             s["last_update"] = self.state["last_update"]
         return s
@@ -132,6 +138,243 @@ class VictronManager:
         if not self._last_data_ts:
             return True
         return (time.time() - self._last_data_ts) > self.stale_timeout
+
+    def _device_is_stale(self, address: str) -> bool:
+        if not address:
+            return True
+        last = self._device_last_ts.get(address)
+        if not last:
+            return True
+        return (time.time() - last) > self.stale_timeout
+
+    @staticmethod
+    def _enum_label(value) -> str | None:
+        if value is None:
+            return None
+        if hasattr(value, "name"):
+            return value.name.replace("_", " ").title()
+        return str(value)
+
+    def _empty_shunt_state(self) -> dict:
+        return {
+            "configured": bool(self.shunt_address),
+            "address": self.shunt_address or None,
+            "connected": False,
+            "stale": True,
+            "name": None,
+            "rssi": None,
+            "model_name": None,
+            "soc": None,
+            "voltage": None,
+            "current": None,
+            "remaining_mins": None,
+            "consumed_ah": None,
+            "temperature": None,
+            "alarm": None,
+            "aux_mode": None,
+            "starter_voltage": None,
+            "midpoint_voltage": None,
+            "last_update": None,
+        }
+
+    def _empty_mppt_state(self) -> dict:
+        return {
+            "configured": bool(self.mppt_address),
+            "address": self.mppt_address or None,
+            "connected": False,
+            "stale": True,
+            "name": None,
+            "rssi": None,
+            "model_name": None,
+            "charge_state": None,
+            "charger_error": None,
+            "battery_voltage": None,
+            "battery_charging_current": None,
+            "yield_today_wh": None,
+            "solar_power": None,
+            "external_device_load": None,
+            "last_update": None,
+        }
+
+    def _device_state_view(self, role: str, address: str) -> dict:
+        raw = self.state.get(role, {})
+        view = dict(raw)
+        view["configured"] = bool(address)
+        view["address"] = address or None
+        connected = bool(address and address in self._device_last_ts)
+        view["connected"] = connected
+        view["stale"] = self._device_is_stale(address) if address else True
+        return view
+
+    def _touch_device_meta(self, role: str, ble_device, advertisement, now: float):
+        addr = (ble_device.address or "").lower()
+        self._device_last_ts[addr] = now
+        self._last_data_ts = now
+        device = self.state[role]
+        name = getattr(ble_device, "name", None)
+        if name and name != device.get("name"):
+            device["name"] = name
+        rssi = getattr(advertisement, "rssi", None)
+        if rssi is not None and rssi != device.get("rssi"):
+            device["rssi"] = int(rssi)
+        device["connected"] = True
+        device["last_update"] = datetime.now(timezone.utc).isoformat()
+
+    def _apply_shunt_reading(self, ble_device, advertisement, parsed, now: float) -> bool:
+        self._touch_device_meta("shunt", ble_device, advertisement, now)
+        device = self.state["shunt"]
+        changed = False
+
+        if hasattr(parsed, "get_model_name"):
+            model = parsed.get_model_name()
+            if model and model != device.get("model_name"):
+                device["model_name"] = model
+                changed = True
+
+        for key, getter, fmt in (
+            ("soc", "get_soc", lambda v: round(float(v), 1)),
+            ("voltage", "get_voltage", lambda v: round(float(v), 2)),
+            ("current", "get_current", lambda v: round(float(v), 2)),
+            ("consumed_ah", "get_consumed_ah", lambda v: round(float(v), 1)),
+            ("temperature", "get_temperature", lambda v: round(float(v), 1)),
+            ("starter_voltage", "get_starter_voltage", lambda v: round(float(v), 2)),
+            ("midpoint_voltage", "get_midpoint_voltage", lambda v: round(float(v), 2)),
+        ):
+            if not hasattr(parsed, getter):
+                continue
+            val = getattr(parsed, getter)()
+            if val is None:
+                continue
+            formatted = fmt(val)
+            if formatted != device.get(key):
+                device[key] = formatted
+                changed = True
+            if key == "soc" and formatted != self.state.get("soc"):
+                self.state["soc"] = formatted
+                changed = True
+            if key == "voltage" and formatted != self.state.get("voltage"):
+                self.state["voltage"] = formatted
+                changed = True
+            if key == "current" and formatted != self.state.get("current_a"):
+                self.state["current_a"] = formatted
+                changed = True
+            if key == "consumed_ah" and formatted != self.state.get("consumed_ah"):
+                self.state["consumed_ah"] = formatted
+                changed = True
+            if key == "temperature" and formatted != self.state.get("temperature"):
+                self.state["temperature"] = formatted
+                changed = True
+
+        if hasattr(parsed, "get_remaining_mins"):
+            ttg = parsed.get_remaining_mins()
+            mins = int(ttg) if ttg is not None and ttg < 65000 else None
+            if mins != device.get("remaining_mins"):
+                device["remaining_mins"] = mins
+                changed = True
+            if mins != self.state.get("time_to_go_mins"):
+                self.state["time_to_go_mins"] = mins
+                changed = True
+
+        if hasattr(parsed, "get_alarm"):
+            alarm = self._enum_label(parsed.get_alarm())
+            if alarm != device.get("alarm"):
+                device["alarm"] = alarm
+                changed = True
+
+        if hasattr(parsed, "get_aux_mode"):
+            aux_mode = self._enum_label(parsed.get_aux_mode())
+            if aux_mode != device.get("aux_mode"):
+                device["aux_mode"] = aux_mode
+                changed = True
+
+        return changed
+
+    def _apply_mppt_reading(self, ble_device, advertisement, parsed, now: float) -> bool:
+        self._touch_device_meta("mppt", ble_device, advertisement, now)
+        device = self.state["mppt"]
+        changed = False
+
+        if hasattr(parsed, "get_model_name"):
+            model = parsed.get_model_name()
+            if model and model != device.get("model_name"):
+                device["model_name"] = model
+                changed = True
+
+        if hasattr(parsed, "get_battery_voltage"):
+            bv = parsed.get_battery_voltage()
+            if bv is not None:
+                formatted = round(float(bv), 2)
+                if formatted != device.get("battery_voltage"):
+                    device["battery_voltage"] = formatted
+                    changed = True
+                if self.state.get("voltage") is None:
+                    self.state["voltage"] = formatted
+                    changed = True
+
+        if hasattr(parsed, "get_battery_charging_current"):
+            sc = parsed.get_battery_charging_current()
+            if sc is not None:
+                formatted = round(float(sc), 2)
+                if formatted != device.get("battery_charging_current"):
+                    device["battery_charging_current"] = formatted
+                    changed = True
+                if formatted != self.state.get("solar_current_a"):
+                    self.state["solar_current_a"] = formatted
+                    changed = True
+
+        if hasattr(parsed, "get_yield_today"):
+            y = parsed.get_yield_today()
+            if y is not None:
+                wh = round(float(y), 0)
+                kwh = round(float(y) / 1000.0, 2)
+                if wh != device.get("yield_today_wh"):
+                    device["yield_today_wh"] = wh
+                    changed = True
+                if kwh != self.state.get("yield_today_kwh"):
+                    self.state["yield_today_kwh"] = kwh
+                    changed = True
+
+        if hasattr(parsed, "get_solar_power"):
+            sp = parsed.get_solar_power()
+            if sp is not None:
+                formatted = round(float(sp), 0)
+                if formatted != device.get("solar_power"):
+                    device["solar_power"] = formatted
+                    changed = True
+                if formatted != self.state.get("solar_power_w"):
+                    self.state["solar_power_w"] = formatted
+                    changed = True
+
+        if hasattr(parsed, "get_external_device_load"):
+            load = parsed.get_external_device_load()
+            if load is not None:
+                formatted = round(float(load), 2)
+                if formatted != device.get("external_device_load"):
+                    device["external_device_load"] = formatted
+                    changed = True
+
+        if hasattr(parsed, "get_charge_state"):
+            try:
+                cs = self._map_charge_state(parsed.get_charge_state())
+            except Exception:
+                cs = None
+            if cs is not None and cs != device.get("charge_state"):
+                device["charge_state"] = cs
+                changed = True
+            if cs is not None and cs != self.state.get("charge_state"):
+                self.state["charge_state"] = cs
+                changed = True
+
+        if hasattr(parsed, "get_charger_error"):
+            try:
+                err = self._enum_label(parsed.get_charger_error())
+            except Exception:
+                err = None
+            if err is not None and err != device.get("charger_error"):
+                device["charger_error"] = err
+                changed = True
+
+        return changed
 
     def _ble_thread_target(self):
         """Dedicated thread with its own asyncio loop (required for BLE + Flask)."""
@@ -207,96 +450,12 @@ class VictronManager:
             return
 
         now = time.time()
-        self._last_data_ts = now
         changed = False
 
-        # --- SmartShunt / BMV (battery monitor) ---
-        if hasattr(parsed, "get_soc"):
-            soc = parsed.get_soc()
-            if soc is not None and soc != self.state.get("soc"):
-                self.state["soc"] = round(float(soc), 1)
-                changed = True
-
-            v = parsed.get_voltage()
-            if v is not None and v != self.state.get("voltage"):
-                self.state["voltage"] = round(float(v), 2)
-                changed = True
-
-            c = parsed.get_current()
-            if c is not None and c != self.state.get("current_a"):
-                self.state["current_a"] = round(float(c), 2)
-                changed = True
-
-            if hasattr(parsed, "get_consumed_ah"):
-                ca = parsed.get_consumed_ah()
-                if ca is not None and ca != self.state.get("consumed_ah"):
-                    self.state["consumed_ah"] = round(float(ca), 1)
-                    changed = True
-
-            if hasattr(parsed, "get_temperature"):
-                temp = parsed.get_temperature()
-                if temp is not None and temp != self.state.get("temperature"):
-                    self.state["temperature"] = round(float(temp), 1)
-                    changed = True
-
-            ttg = parsed.get_remaining_mins()
-            if ttg is not None and ttg != self.state.get("time_to_go_mins"):
-                # 65535 is the classic "infinite" sentinel
-                self.state["time_to_go_mins"] = int(ttg) if ttg < 65000 else None
-                changed = True
-
-        # --- MPPT SmartSolar / BlueSolar ---
-        if hasattr(parsed, "get_battery_voltage") or hasattr(parsed, "get_solar_power"):
-            bv = parsed.get_battery_voltage() if hasattr(parsed, "get_battery_voltage") else None
-            if bv is not None and self.state.get("voltage") is None:
-                self.state["voltage"] = round(float(bv), 2)
-                changed = True
-
-            sc = None
-            for meth in ("get_battery_charging_current", "get_pv_current", "get_current"):
-                if hasattr(parsed, meth):
-                    try:
-                        val = getattr(parsed, meth)()
-                        if val is not None:
-                            sc = float(val)
-                            break
-                    except Exception:
-                        pass
-            if sc is not None and sc != self.state.get("solar_current_a"):
-                self.state["solar_current_a"] = round(sc, 2)
-                changed = True
-
-            if hasattr(parsed, "get_yield_today"):
-                y = parsed.get_yield_today()
-                if y is not None:
-                    kwh = float(y) / 1000.0  # library returns Wh
-                    if kwh != self.state.get("yield_today_kwh"):
-                        self.state["yield_today_kwh"] = round(kwh, 2)
-                        changed = True
-
-            # Charge state (0-9 or enum in newer parsers)
-            cs = None
-            if hasattr(parsed, "get_charge_state"):
-                try:
-                    cs = parsed.get_charge_state()
-                except:
-                    pass
-            if cs is not None:
-                mapped = self._map_charge_state(cs)
-                if mapped != self.state.get("charge_state"):
-                    self.state["charge_state"] = mapped
-                    changed = True
-
-            # Also capture raw solar power if present (nice for future)
-            sp = None
-            if hasattr(parsed, "get_solar_power"):
-                try:
-                    sp = parsed.get_solar_power()
-                except:
-                    pass
-            if sp is not None and sp != self.state.get("solar_power_w"):
-                self.state["solar_power_w"] = round(float(sp), 0)
-                changed = True
+        if addr == self.shunt_address:
+            changed = self._apply_shunt_reading(ble_device, advertisement, parsed, now)
+        elif addr == self.mppt_address:
+            changed = self._apply_mppt_reading(ble_device, advertisement, parsed, now)
 
         self.state["last_update"] = datetime.now(timezone.utc).isoformat()
 

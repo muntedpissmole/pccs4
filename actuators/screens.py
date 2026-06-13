@@ -108,3 +108,34 @@ class ScreenActuator:
         if force_on is None:
             force_on = not self._observed.get(name, False)
         self.set_screen(name, force_on)
+
+    def shutdown_all(self):
+        if not self._screens:
+            return
+        for name in self._screens:
+            threading.Thread(target=self._shutdown_one, args=(name,), daemon=True).start()
+
+    def _shutdown_one(self, name: str):
+        conf = self._screens.get(name)
+        if not conf:
+            return
+        label = conf.get("friendly", name)
+        cmd = (
+            f"ssh {_ssh_options(8)} "
+            f"{conf['username']}@{conf['host']} "
+            "\"sudo -n shutdown -h now 2>/dev/null || shutdown -h now 2>/dev/null || poweroff\""
+        )
+        try:
+            result = subprocess.run(cmd, shell=True, timeout=12, capture_output=True, text=True)
+            if result.returncode == 0:
+                logger.info(f"🖥️ Shutdown sent to screen: {label}")
+            else:
+                err = (result.stderr or result.stdout or "").strip()
+                logger.warning(
+                    "Screen %s shutdown SSH failed (exit %s): %s",
+                    name,
+                    result.returncode,
+                    err[:200] or "no output",
+                )
+        except Exception as e:
+            logger.warning(f"Screen {name} shutdown SSH: {e}")

@@ -62,7 +62,7 @@
     const VISIBLE_HOURS = 20;
     const SCROLL_TICK_MS = 60000;
     const FORECAST_HOVER_THRESHOLD_PX = 14;
-    const FORECAST_GRID_TEMP_STEP = 2;
+    const FORECAST_GRID_LINES = 5;
     const HOUR_MS = 3600000;
     const HALF_HOUR_MS = HOUR_MS / 2;
     const TOOLTIP_NOW_THRESHOLD_MS = 15 * 60 * 1000;
@@ -812,20 +812,20 @@
         });
     }
 
-    function renderForecastGrid(layout, globalMin, globalMax, points) {
+    function renderForecastGrid(layout) {
         if (!els.forecastGrid) return;
         els.forecastGrid.replaceChildren();
-        if (!layout || !points.length) return;
+        if (!layout) return;
 
-        const { min, max } = displayTempRange(globalMin, globalMax);
-        const start = Math.floor(min / FORECAST_GRID_TEMP_STEP) * FORECAST_GRID_TEMP_STEP;
-        const end = Math.ceil(max / FORECAST_GRID_TEMP_STEP) * FORECAST_GRID_TEMP_STEP;
+        const band = curveVerticalBand(layout);
         const x1 = layout.inset;
         const x2 = layout.viewBoxW - layout.inset;
         const svgNs = 'http://www.w3.org/2000/svg';
+        const segments = Math.max(FORECAST_GRID_LINES - 1, 1);
+        const bandHeight = band.bottom - band.top;
 
-        for (let temp = start; temp <= end; temp += FORECAST_GRID_TEMP_STEP) {
-            const y = displayTempToY(temp, globalMin, globalMax, layout, points);
+        for (let i = 0; i < FORECAST_GRID_LINES; i += 1) {
+            const y = band.top + (i / segments) * bandHeight;
             const line = document.createElementNS(svgNs, 'line');
             line.setAttribute('x1', String(x1));
             line.setAttribute('x2', String(x2));
@@ -954,7 +954,7 @@
         const { pathD, segments } = buildHourlyPath(points);
         lastForecastSegments = segments;
         applyForecastPath(pathD, layoutParams);
-        renderForecastGrid(layoutParams, globalMin, globalMax, points);
+        renderForecastGrid(layoutParams);
         updateNowLine(layoutParams);
         renderForecastAxis(nowMs, layoutParams);
         renderForecastExtrema(points, layoutParams);

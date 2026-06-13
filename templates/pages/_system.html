@@ -177,6 +177,47 @@
                 </div>
             </article>
 
+            <article class="tile tile--span-2" id="tile-victron-system">
+                <i class="fa-solid fa-bolt tile__icon" aria-hidden="true"></i>
+                <p class="tile__label">Victron</p>
+                <div class="victron-system-tile__body">
+                    <div class="victron-system-tile__summary" aria-live="polite">
+                        <div class="victron-system-tile__summary-main">
+                            <span class="victron-system-tile__status-dot" id="victron-status-dot" aria-hidden="true"></span>
+                            <div>
+                                <p class="victron-system-tile__headline" id="victron-system-headline">Loading Victron data…</p>
+                                <p class="victron-system-tile__detail" id="victron-system-detail"></p>
+                            </div>
+                        </div>
+                        <p class="victron-system-tile__updated" id="victron-system-updated"></p>
+                    </div>
+
+                    <div class="victron-system-tile__grid">
+                        <section class="victron-system-tile__card" id="victron-shunt-card" aria-labelledby="victron-shunt-title">
+                            <div class="victron-system-tile__card-header">
+                                <h3 class="victron-system-tile__card-title" id="victron-shunt-title">
+                                    <i class="fa-solid fa-battery-half" aria-hidden="true"></i>
+                                    SmartShunt
+                                </h3>
+                                <span class="victron-system-tile__device-status" id="victron-shunt-status">—</span>
+                            </div>
+                            <dl class="victron-system-tile__facts" id="victron-shunt-facts"></dl>
+                        </section>
+
+                        <section class="victron-system-tile__card" id="victron-mppt-card" aria-labelledby="victron-mppt-title">
+                            <div class="victron-system-tile__card-header">
+                                <h3 class="victron-system-tile__card-title" id="victron-mppt-title">
+                                    <i class="fa-solid fa-solar-panel" aria-hidden="true"></i>
+                                    MPPT
+                                </h3>
+                                <span class="victron-system-tile__device-status" id="victron-mppt-status">—</span>
+                            </div>
+                            <dl class="victron-system-tile__facts" id="victron-mppt-facts"></dl>
+                        </section>
+                    </div>
+                </div>
+            </article>
+
             <article class="tile" id="tile-wifi-system">
                 <i class="fa-solid fa-wifi tile__icon" aria-hidden="true"></i>
                 <p class="tile__label">Wi‑Fi</p>
@@ -239,6 +280,26 @@
                         <button type="button" class="mode-btn" data-mode="light" aria-label="Light mode">
                             <i class="fa-solid fa-sun mode-btn__icon" aria-hidden="true"></i>
                             <span>Light</span>
+                        </button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="tile" id="tile-shutdown-system">
+                <i class="fa-solid fa-power-off tile__icon" aria-hidden="true"></i>
+                <p class="tile__label">Shutdown</p>
+                <div class="shutdown-system-tile__body">
+                    <div class="shutdown-system-tile__summary" aria-live="polite">
+                        <p class="shutdown-system-tile__headline" id="shutdown-summary-headline">Power off all systems</p>
+                        <p class="shutdown-system-tile__detail" id="shutdown-summary-detail">Shuts down this Pi and all configured touchscreens.</p>
+                    </div>
+
+                    <ul class="shutdown-system-tile__targets" id="shutdown-targets" aria-label="Devices to shut down"></ul>
+
+                    <div class="shutdown-system-tile__actions">
+                        <button type="button" class="shutdown-system-tile__btn" id="shutdown-start-btn">
+                            <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+                            <span>Shutdown all</span>
                         </button>
                     </div>
                 </div>

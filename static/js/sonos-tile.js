@@ -337,11 +337,33 @@
         });
 
         if (els.volume) {
-            els.volume.addEventListener('pointerdown', () => {
+            const volumeWrap = els.volume.closest('.sonos-tile__volume-wrap');
+
+            const blockContextMenu = (event) => {
+                event.preventDefault();
+            };
+
+            volumeWrap?.addEventListener('contextmenu', blockContextMenu);
+            els.volume.addEventListener('contextmenu', blockContextMenu);
+
+            els.volume.addEventListener('pointerdown', (event) => {
                 volumeDrag = true;
+                if (event.pointerType === 'touch') {
+                    event.preventDefault();
+                    els.volume.setPointerCapture(event.pointerId);
+                }
             });
-            els.volume.addEventListener('pointerup', () => {
+            els.volume.addEventListener('pointerup', (event) => {
                 volumeDrag = false;
+                if (els.volume.hasPointerCapture(event.pointerId)) {
+                    els.volume.releasePointerCapture(event.pointerId);
+                }
+            });
+            els.volume.addEventListener('pointercancel', (event) => {
+                volumeDrag = false;
+                if (els.volume.hasPointerCapture(event.pointerId)) {
+                    els.volume.releasePointerCapture(event.pointerId);
+                }
             });
             els.volume.addEventListener('input', () => {
                 const level = Number(els.volume.value);

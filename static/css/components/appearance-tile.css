@@ -67,6 +67,14 @@
         color var(--duration-fast) ease;
 }
 
+html.dark .appearance-tile__select {
+    color-scheme: dark;
+}
+
+html.light .appearance-tile__select {
+    color-scheme: light;
+}
+
 .appearance-tile__select:hover {
     border-color: var(--color-accent-border);
     background-color: var(--color-surface-active);

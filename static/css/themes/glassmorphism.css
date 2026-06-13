@@ -174,7 +174,8 @@ html.light[data-theme="glassmorphism"] body::after {
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    z-index: 0;
+    /* Behind in-flow tile content — z-index 0 painted over non-positioned children in Blink. */
+    z-index: -1;
     pointer-events: none;
     background-color: var(--glass-tile);
     background-image: var(--glass-noise);
@@ -264,6 +265,7 @@ html.light[data-theme="glassmorphism"] body::after {
 [data-theme="glassmorphism"] .appearance-tile__select {
     background-color: rgba(14, 22, 40, 0.92);
     color: var(--color-text);
+    color-scheme: dark;
 }
 
 [data-theme="glassmorphism"] .appearance-tile__select:hover {
@@ -272,6 +274,7 @@ html.light[data-theme="glassmorphism"] body::after {
 
 html.light[data-theme="glassmorphism"] .appearance-tile__select {
     background-color: rgba(255, 255, 255, 0.95);
+    color-scheme: light;
 }
 
 html.light[data-theme="glassmorphism"] .appearance-tile__select:hover {
@@ -279,13 +282,13 @@ html.light[data-theme="glassmorphism"] .appearance-tile__select:hover {
 }
 
 html.dark[data-theme="glassmorphism"] .appearance-tile__select option {
-    background-color: #0e1628;
-    color: #f0f9ff;
+    background-color: Canvas;
+    color: CanvasText;
 }
 
 html.light[data-theme="glassmorphism"] .appearance-tile__select option {
-    background-color: #ffffff;
-    color: #0f172a;
+    background-color: Canvas;
+    color: CanvasText;
 }
 
 /* ── Sliders ── */

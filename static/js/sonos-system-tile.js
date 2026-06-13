@@ -577,10 +577,20 @@
         }
     });
 
+    grid.addEventListener('contextmenu', (event) => {
+        if (event.target.closest('[data-sonos-volume], .sonos-tile__volume-wrap')) {
+            event.preventDefault();
+        }
+    });
+
     grid.addEventListener('pointerdown', (event) => {
         const slider = event.target.closest('[data-sonos-volume]');
         if (!slider || slider.disabled) return;
         state.volumeDrag = slider.dataset.sonosVolume;
+        if (event.pointerType === 'touch') {
+            event.preventDefault();
+            slider.setPointerCapture(event.pointerId);
+        }
     });
 
     function updateCardVolumeUi(card, level) {
@@ -599,7 +609,19 @@
         updateCardVolumeUi(slider.closest('[data-speaker-name]'), slider.value);
     });
 
-    grid.addEventListener('pointerup', () => {
+    grid.addEventListener('pointerup', (event) => {
+        const slider = event.target.closest('[data-sonos-volume]');
+        if (slider?.hasPointerCapture(event.pointerId)) {
+            slider.releasePointerCapture(event.pointerId);
+        }
+        state.volumeDrag = null;
+    });
+
+    grid.addEventListener('pointercancel', (event) => {
+        const slider = event.target.closest('[data-sonos-volume]');
+        if (slider?.hasPointerCapture(event.pointerId)) {
+            slider.releasePointerCapture(event.pointerId);
+        }
         state.volumeDrag = null;
     });
 

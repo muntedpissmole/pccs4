@@ -10,6 +10,8 @@
 }
 
 .sonos-tile__top {
+    position: relative;
+    z-index: 3;
     display: flex;
     align-items: stretch;
     gap: 10px;
@@ -282,6 +284,9 @@
     height: 44px;
     min-height: 44px;
     overflow: visible;
+    touch-action: pan-x;
+    -webkit-touch-callout: none;
+    user-select: none;
 }
 
 .sonos-tile__volume-track {
@@ -343,7 +348,9 @@
     border: none;
     box-shadow: none;
     cursor: pointer;
-    touch-action: manipulation;
+    touch-action: pan-x;
+    -webkit-touch-callout: none;
+    user-select: none;
 }
 
 .sonos-tile__volume:focus {

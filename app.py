@@ -722,6 +722,9 @@ def _startup():
     global gps_module, phase_manager, sensor_manager, victron_module, sonos_module
 
     logger.info("Starting PCCS4 lighting backend...")
+    from modules.clock import ensure_clock_for_automation, log_clock_status
+
+    log_clock_status(logger)
     app._start_time = datetime.now()
 
     runtime.start_hardware()
@@ -741,6 +744,7 @@ def _startup():
     gps_module.init_gps()
     gps_module.init_geolocator()
 
+    ensure_clock_for_automation(logger, config)
     runtime.bootstrap_phase()
     runtime.finish_startup()
     phase_manager.start()

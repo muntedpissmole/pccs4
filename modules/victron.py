@@ -49,6 +49,7 @@ class VictronManager:
         self._stop_event = threading.Event()
         self._last_emit_ts = 0.0
         self._last_data_ts = 0.0
+        self._known_devices = {}
 
         self.state = {
             "stale": True,
@@ -61,6 +62,7 @@ class VictronManager:
             "solar_current_a": None,
             "yield_today_kwh": None,
             "charge_state": None,
+            "temperature": None,
             "last_update": None,
         }
 
@@ -146,31 +148,30 @@ class VictronManager:
                 pass
 
     async def _ble_loop(self, loop):
-        """Main scanning loop using victron_ble.Scanner."""
+        """Main scanning loop using victron_ble.BaseScanner."""
         try:
-            from victron_ble.scanner import Scanner
+            from victron_ble.scanner import BaseScanner
         except ImportError as e:
             logger.error("🔋 victron_ble (or bleak) not importable: %s — BLE scanning unavailable", e)
             return
 
-        scanner = Scanner()
+        manager = self
 
-        # Supply keys for the devices we care about
-        for addr, key in self.device_keys.items():
-            try:
-                scanner.add_device_key(addr, key)
-            except Exception as ex:
-                logger.warning("🔋 Failed to add key for %s: %s", addr, ex)
+        class _PCCSBleScanner(BaseScanner):
+            def callback(self, ble_device, raw_data, advertisement):
+                try:
+                    manager._handle_advertisement(ble_device, raw_data, advertisement)
+                except Exception as ex:
+                    logger.debug(
+                        "🔋 Victron parse error for %s: %s",
+                        getattr(ble_device, "address", "?"),
+                        ex,
+                    )
 
-        def _on_advertisement(ble_device, advertisement):
-            # This callback runs in the BLE thread / event loop
-            try:
-                self._handle_advertisement(ble_device, advertisement)
-            except Exception as ex:
-                logger.debug("🔋 Victron parse error for %s: %s", getattr(ble_device, 'address', '?'), ex)
+        scanner = _PCCSBleScanner()
 
         try:
-            await scanner.start(callback=_on_advertisement)
+            await scanner.start()
             logger.info("🔋 Victron BLE scanner active — listening for %s device(s)", len(self.device_keys))
 
             # Keep the scanner alive until stop is requested
@@ -185,7 +186,7 @@ class VictronManager:
         except Exception as e:
             logger.error("🔋 Victron scanner error: %s", e, exc_info=True)
 
-    def _handle_advertisement(self, ble_device, advertisement):
+    def _handle_advertisement(self, ble_device, raw_data, advertisement):
         """Parse one Victron advertisement and fold it into self.state."""
         addr = (ble_device.address or "").lower()
         if addr not in self.device_keys:
@@ -193,14 +194,13 @@ class VictronManager:
 
         try:
             from victron_ble.devices import detect_device_type
-            device_type = detect_device_type(advertisement)
+            device_type = detect_device_type(raw_data)
             if device_type is None:
                 return
 
-            # Instantiate parser with the correct key
-            key = self.device_keys[addr]
-            parser = device_type(key)
-            parsed = parser.parse(advertisement)
+            if addr not in self._known_devices:
+                self._known_devices[addr] = device_type(self.device_keys[addr])
+            parsed = self._known_devices[addr].parse(raw_data)
 
         except Exception as e:
             logger.debug("🔋 Victron advertisement handling failed for %s: %s", addr, e)
@@ -227,11 +227,16 @@ class VictronManager:
                 self.state["current_a"] = round(float(c), 2)
                 changed = True
 
-            # consumed_ah is present on many battery monitor parsers
-            if hasattr(parsed, "consumed_ah"):
-                ca = getattr(parsed, "consumed_ah", None)
+            if hasattr(parsed, "get_consumed_ah"):
+                ca = parsed.get_consumed_ah()
                 if ca is not None and ca != self.state.get("consumed_ah"):
                     self.state["consumed_ah"] = round(float(ca), 1)
+                    changed = True
+
+            if hasattr(parsed, "get_temperature"):
+                temp = parsed.get_temperature()
+                if temp is not None and temp != self.state.get("temperature"):
+                    self.state["temperature"] = round(float(temp), 1)
                     changed = True
 
             ttg = parsed.get_remaining_mins()
@@ -241,46 +246,33 @@ class VictronManager:
                 changed = True
 
         # --- MPPT SmartSolar / BlueSolar ---
-        if hasattr(parsed, "get_battery_voltage") or hasattr(parsed, "get_pv_power"):
-            # Prefer battery side values when available
-            bv = getattr(parsed, "get_battery_voltage", lambda: None)()
-            if bv is not None:
-                # Only overwrite if we don't already have a fresher shunt voltage
-                if self.state.get("voltage") is None:
-                    self.state["voltage"] = round(float(bv), 2)
-                    changed = True
+        if hasattr(parsed, "get_battery_voltage") or hasattr(parsed, "get_solar_power"):
+            bv = parsed.get_battery_voltage() if hasattr(parsed, "get_battery_voltage") else None
+            if bv is not None and self.state.get("voltage") is None:
+                self.state["voltage"] = round(float(bv), 2)
+                changed = True
 
-            # Solar current (this is the "current generated" the user wants)
-            # Many MPPT parsers expose get_battery_current() for the charge current
             sc = None
-            for meth in ("get_battery_current", "get_pv_current", "get_current"):
+            for meth in ("get_battery_charging_current", "get_pv_current", "get_current"):
                 if hasattr(parsed, meth):
                     try:
                         val = getattr(parsed, meth)()
                         if val is not None:
                             sc = float(val)
                             break
-                    except:
+                    except Exception:
                         pass
             if sc is not None and sc != self.state.get("solar_current_a"):
                 self.state["solar_current_a"] = round(sc, 2)
                 changed = True
 
-            # Yield today — authoritative "total generated for the day"
-            y = None
-            for meth in ("get_yield_today", "get_yield_today_kwh"):
-                if hasattr(parsed, meth):
-                    try:
-                        y = getattr(parsed, meth)()
-                        if y is not None:
-                            break
-                    except:
-                        pass
-            if y is not None:
-                kwh = float(y) / 1000.0 if y > 10 else float(y)  # library sometimes returns Wh
-                if kwh != self.state.get("yield_today_kwh"):
-                    self.state["yield_today_kwh"] = round(kwh, 2)
-                    changed = True
+            if hasattr(parsed, "get_yield_today"):
+                y = parsed.get_yield_today()
+                if y is not None:
+                    kwh = float(y) / 1000.0  # library returns Wh
+                    if kwh != self.state.get("yield_today_kwh"):
+                        self.state["yield_today_kwh"] = round(kwh, 2)
+                        changed = True
 
             # Charge state (0-9 or enum in newer parsers)
             cs = None
@@ -332,6 +324,8 @@ class VictronManager:
             return mapping.get(raw, f"State {raw}")
         if hasattr(raw, "name"):
             return raw.name.replace("_", " ").title()
+        if hasattr(raw, "value"):
+            return mapping.get(raw.value, str(raw))
         return str(raw)
 
     def _emit_if_needed(self, force=False):

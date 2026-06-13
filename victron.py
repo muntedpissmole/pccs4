@@ -54,6 +54,8 @@ def _normalize_ble_state(state: dict[str, Any]) -> dict[str, Any]:
         "solar_power_w": state.get("solar_power_w"),
         "consumed_ah": state.get("consumed_ah"),
         "charge_state": state.get("charge_state"),
+        "temperature": state.get("temperature"),
+        "battery_temp_c": state.get("temperature"),
         "stale": bool(state.get("stale")),
         "last_update": state.get("last_update"),
         "source": "victron-ble",

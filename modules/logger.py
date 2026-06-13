@@ -4,6 +4,22 @@ import logging.handlers
 import sys
 from pathlib import Path
 
+from modules.clock import format_uptime, is_clock_synchronized, read_uptime_seconds
+
+
+class UptimeFormatter(logging.Formatter):
+    """Wall-clock timestamp plus boot uptime; marks unsynced wall time."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        uptime = format_uptime(read_uptime_seconds())
+        wall = self.formatTime(record, self.datefmt)
+        synced = is_clock_synchronized()
+        if synced is False:
+            record.asctime = f"{wall} ({uptime} ~unsynced)"
+        else:
+            record.asctime = f"{wall} ({uptime})"
+        return super().format(record)
+
 
 class ToastLoggingHandler(logging.Handler):
     """Automatically turns WARNING and ERROR logs into UI toasts"""
@@ -66,10 +82,9 @@ def setup_logging(config, toast_manager=None) -> logging.Logger:
     if logger.handlers:
         logger.handlers.clear()
 
-    # Formatter
-    formatter = logging.Formatter(
+    formatter = UptimeFormatter(
         fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
 
     # ------------------- Console Handler -------------------

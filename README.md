@@ -43,7 +43,8 @@ This project has been built with support for:
 - Victron SmartShunt (battery voltage, current, SoC, time remaining, etc.)
 - Victron SmartSolar MPPT (solar power, daily yield, charge state)
 - Connected over Bluetooth Low Energy using the `victron_ble` Python library (passive "Instant Readout" advertisements — no constant connection required)
-- See `config/pccs.conf` `[victron]` section for setup. You will need the MAC address + 32-character advertisement key from the VictronConnect app (device → gear icon → Product info → Instant readout via Bluetooth).
+- Requires a **USB Bluetooth adapter** on the Pi (onboard Bluetooth is disabled for GPS UART — see [Victron BLE setup](#victron-ble-setup) below)
+- Configure MAC address + 32-character advertisement key per device in `config/pccs.conf` `[victron]` (from VictronConnect → device → gear → Product info → Instant readout via Bluetooth). The VictronConnect mesh name is not used by PCCS.
 
 **Frontend**
 
@@ -85,10 +86,12 @@ See /images folder for more examples.
 | GPIO25          | 22           | Reed Input             | Rear Drawer                               |
 | GPIO26          | 37           | Reed Input             | Rooftop Tent                              |
 | N/A             | N/A          | USB Port               | Arduino Mega                              |
+| N/A             | N/A          | USB Port               | Bluetooth dongle (Victron BLE — see below) |
 
 **Notes**
 <small>
 - 1-Wire needs to be enabled in raspi-config (see instructions below)
+- Onboard Bluetooth is **disabled** (`dtoverlay=disable-bt`) so the UART is free for GPS — Victron BLE requires a **USB Bluetooth dongle** ([Victron BLE setup](#victron-ble-setup))
 - 5V for peripherals (GPS/relay module etc.) not included in above table
 </small>
 
@@ -123,6 +126,7 @@ See /images folder for more examples.
 </small>
 
 ### Other Recommended Hardware
+- **USB Bluetooth dongle** (required for Victron SmartShunt / MPPT). The Pi's onboard Bluetooth is turned off at boot by `dtoverlay=disable-bt` so the GPS can use the UART — a USB adapter is the only way to get Bluetooth on the PCCS Pi. Any BLE 4.0+ dongle should work (USB Bluetooth 5.0 adapters are fine). Plug it directly into a Pi USB port if possible; avoid long or unpowered USB hubs if Victron devices are more than a few metres away.
 - 12-48v PoE 5 port network switch for WAP, a wired connection to RPI and a wired connection to other lighting control touchscreens in the installation (e.g. kitchen, rooftop tent)
 - Cel-Fi GO 4/5G booster
 
@@ -156,6 +160,8 @@ dtoverlay=disable-bt
 dtparam=spi=on
 ```
 
+`dtoverlay=disable-bt` turns off the Pi's **built-in** Bluetooth so the serial port can be used for GPS. Victron BLE still works via a **USB Bluetooth dongle** (see [Victron BLE setup](#victron-ble-setup)).
+
 4.  Save and eject card, install into RPI and login via SSH using the account name and password set during image creation e.g. `ssh $USERNAME@192.168.0.78` (set `USERNAME` first if you already know it, or substitute your account name).
 
 5.  Set a static IP address for the wired ethernet port, modify details to suit:
@@ -180,10 +186,10 @@ The above assumes that the ethernet name is `netplan-eth0`, run `nmcli connectio
 6.   Install dependencies:
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install nginx samba samba-common-bin python3-lgpio git network-manager usbmuxd libimobiledevice-utils ipheth-utils -y
+sudo apt install nginx samba samba-common-bin python3-lgpio git network-manager usbmuxd libimobiledevice-utils ipheth-utils bluez -y
 ```
 
-`usbmuxd`, `libimobiledevice-utils`, and `ipheth-utils` enable iPhone USB tethering (creates a `usb0`/`eth` interface when the phone is plugged in and tethering is enabled). `network-manager` is required for Wi‑Fi scan/connect in the System tab.
+`usbmuxd`, `libimobiledevice-utils`, and `ipheth-utils` enable iPhone USB tethering (creates a `usb0`/`eth` interface when the phone is plugged in and tethering is enabled). `network-manager` is required for Wi‑Fi scan/connect in the System tab. `bluez` provides Bluetooth support for the USB dongle used by Victron BLE (usually pre-installed on Raspberry Pi OS, but listed here for completeness).
 
 ---
 7.  Create project folder, navigate to it and setup permissions for `$USERNAME` and nginx:
@@ -374,6 +380,72 @@ sudo chmod -R 775 .
 sudo find . -type d -exec chmod g+s {} \;
 sudo find . -type f -exec chmod 664 {} \;
 ```
+
+---
+### Victron BLE setup
+
+If you use a Victron SmartShunt and/or MPPT SmartSolar, PCCS reads them via passive BLE advertisements (Instant Readout). This does **not** join the VictronConnect mesh — only Instant Readout must be enabled on each device, and the Pi must be within BLE range.
+
+#### USB Bluetooth dongle (required)
+
+GPS on the PCCS Pi uses the serial UART (`/dev/ttyAMA0`). Step 3 adds `dtoverlay=disable-bt`, which **permanently disables the Pi's built-in Bluetooth** on every boot so that UART is not shared with BT. You cannot use onboard Bluetooth and GPS at the same time — a **USB Bluetooth dongle** is required for Victron.
+
+1. Plug a BLE-capable USB Bluetooth adapter into the Pi (any free USB port).
+2. Confirm the OS sees it:
+
+```bash
+lsusb | grep -i bluetooth
+hciconfig -a
+```
+
+You should see a Bluetooth entry from `lsusb` and an `hci0` interface with `Bus: USB` (not the disabled onboard controller).
+
+3. Enable Bluetooth and bring the adapter up:
+
+```bash
+sudo systemctl enable --now bluetooth
+sudo rfkill unblock bluetooth
+sudo hciconfig hci0 up
+bluetoothctl show
+```
+
+`bluetoothctl show` should report `Powered: yes`. If Bluetooth was **soft-blocked** (disabled in software by the OS, not a physical switch), `rfkill list` shows `Soft blocked: yes` under `hci0` and `hciconfig hci0 up` fails with an RF-kill error until you run `rfkill unblock bluetooth`.
+
+If `hci0` is missing after plugging in the dongle, try another USB port or a different adapter — some very old Bluetooth 2.0-only dongles do not support BLE.
+
+#### Victron device configuration
+
+1. In **VictronConnect**, for each device (shunt and MPPT separately): device → gear → **Product info** → **Instant readout via Bluetooth** → **Show**. Note the MAC address and 32-character key.
+
+2. Edit `config/pccs.conf` under `[victron]`:
+
+```ini
+[victron]
+shunt_address = aa:bb:cc:dd:ee:ff
+shunt_key     = 0123456789abcdef0123456789abcdef
+
+mppt_address  = 11:22:33:44:55:66
+mppt_key      = fedcba9876543210fedcba9876543210
+```
+
+3. Test reception before starting PCCS (from the project venv):
+
+```bash
+cd "$PCCS_HOME"
+source venv/bin/activate
+victron-ble discover
+victron-ble read aa:bb:cc:dd:ee:ff@0123456789abcdef0123456789abcdef
+```
+
+`discover` lists nearby Victron devices broadcasting Instant Readout. `read` prints live values for one device (repeat with each MAC@key). Ctrl+C to stop.
+
+4. After PCCS is running, confirm in the logs:
+
+```bash
+journalctl -u pccs4.service -f | grep -i victron
+```
+
+Look for `Victron BLE scanner active`. If data stays stale, re-check MAC/key, Instant Readout on the device, dongle range, and that Bluetooth is not rfkill-blocked.
 
 ---
 14. Install the PCCS as a service and start it on RPI startup:

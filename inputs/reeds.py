@@ -18,15 +18,19 @@ class ReedInput:
         debounce_ms: int,
         on_update: Callable[[Dict[str, bool], List[str]], None],
         poll_interval_s: float = 0.2,
+        stable_polls: int = 3,
     ):
         self._gpio = gpio_manager
         self._reed_names = reed_names
         self._debounce_ms = debounce_ms
+        self._stable_polls = max(1, stable_polls)
         self._on_update = on_update
         self._poll_interval = poll_interval_s
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._last_change: Dict[str, float] = {}
+        self._candidate: Dict[str, bool] = {}
+        self._candidate_count: Dict[str, int] = {}
         self._stable: Dict[str, bool] = {
             n: gpio_manager.reed_states.get(n, True) for n in reed_names
         }
@@ -61,22 +65,46 @@ class ReedInput:
             self._on_update(dict(self._stable), changed)
         return changed
 
+    def _sample_reed(self, name: str, current: bool, now: float) -> Optional[bool]:
+        """Return a new stable value when the reading has settled, else None."""
+        stable = self._stable.get(name)
+        if current == stable:
+            self._candidate.pop(name, None)
+            self._candidate_count.pop(name, None)
+            return None
+
+        if self._candidate.get(name) == current:
+            self._candidate_count[name] = self._candidate_count.get(name, 0) + 1
+        else:
+            self._candidate[name] = current
+            self._candidate_count[name] = 1
+
+        if self._candidate_count[name] < self._stable_polls:
+            return None
+
+        last = self._last_change.get(name, 0)
+        if (now - last) * 1000 < self._debounce_ms:
+            return None
+
+        self._candidate.pop(name, None)
+        self._candidate_count.pop(name, None)
+        self._last_change[name] = now
+        return current
+
     def _loop(self):
         while self._running:
             try:
                 pending: Dict[str, bool] = {}
+                now = time.time()
                 for name in self._reed_names:
                     button = self._gpio.reeds.get(name)
                     if button is None:
                         continue
                     current = bool(button.is_pressed)
                     self._gpio.reed_states[name] = current
-                    if self._stable.get(name) != current:
-                        now = time.time()
-                        last = self._last_change.get(name, 0)
-                        if (now - last) * 1000 >= self._debounce_ms:
-                            pending[name] = current
-                            self._last_change[name] = now
+                    accepted = self._sample_reed(name, current, now)
+                    if accepted is not None:
+                        pending[name] = accepted
                 if pending:
                     transitioned = list(pending.keys())
                     for name, val in pending.items():

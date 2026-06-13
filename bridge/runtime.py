@@ -351,6 +351,7 @@ class PCCSRuntime:
             gpio_manager=self.gpio,
             reed_names=self.compiled.reed_names,
             debounce_ms=self.compiled.reed_debounce_ms,
+            stable_polls=self.compiled.reed_stable_polls,
             on_update=self.on_reeds_updated,
         )
         self.reed_input.start()

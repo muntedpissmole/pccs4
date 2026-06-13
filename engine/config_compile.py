@@ -47,7 +47,8 @@ class CompiledConfig:
     reed_ramp_ms: int = 2000
     scene_ramp_ms: int = 4000
     phase_ramp_ms: int = 4000
-    reed_debounce_ms: int = 50
+    reed_debounce_ms: int = 250
+    reed_stable_polls: int = 3
     sync_interval_s: int = 45
     optimistic_lock_duration_s: float = 2.5
 
@@ -60,7 +61,8 @@ def compile_config(cfg) -> CompiledConfig:
     out.reed_ramp_ms = cfg.getint("lighting", "reed_ramp_time_ms", fallback=2000)
     out.scene_ramp_ms = cfg.getint("lighting", "scene_ramp_time_ms", fallback=4000)
     out.phase_ramp_ms = cfg.getint("lighting", "phase_ramp_time_ms", fallback=4000)
-    out.reed_debounce_ms = cfg.getint("reed_monitor", "reed_debounce_ms", fallback=50)
+    out.reed_debounce_ms = cfg.getint("reed_monitor", "reed_debounce_ms", fallback=250)
+    out.reed_stable_polls = cfg.getint("reed_monitor", "reed_stable_polls", fallback=3)
     out.sync_interval_s = cfg.getint("background_sync", "sync_interval", fallback=45)
     out.optimistic_lock_duration_s = cfg.getfloat(
         "arduino", "optimistic_lock_duration", fallback=2.5

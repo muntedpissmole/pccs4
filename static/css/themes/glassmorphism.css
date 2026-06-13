@@ -261,29 +261,29 @@ html.light[data-theme="glassmorphism"] body::after {
 }
 
 /* Translucent selects need explicit colours in WebKit/Blink. */
-[data-theme="glassmorphism"] .appearance-tile__theme-select {
+[data-theme="glassmorphism"] .appearance-tile__select {
     background-color: rgba(14, 22, 40, 0.92);
     color: var(--color-text);
 }
 
-[data-theme="glassmorphism"] .appearance-tile__theme-select:hover {
+[data-theme="glassmorphism"] .appearance-tile__select:hover {
     background-color: rgba(18, 28, 48, 0.95);
 }
 
-html.light[data-theme="glassmorphism"] .appearance-tile__theme-select {
+html.light[data-theme="glassmorphism"] .appearance-tile__select {
     background-color: rgba(255, 255, 255, 0.95);
 }
 
-html.light[data-theme="glassmorphism"] .appearance-tile__theme-select:hover {
+html.light[data-theme="glassmorphism"] .appearance-tile__select:hover {
     background-color: rgba(255, 255, 255, 1);
 }
 
-html.dark[data-theme="glassmorphism"] .appearance-tile__theme-select option {
+html.dark[data-theme="glassmorphism"] .appearance-tile__select option {
     background-color: #0e1628;
     color: #f0f9ff;
 }
 
-html.light[data-theme="glassmorphism"] .appearance-tile__theme-select option {
+html.light[data-theme="glassmorphism"] .appearance-tile__select option {
     background-color: #ffffff;
     color: #0f172a;
 }

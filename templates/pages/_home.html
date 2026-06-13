@@ -263,8 +263,8 @@
                 <i class="fa-solid fa-palette tile__icon" aria-hidden="true"></i>
                 <p class="tile__label">Appearance</p>
                 <div class="appearance-tile__body">
-                    <label class="appearance-tile__theme" for="theme-select">
-                        <select id="theme-select" class="appearance-tile__theme-select" data-theme-select aria-label="Visual theme">
+                    <label class="appearance-tile__field" for="theme-select">
+                        <select id="theme-select" class="appearance-tile__select" data-theme-select aria-label="Visual theme">
                             <option value="claymorphism">Claymorphism</option>
                             <option value="glassmorphism">Glassmorphism</option>
                             <option value="neuglass">Neumorphism</option>
@@ -278,15 +278,17 @@
                             <option value="void">Void</option>
                         </select>
                     </label>
-                    <div class="appearance-tile__footer appearance-tile__modes" role="group" aria-label="Colour scheme">
-                        <button type="button" class="mode-btn active" id="btn-dark" data-mode="dark" aria-label="Dark mode">
-                            <i class="fa-solid fa-moon mode-btn__icon" aria-hidden="true"></i>
-                            <span>Dark</span>
-                        </button>
-                        <button type="button" class="mode-btn" id="btn-light" data-mode="light" aria-label="Light mode">
-                            <i class="fa-solid fa-sun mode-btn__icon" aria-hidden="true"></i>
-                            <span>Light</span>
-                        </button>
+                    <div class="appearance-tile__footer">
+                        <div class="appearance-tile__segmented" role="group" aria-label="Colour scheme">
+                            <button type="button" class="appearance-tile__segment mode-btn active" id="btn-dark" data-mode="dark" aria-label="Dark mode">
+                                <i class="fa-solid fa-moon mode-btn__icon" aria-hidden="true"></i>
+                                <span>Dark</span>
+                            </button>
+                            <button type="button" class="appearance-tile__segment mode-btn" id="btn-light" data-mode="light" aria-label="Light mode">
+                                <i class="fa-solid fa-sun mode-btn__icon" aria-hidden="true"></i>
+                                <span>Light</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </article>

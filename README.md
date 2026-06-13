@@ -278,13 +278,18 @@ sudo systemctl restart nginx
 ---
 10. Install Git, clone the project, install the virtual environment (venv) and install more dependencies:
 ```bash
-git clone git@github.com:muntedpissmole/pccs4.git "$PCCS_HOME"
+git clone https://github.com/muntedpissmole/pccs4.git "$PCCS_HOME"
 
 cd "$PCCS_HOME"
 python3 -m venv --system-site-packages venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
+
+# Some pip-installed console scripts (e.g. victron-ble) can end up without the
+# executable bit on Raspberry Pi OS venvs; make them runnable for the test
+# commands below.
+chmod +x venv/bin/victron-ble
 ```
 
 Python dependencies are pinned in `requirements.txt` (runtime) and `requirements-dev.txt` (adds `pytest` for the test suite).
@@ -413,10 +418,13 @@ mppt_key      = fedcba9876543210fedcba9876543210
 
 ```bash
 cd "$PCCS_HOME"
+chmod +x venv/bin/victron-ble
 source venv/bin/activate
 victron-ble discover
 victron-ble read aa:bb:cc:dd:ee:ff@0123456789abcdef0123456789abcdef
 ```
+
+If `victron-ble: command not found` or `Permission denied`, the `chmod` above fixes it (a quirk that can happen with `--system-site-packages` venvs on Raspberry Pi OS).
 
 `discover` lists nearby Victron devices broadcasting Instant Readout. `read` prints live values for one device (repeat with each MAC@key). Ctrl+C to stop.
 
@@ -490,6 +498,9 @@ cd "$PCCS_HOME"
 git pull
 source venv/bin/activate
 pip install -r requirements.txt
+
+# Ensure victron-ble (and any other entry-point scripts) are executable.
+chmod +x venv/bin/victron-ble
 ```
 
 Update the Pi OS at the same time:

@@ -129,14 +129,28 @@
         transform var(--duration-fast) ease;
 }
 
-.wifi-system-tile__network:hover:not(:disabled) {
+.wifi-system-tile__network:hover:not(:disabled):not(.is-active) {
     border-color: var(--color-accent-border);
+    background: var(--color-surface-active);
+}
+
+.wifi-system-tile__network:active:not(:disabled) {
+    transform: scale(0.985);
     background: var(--color-surface-active);
 }
 
 .wifi-system-tile__network.is-active {
     border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
     box-shadow: 0 0 0 1px var(--color-accent-glow);
+}
+
+.wifi-system-tile__network.is-active .wifi-system-tile__network-name {
+    color: var(--color-text);
+}
+
+.wifi-system-tile__network.is-active .wifi-system-tile__network-icon {
+    color: var(--color-accent);
 }
 
 .wifi-system-tile__network.is-connected {
@@ -324,5 +338,9 @@ html.light .wifi-system-tile__connect {
 @media (prefers-reduced-motion: reduce) {
     .wifi-system-tile__scan.is-spinning i {
         animation: none;
+    }
+
+    .wifi-system-tile__network:active:not(:disabled) {
+        transform: none;
     }
 }

@@ -98,12 +98,15 @@
 
             const icon = network.in_use ? 'fa-circle-check' : network.secured ? 'fa-lock' : 'fa-wifi';
 
+            const isSelected = state.selected?.ssid === network.ssid;
+
             return `
                 <button type="button"
                         class="wifi-system-tile__network ${modifiers}"
                         data-wifi-ssid="${encodeURIComponent(network.ssid)}"
                         ${state.connecting ? 'disabled' : ''}
                         role="listitem"
+                        aria-pressed="${isSelected ? 'true' : 'false'}"
                         aria-label="${network.ssid}, ${network.signal} percent">
                     <div class="wifi-system-tile__network-main">
                         <i class="fa-solid ${icon} wifi-system-tile__network-icon" aria-hidden="true"></i>
@@ -126,10 +129,11 @@
         if (!connectForm) return;
         connectForm.hidden = true;
         if (passwordInput) passwordInput.value = '';
+        renderNetworks();
     }
 
     function showConnectForm(network) {
-        if (!connectForm || !connectTargetEl) return;
+        if (!connectForm || !connectTargetEl) return false;
 
         state.selected = network;
         connectForm.hidden = false;
@@ -143,8 +147,12 @@
         }
         if (passwordInput) {
             passwordInput.required = needsPassword;
+            passwordInput.value = '';
             passwordInput.placeholder = needsPassword ? 'Network password' : 'Optional for saved/open networks';
         }
+
+        renderNetworks();
+        return needsPassword;
     }
 
     function applyStatus(payload) {
@@ -265,13 +273,12 @@
         const network = getNetworkFromButton(button);
         if (!network) return;
 
-        if (!network.secured || network.saved || network.in_use) {
-            connectToSelected('');
-            return;
+        const needsPassword = showConnectForm(network);
+        if (needsPassword && passwordInput) {
+            passwordInput.focus();
+        } else {
+            connectSubmitBtn?.focus();
         }
-
-        showConnectForm(network);
-        if (passwordInput) passwordInput.focus();
     });
 
     scanBtn.addEventListener('click', () => {

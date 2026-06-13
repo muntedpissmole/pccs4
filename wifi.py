@@ -198,11 +198,27 @@ def _saved_ssids() -> set[str]:
     return ssids
 
 
+def _normalize_nmcli_auth_error(message: str) -> str | None:
+    lowered = message.lower()
+    if "not authorized" not in lowered and "not authorised" not in lowered:
+        return None
+    if "control networking" in lowered or "control network" in lowered:
+        return (
+            "NetworkManager denied the request — run "
+            "sudo scripts/install-networkmanager-perms.sh and ensure the "
+            "service user is in the netdev group"
+        )
+    return None
+
+
 def _normalize_scan_warning(stderr: str | None) -> str | None:
     message = (stderr or "").strip()
     if not message:
         return None
     lowered = message.lower()
+    auth_error = _normalize_nmcli_auth_error(message)
+    if auth_error and ("scan" in lowered or "rescan" in lowered):
+        return "Showing cached results — live rescan was not authorized"
     if "not authorized" in lowered or "not authorised" in lowered:
         return "Showing cached results — live rescan was not authorized"
     if "insufficient privileges" in lowered:
@@ -336,7 +352,12 @@ def connect_wifi(ssid: str, password: str | None = None) -> dict[str, Any]:
     code, stdout, stderr = _run_nmcli(args, timeout=45)
     if code != 0:
         message = stderr or stdout or "Connection failed"
-        return {"ok": False, "error": message, "status": get_wifi_status()}
+        auth_error = _normalize_nmcli_auth_error(message)
+        return {
+            "ok": False,
+            "error": auth_error or message,
+            "status": get_wifi_status(),
+        }
 
     status = get_wifi_status()
     return {

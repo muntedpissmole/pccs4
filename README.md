@@ -186,10 +186,10 @@ The above assumes that the ethernet name is `netplan-eth0`, run `nmcli connectio
 6.   Install dependencies:
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install nginx samba samba-common-bin python3-venv python3-lgpio git network-manager usbmuxd libimobiledevice-utils ipheth-utils bluez -y
+sudo apt install nginx samba samba-common-bin python3-venv python3-lgpio git network-manager dnsmasq usbmuxd libimobiledevice-utils ipheth-utils bluez -y
 ```
 
-`usbmuxd`, `libimobiledevice-utils`, and `ipheth-utils` enable iPhone USB tethering (creates a `usb0`/`eth` interface when the phone is plugged in and tethering is enabled). `network-manager` is required for Wi‑Fi scan/connect in the System tab. `bluez` provides Bluetooth support for the USB dongle used by Victron BLE (usually pre-installed on Raspberry Pi OS, but listed here for completeness).
+`usbmuxd`, `libimobiledevice-utils`, and `ipheth-utils` enable iPhone USB tethering (creates an interface such as `eth1`, `usb0`, or `enx...` when the phone is plugged in with Personal Hotspot enabled). The interface name depends on how the kernel enumerates it (especially if you already have an onboard Ethernet as eth0). `network-manager` is required for Wi‑Fi scan/connect in the System tab. `bluez` provides Bluetooth support for the USB dongle used for Victron BLE (usually pre-installed on Raspberry Pi OS, but listed here for completeness).
 
 ---
 7.  Create project folder, navigate to it and setup permissions for `$USERNAME` and nginx:
@@ -321,7 +321,14 @@ Setup communication for the temperature sensor:
 sudo raspi-config
 ```
 Go to `Interface Options` → `Enable 1-Wire` → `Finish` and then reboot.
-Wait for reboot then SSH back in.
+
+After reboot, verify the 1-Wire bus is active and find your sensor IDs:
+```bash
+ls /sys/bus/w1/devices/ | grep ^28
+```
+You should see one or more folders like `28-000000xxxxxx`. Use these exact values for `outside_temp_sensor`, `fridge_temp_sensor`, etc. in `config/pccs.conf`.
+
+If nothing appears, double-check the dtoverlay in `/boot/firmware/config.txt` (it should have `dtoverlay=w1-gpio` or `dtoverlay=w1-gpio-pullup` after running raspi-config).
 
 ---
 11. Install Arduino compiler and push sketch to Arduino:
@@ -469,12 +476,17 @@ sudo systemctl start pccs4.service
 sudo systemctl status pccs4.service
 ```
 
-Allow the PCCS service user to run live Wi‑Fi scans and connections (without this, the System tab shows cached networks and connect may fail):
+Allow the PCCS service user to run live Wi‑Fi scans and connections. Without this, the System tab may show cached scan results and connect attempts fail with *Not authorized to control networking*.
+
+The service user must be in the `netdev` group, and `scripts/install-networkmanager-perms.sh` installs a polkit rule (`config/polkit/50-pccs-networkmanager.rules` → `/etc/polkit-1/rules.d/50-pccs-networkmanager.rules`) so background services can use NetworkManager without a desktop login session. The rule grants `network-control`, Wi‑Fi scan, and connection-profile changes to `netdev` members.
+
 ```bash
 sudo usermod -aG netdev "$USERNAME"
 sudo "$PCCS_HOME/scripts/install-networkmanager-perms.sh"
 sudo systemctl restart pccs4.service
 ```
+
+On the **System** tab **Wi‑Fi** tile: tap a network to select it (highlight + password form if needed), then press **Connect** — tapping the network name alone does not connect.
 
 Check the status with:
 ```bash
@@ -508,6 +520,11 @@ Update the Pi OS at the same time:
 sudo apt update && sudo apt upgrade -y
 ```
 
+Re-run the NetworkManager polkit installer if `config/polkit/` changed (safe to run every update):
+```bash
+sudo "$PCCS_HOME/scripts/install-networkmanager-perms.sh"
+```
+
 Reboot if asked, otherwise restart the PCCS service:
 ```bash
 sudo systemctl restart pccs4
@@ -531,99 +548,133 @@ python app.py
 
 ## Other Setup:
 ### NAT/Routing/Internet
-1. Edit the DHCP config file:
+
+**Note:** The main install (step 5) and WiFi features use NetworkManager (nmcli). Do **not** use the old `dhcpcd.conf` method — it conflicts with NetworkManager and the packages the project installs.
+
+**Before you begin this section:**
+- Connect your WAN (iPhone tether or WiFi). For iPhone USB tethering: `nmcli device connect eth1` (or the actual name from `nmcli device status`).
+- Tether interfaces commonly appear as `eth1` (not `usb0`) when you already have a wired LAN as `eth0`. WAN will always be either WiFi (wlan0) or the iPhone tether.
+
+1. Configure the LAN static IP (eth0) and upstream route priorities (metrics) using nmcli. Lower `route-metric` = higher priority for the default route (so tether is preferred over WiFi when both are available).
+
+The eth0 static IP for the internal LAN is handled in the main install step 5. Verify or re-apply if needed:
+
 ```bash
-sudo nano /etc/dhcpcd.conf
+nmcli connection show
+nmcli connection modify "netplan-eth0" ipv4.addresses 10.10.10.1/24
+nmcli connection modify "netplan-eth0" ipv4.method manual
+nmcli connection modify "netplan-eth0" connection.autoconnect yes
+nmcli connection down "netplan-eth0"
+nmcli connection up "netplan-eth0"
 ```
-Paste at the bottom:
-```ini
-# LAN - Wired clients
-interface eth0
-static ip_address=10.10.10.1/24
-nohook wpa_supplicant
 
-# USB tethering/hotspot
-interface usb0
-metric 50
+Identify the actual tether interface (run this after plugging in the iPhone with hotspot on):
 
-# WiFi
-interface wlan0
-metric 200
-```
-Press Ctrl+S to save and then Ctrl+x to exit.
-
-2.  Edit the DNS config file:
 ```bash
-sudo nano /etc/dnsmasq.conf
+nmcli device status
+ip -br link show | grep -E 'eth|usb'
 ```
-Search for, uncomment and update the following lines or just paste everything at the end of the file:
+
+To prefer iPhone USB tethering (eth1) over WiFi (wlan0):
+
+```bash
+# Get exact connection names
+nmcli connection show
+
+# Tether (use the real name, e.g. the connection on eth1)
+nmcli connection modify "eth1" ipv4.route-metric 50   # or whatever the conn name is
+nmcli connection modify "eth1" autoconnect yes
+
+# WiFi fallback
+nmcli connection modify "netplan-wlan0-YourSSID" ipv4.route-metric 200
+nmcli connection modify "netplan-wlan0-YourSSID" autoconnect yes
+
+# Reactivate
+nmcli connection down "eth1" || true
+nmcli connection up "eth1" || true
+nmcli connection down "netplan-wlan0-YourSSID" || true
+nmcli connection up "netplan-wlan0-YourSSID" || true
+```
+
+Check with `ip route show` — the default route should prefer the tether (lower metric) when both WANs are up.
+
+2.  Configure dnsmasq as a DHCP server on the internal LAN only (it is installed as part of step 6). It must **only** listen on eth0.
+
+Create `/etc/dnsmasq.conf` with the following (edit the `except-interface` lines to match your actual upstream interface names — typically `wlan0` and the tether name like `eth1`):
 ```ini
 interface=eth0
 bind-interfaces
 except-interface=wlan0
-except-interface=usb0
+except-interface=eth1   # your iPhone tether interface name
 
 dhcp-range=10.10.10.50,10.10.10.200,255.255.255.0,12h
 
-dhcp-option=3,10.10.10.1
-dhcp-option=6,10.10.10.1
+dhcp-option=3,10.10.10.1   # gateway (this Pi)
+dhcp-option=6,10.10.10.1   # DNS (this Pi)
 ```
-Press Ctrl+S to save and then Ctrl+x to exit.
-
-
-3.  Enable IP forwarding. Edit the sysctl config file:
+Then enable and start the service:
 ```bash
-sudo nano /etc/sysctl.conf
-```
-Uncomment this line or add it to the bottom of the file:
-```ini
-net.ipv4.ip_forward=1
-```
-Press Ctrl+S to save and then Ctrl+x to exit.
-
-Apply the updated config:
-```bash
-sudo sysctl -p
+sudo systemctl enable --now dnsmasq
 ```
 
-Setup and configure NAT forwarding rules:
+
+3. Enable IP forwarding (if not already done):
 ```bash
-sudo iptables -t nat -A POSTROUTING -o usb0 -j MASQUERADE
+echo 'net.ipv4.ip_forward=1' | sudo tee /etc/sysctl.d/99-pccs-nat.conf
+sudo sysctl -p /etc/sysctl.d/99-pccs-nat.conf
+```
+
+4. Install iptables tools and set up NAT/masquerading. WAN interfaces are `wlan0` (WiFi) and the tether (usually `eth1` for iPhone when eth0 is LAN).
+
+First connect the tether if not already up:
+```bash
+nmcli device connect eth1   # or the actual tether device name from `nmcli device status`
+```
+
+Then apply the rules (adjust `eth1` if your tether interface has a different name):
+```bash
+sudo apt install -y iptables iptables-persistent
+sudo iptables -t nat -F
+sudo iptables -t filter -F
+# Masquerade outbound from LAN to either WAN
 sudo iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
-
-sudo iptables -A FORWARD -i eth0 -o usb0 -j ACCEPT
+sudo iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
+# Allow forwarding LAN <-> WANs
 sudo iptables -A FORWARD -i eth0 -o wlan0 -j ACCEPT
-sudo iptables -A FORWARD -i usb0 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+sudo iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
 sudo iptables -A FORWARD -i wlan0 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-```
-
-Write the rules permanently the the network configuration:
-```bash
+sudo iptables -A FORWARD -i eth1 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+# Save so they survive reboot
 sudo netfilter-persistent save
 ```
 
-Restart everything:
+Verify NAT is active:
 ```bash
-sudo systemctl restart dhcpcd
-sudo systemctl restart dnsmasq
-sudo systemctl enable dnsmasq
+sudo iptables -t nat -L -v -n
+ip route   # default route should prefer the tether (lower metric) when both WANs are up
 ```
 
-Reboot the RPI with `sudo reboot` and login again after it's rebooted.
-Check interface configuration looks correct:
+Restart services:
 ```bash
-ip addr show
-ip route show
+sudo systemctl restart NetworkManager dnsmasq
 ```
 
-Make sure DHCP is only listening on the wired network card:
+Reboot the Pi:
+```bash
+sudo reboot
+```
+
+After reboot, test from a device on the eth0 LAN (the wired network):
+```bash
+ping 8.8.8.8
+ping google.com
+```
+
+Check that DHCP is only on the wired LAN:
 ```bash
 sudo ss -tulnnp | grep dnsmasq
-```
-
-See if the internet works:
-```bash
-ping -c 8.8.8.8
+ip addr show
+ip route show
 ```
 
 ### UniFi OS Server
@@ -634,13 +685,19 @@ ping -c 8.8.8.8
 wget -O unifiosinstaller [PASTE THE COPIED LINK HERE]
 ```
 
-3.  Make it executable and run the installer:
+3.  Install Podman (required by the UniFi OS Server installer):
+```bash
+sudo apt update
+sudo apt install podman
+```
+
+4.  Make it executable and run the installer:
 ```bash
 sudo chmod +x unifiosinstaller
 sudo ./unifiosinstaller
 ```
 
-4.	Give the server admin rights:
+5.	Give the server admin rights:
 ```bash
 export USERNAME=pi
 sudo usermod -aG uosserver "$USERNAME"

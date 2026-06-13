@@ -29,6 +29,9 @@ frontend/blob-report/
 dist/
 build/
 
+# Downloaded installers (see README — UniFi OS Server)
+unifiosinstaller
+
 # System and editor files
 .DS_Store
 *.swp

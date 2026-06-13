@@ -4,6 +4,7 @@ import time
 import logging
 import glob
 import os
+import subprocess
 
 logger = logging.getLogger("pccs")
 logger.propagate = True
@@ -17,8 +18,14 @@ class SensorManager:
         self.running = False
         self.thread = None
 
-        os.system('modprobe w1-gpio')
-        os.system('modprobe w1-therm')
+        # Load 1-Wire kernel modules (best effort). On modern Raspberry Pi OS these
+        # are usually loaded automatically by the dtoverlay=w1-gpio in config.txt.
+        # Running as non-root user will cause "Operation not permitted", which is harmless.
+        try:
+            subprocess.run(['modprobe', 'w1-gpio'], capture_output=True, check=False)
+            subprocess.run(['modprobe', 'w1-therm'], capture_output=True, check=False)
+        except Exception:
+            pass
         time.sleep(0.5)
 
         # ====================== CALIBRATION FROM CONFIG ======================
@@ -40,17 +47,41 @@ class SensorManager:
         self._last_vcc_warn = 0.0
         self.last_reading: dict = {}
 
+        configured = []
+        if self.OUTSIDE_TEMP_ID:
+            configured.append(f"outside={self.OUTSIDE_TEMP_ID}")
+        if self.FRIDGE_TEMP_ID:
+            configured.append(f"fridge={self.FRIDGE_TEMP_ID}")
+        if self.FREEZER_TEMP_ID:
+            configured.append(f"freezer={self.FREEZER_TEMP_ID}")
+        if configured:
+            logger.info("🔋 1-Wire temp sensors configured: %s", ", ".join(configured))
+        else:
+            logger.info("🔋 1-Wire temp sensors: outside will auto-detect first 28* device (fridge/freezer disabled)")
+
         logger.info("🔋 SensorManager initialized")
 
     def _read_ds18b20(self, sensor_id=None):
-        """Read DS18B20. If sensor_id given (e.g. '28-xxx'), read that exact device; else first 28* found."""
+        """Read DS18B20. If sensor_id given (e.g. '28-xxx'), read that exact device; else first 28* found.
+        
+        When a configured sensor_id is missing, the log will list all available 28* devices
+        to help you correct the ID in config/pccs.conf.
+        """
         try:
             base_dir = '/sys/bus/w1/devices/'
 
             if sensor_id:
                 device_folder = os.path.join(base_dir, sensor_id)
                 if not os.path.isdir(device_folder):
-                    logger.warning("   🌡️ Configured 1-Wire sensor not present: %s", sensor_id)
+                    logger.warning("   🌡️ Configured 1-Wire sensor not present on bus: %s", sensor_id)
+                    # Help user identify the correct ID
+                    available = sorted([d.split('/')[-1] for d in glob.glob(base_dir + '28*') if os.path.isdir(d)])
+                    if available:
+                        logger.warning("   Available DS18B20 sensors on 1-wire bus: %s", available)
+                        logger.warning("   → Update [sensors] outside_temp_sensor (or fridge/freezer) in config/pccs.conf with the correct ID")
+                    else:
+                        logger.warning("   No 28* DS18B20 sensors detected on 1-wire bus at all")
+                        logger.warning("   → Check wiring, 1-Wire enable in raspi-config, dtoverlay=w1-gpio in config.txt")
                     return None
                 device_folders = [device_folder]
             else:

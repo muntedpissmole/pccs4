@@ -186,7 +186,7 @@ The above assumes that the ethernet name is `netplan-eth0`, run `nmcli connectio
 6.   Install dependencies:
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install nginx samba samba-common-bin python3-lgpio git network-manager usbmuxd libimobiledevice-utils ipheth-utils bluez -y
+sudo apt install nginx samba samba-common-bin python3-venv python3-lgpio git network-manager usbmuxd libimobiledevice-utils ipheth-utils bluez -y
 ```
 
 `usbmuxd`, `libimobiledevice-utils`, and `ipheth-utils` enable iPhone USB tethering (creates a `usb0`/`eth` interface when the phone is plugged in and tethering is enabled). `network-manager` is required for Wi‑Fi scan/connect in the System tab. `bluez` provides Bluetooth support for the USB dongle used by Victron BLE (usually pre-installed on Raspberry Pi OS, but listed here for completeness).
@@ -287,26 +287,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Python dependencies (see `requirements.txt`):
-
-```
-flask>=3.0
-Flask-Cors
-Flask-SocketIO
-gpiozero
-python-socketio
-python-engineio
-pyserial
-geopy
-requests
-pynmea2
-suntime
-astral
-psutil
-colorzero
-soco
-victron_ble
-```
+Python dependencies are pinned in `requirements.txt` (runtime) and `requirements-dev.txt` (adds `pytest` for the test suite).
 
 System packages for iPhone USB tethering (installed via `apt` above, not pip):
 
@@ -500,6 +481,8 @@ export PCCS_HOME=/home/$USERNAME/pccs4
 
 cd "$PCCS_HOME"
 git pull
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 Update the Pi OS at the same time:

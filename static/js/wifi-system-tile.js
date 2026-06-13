@@ -198,7 +198,7 @@
             if (!payload.ok) {
                 notifyToast('warning', 'Wi-Fi scan', payload.error || 'Scan did not find any networks', 5000);
             } else if (payload.warning) {
-                notifyToast('info', 'Wi-Fi scan', 'Showing cached results — live rescan was not authorized', 4500);
+                notifyToast('info', 'Wi-Fi scan', payload.warning, 4500);
             }
         } catch (error) {
             notifyToast('error', 'Wi-Fi scan', error.message || 'Scan failed');

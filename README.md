@@ -139,19 +139,8 @@ Internet connection: USB hotspot or WiFi (for when system is in the workshop)
 Network: Wired ethernet connection is connected to other devices (touchscreen RPI's, WAPS) in the installation and not bridged to the upstream internet connection
 ```
 
-After your first SSH login (step 4), set the Linux account and install path for every bash snippet below:
-
-```bash
-export USERNAME=pi
-export PCCS_HOME=/home/$USERNAME/pccs4
-export SCREEN_USER=pi
-export SCREEN_HOST=10.10.10.10
-```
-
-Change `USERNAME` if your PCCS Pi account name differs. `SCREEN_USER` and `SCREEN_HOST` must match the username and host in each `[screens]` entry in `config/pccs.conf` — see step 12.
-
 1.  Format an SD card with Debian Trixie 64-bit. Enable SSH during installation and edit all customisation options to suit.
-2.  Navigate to and open /boot/firmware/config.txt on the host computer before ejecting the SD card.
+2.  Before ejecting the SD card, open `config.txt` in the root of the boot partition on the host computer (the volume that appears when you insert the card — not a path on the running Pi).
 3.  Add the following lines to the end of the file to enable GPS communication:
 
 ```ini
@@ -162,7 +151,18 @@ dtparam=spi=on
 
 `dtoverlay=disable-bt` turns off the Pi's **built-in** Bluetooth so the serial port can be used for GPS. Victron BLE still works via a **USB Bluetooth dongle** (see [Victron BLE setup](#victron-ble-setup)).
 
-4.  Save and eject card, install into RPI and login via SSH using the account name and password set during image creation e.g. `ssh $USERNAME@192.168.0.78` (set `USERNAME` first if you already know it, or substitute your account name).
+4.  Save and eject card, install into RPI and login via SSH using the account name and password set during image creation e.g. `ssh $USERNAME@192.168.0.78` (substitute your account name if you have not set `USERNAME` yet).
+
+After your first SSH login (step 4), set the Linux account and install path for every bash snippet below:
+
+```bash
+export USERNAME=pi
+export PCCS_HOME=/home/$USERNAME/pccs4
+export SCREEN_USER=pi
+export SCREEN_HOST=10.10.10.10
+```
+
+Change `USERNAME` if your PCCS Pi account name differs. `SCREEN_USER` and `SCREEN_HOST` must match the username and host in each `[screens]` entry in `config/pccs.conf` — see step 12.
 
 5.  Set a static IP address for the wired ethernet port, modify details to suit:
 ```bash
@@ -459,6 +459,13 @@ sudo systemctl daemon-reload
 sudo systemctl enable pccs4.service
 sudo systemctl start pccs4.service
 sudo systemctl status pccs4.service
+```
+
+Allow the PCCS service user to run live Wi‑Fi scans and connections (without this, the System tab shows cached networks and connect may fail):
+```bash
+sudo usermod -aG netdev "$USERNAME"
+sudo "$PCCS_HOME/scripts/install-networkmanager-perms.sh"
+sudo systemctl restart pccs4.service
 ```
 
 Check the status with:

@@ -198,6 +198,18 @@ def _saved_ssids() -> set[str]:
     return ssids
 
 
+def _normalize_scan_warning(stderr: str | None) -> str | None:
+    message = (stderr or "").strip()
+    if not message:
+        return None
+    lowered = message.lower()
+    if "not authorized" in lowered or "not authorised" in lowered:
+        return "Showing cached results — live rescan was not authorized"
+    if "insufficient privileges" in lowered:
+        return "Showing cached results — NetworkManager denied the scan request"
+    return message
+
+
 def _annotate_saved_profiles(networks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     saved = _saved_ssids()
     annotated: list[dict[str, Any]] = []
@@ -216,8 +228,8 @@ def _scan_wifi_networks(iface: str, *, rescan: bool) -> tuple[list[dict[str, Any
     scan_error = None
     if rescan:
         code, _, stderr = _run_nmcli(["device", "wifi", "rescan", "ifname", iface], timeout=15)
-        if code != 0 and stderr:
-            scan_error = stderr
+        if code != 0:
+            scan_error = _normalize_scan_warning(stderr)
 
     code, stdout, stderr = _run_nmcli(
         ["-g", "IN-USE,SSID,SIGNAL,SECURITY,CHAN", "device", "wifi", "list", "ifname", iface],

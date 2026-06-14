@@ -53,7 +53,6 @@ class PCCSRuntime:
             ramp_ms_for_source=self._ramp_ms_for_source,
             on_drift=self._on_hardware_drift,
         )
-
         self.reed_input: Optional[ReedInput] = None
         self.phase_manager = None
         self.gps = None

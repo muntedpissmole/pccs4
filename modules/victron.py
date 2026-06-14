@@ -41,7 +41,7 @@ class VictronManager:
         self.mppt_key      = (config.get('victron', 'mppt_key',      fallback='') or '').strip()
 
         self.scan_interval = config.getfloat('victron', 'scan_interval', fallback=2.0)
-        self.stale_timeout = config.getfloat('victron', 'stale_timeout', fallback=45.0)
+        self.stale_timeout = config.getfloat('victron', 'stale_timeout', fallback=600.0)
 
         # Internal
         self._running = False

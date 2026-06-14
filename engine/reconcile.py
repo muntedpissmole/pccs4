@@ -202,12 +202,12 @@ class Reconciler:
                 self._commanded_at[f"relay:{relay}"] = now
 
         if self.screens:
+            observed_screens = self.screens.read_screens()
             for screen, awake in desired.screens.items():
                 if reed_pass and screen not in self._pending_reed_screens:
                     continue
-                if self._commanded_screens.get(screen) != awake:
+                if observed_screens.get(screen) != awake:
                     self.screens.set_screen(screen, awake)
-                    self._commanded_screens[screen] = awake
                 if reed_pass:
                     self._pending_reed_screens.discard(screen)
 

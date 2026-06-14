@@ -215,19 +215,23 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: auto;
-    height: auto;
-    padding: 2px;
-    border: none;
-    border-radius: 0;
-    background: transparent;
+    width: var(--size-mode-btn-height);
+    height: var(--size-mode-btn-height);
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-surface);
     color: var(--color-text);
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-nav-icon);
     line-height: 1;
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    transition: color var(--duration-fast) ease, transform var(--duration-fast) ease;
+    transition:
+        background var(--duration-fast) ease,
+        border-color var(--duration-fast) ease,
+        color var(--duration-fast) ease,
+        transform var(--duration-fast) ease;
 }
 
 .sonos-tile__transport-btn:hover {
@@ -236,6 +240,8 @@
 }
 
 .sonos-tile__mute-btn:hover {
+    border-color: var(--color-accent-border);
+    background: var(--color-surface-active);
     color: var(--color-accent);
 }
 
@@ -253,7 +259,8 @@
     border-color: var(--color-accent-hover);
 }
 
-.sonos-tile__transport-btn:disabled {
+.sonos-tile__transport-btn:disabled,
+.sonos-tile__mute-btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
 }
@@ -265,13 +272,16 @@
 
 .sonos-tile__mute-btn.is-muted {
     color: var(--color-accent);
+    border-color: var(--color-accent-border);
+    background: var(--color-surface-active);
 }
 
 .sonos-tile__volume-group {
     display: flex;
     align-items: center;
     gap: 6px;
-    flex: 1;
+    flex-shrink: 0;
+    margin-left: auto;
     min-width: 0;
 }
 
@@ -321,12 +331,26 @@
     );
 }
 
+.sonos-tile__volume-readout {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.sonos-tile__volume-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+    line-height: 1;
+}
+
 .sonos-tile__volume-pct {
     flex-shrink: 0;
     min-width: 2.25rem;
     font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-muted);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
     line-height: 1;
     font-variant-numeric: tabular-nums;
     text-align: right;

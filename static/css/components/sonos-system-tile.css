@@ -181,6 +181,12 @@
     font-size: 0.8rem;
 }
 
+.sonos-system-tile__card .sonos-tile__mute-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 0.75rem;
+}
+
 .sonos-system-tile__card .sonos-tile__volume-group {
     width: 100%;
 }

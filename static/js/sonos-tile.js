@@ -1,5 +1,5 @@
 /**
- * PCCS4 Sonos tile — transport, volume, now playing (socket + HTTP fallback).
+ * PCCS4 Sonos tile — transport, mute, volume display, now playing (socket + HTTP fallback).
  */
 (function () {
     'use strict';
@@ -21,8 +21,6 @@
         next: document.getElementById('sonos-next'),
         mute: document.getElementById('sonos-mute'),
         muteIcon: document.getElementById('sonos-mute-icon'),
-        volume: document.getElementById('sonos-volume'),
-        volumeFill: document.getElementById('sonos-volume-fill'),
         volumePct: document.getElementById('sonos-volume-pct'),
     };
 
@@ -35,14 +33,12 @@
         els.play,
         els.next,
         els.mute,
-        els.volume,
     ].filter(Boolean);
     const marqueeEls = [els.track, els.artist].filter(Boolean);
     let controlsDisabled = false;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     let localPlaying = false;
-    let volumeDrag = false;
     let activeSpeaker = null;
     let socketConnected = false;
 
@@ -153,12 +149,6 @@
 
     function setVolume(level) {
         const vol = Math.max(0, Math.min(100, Math.round(Number(level) || 0)));
-        if (els.volume && !volumeDrag) {
-            els.volume.value = String(vol);
-        }
-        if (els.volumeFill) {
-            els.volumeFill.style.setProperty('--sonos-volume', `${vol}%`);
-        }
         if (els.volumePct) {
             els.volumePct.textContent = `${vol}%`;
         }
@@ -312,13 +302,6 @@
         if (data) update(data);
     }
 
-    async function sendVolume(level) {
-        if (controlsDisabled) return;
-        if (emitCommand('volume', parseInt(level, 10))) return;
-        const data = await postJson('/api/sonos/volume', { level });
-        if (data) update(data);
-    }
-
     async function sendMute(muted) {
         if (controlsDisabled) return;
         if (emitCommand('mute', Boolean(muted))) return;
@@ -335,45 +318,6 @@
             const nextMuted = !els.mute.classList.contains('is-muted');
             sendMute(nextMuted);
         });
-
-        if (els.volume) {
-            const volumeWrap = els.volume.closest('.sonos-tile__volume-wrap');
-
-            const blockContextMenu = (event) => {
-                event.preventDefault();
-            };
-
-            volumeWrap?.addEventListener('contextmenu', blockContextMenu);
-            els.volume.addEventListener('contextmenu', blockContextMenu);
-
-            els.volume.addEventListener('pointerdown', (event) => {
-                volumeDrag = true;
-                if (event.pointerType === 'touch') {
-                    event.preventDefault();
-                    els.volume.setPointerCapture(event.pointerId);
-                }
-            });
-            els.volume.addEventListener('pointerup', (event) => {
-                volumeDrag = false;
-                if (els.volume.hasPointerCapture(event.pointerId)) {
-                    els.volume.releasePointerCapture(event.pointerId);
-                }
-            });
-            els.volume.addEventListener('pointercancel', (event) => {
-                volumeDrag = false;
-                if (els.volume.hasPointerCapture(event.pointerId)) {
-                    els.volume.releasePointerCapture(event.pointerId);
-                }
-            });
-            els.volume.addEventListener('input', () => {
-                const level = Number(els.volume.value);
-                setVolume(level);
-            });
-            els.volume.addEventListener('change', () => {
-                volumeDrag = false;
-                sendVolume(Number(els.volume.value));
-            });
-        }
     }
 
     function tickLocalProgress() {

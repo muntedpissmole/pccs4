@@ -135,6 +135,7 @@ These instructions are based on the following settings:
 ```ini
 RPI IP: 10.10.10.1
 DHCP range: 10.10.10.50-10.10.10.200
+Kitchen touchscreen (reserved): 10.10.10.10
 Internet connection: USB hotspot or WiFi (for when system is in the workshop)
 Network: Wired ethernet connection is connected to other devices (touchscreen RPI's, WAPS) in the installation and not bridged to the upstream internet connection
 ```
@@ -345,24 +346,71 @@ arduino-cli compile --fqbn arduino:avr:mega --upload --port /dev/ttyACM0 arduino
 ```
 
 ---
-12. **(Optional)** Set up passwordless SSH from the PCCS Pi to remote touchscreen Pis. When a linked reed opens or closes, PCCS wakes or blanks those screens over SSH. Configure each screen under `[screens]` in `config/pccs.conf` (host, username, `brightness_path`, linked reed). Test from the **Screens** tile on the System tab.
+12. **(Optional)** Set up remote touchscreen Pis for PCCS screen wake/sleep over SSH.
 
-On the PCCS Pi, logged in as `$USERNAME`:
+Each screen needs a **fixed LAN address** that matches its `[screens]` entry in `config/pccs.conf` (e.g. kitchen → `10.10.10.10`). Touchscreens should use DHCP on eth0; PCCS reserves their IPs in dnsmasq.
+
+**Reserve touchscreen IPs (on the PCCS Pi, after dnsmasq is running — see [NAT/Routing/Internet](#natroutinginternet) step 2):**
+
+1. Find each screen's Ethernet MAC while it is on the LAN:
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
-ssh-copy-id $SCREEN_USER@$SCREEN_HOST
+cat /var/lib/misc/dnsmasq.leases
+# columns: expiry  MAC  current_ip  hostname  client_id
 ```
 
-Repeat `ssh-copy-id` for every touchscreen Pi (update `SCREEN_USER` and `SCREEN_HOST` to match each `[screens]` entry).
+2. Add a `dhcp-host=` line per screen in `config/dnsmasq/50-pccs-screens.conf` in the PCCS repo:
+
+```ini
+# MAC from dnsmasq.leases, IP must match [screens] host in config/pccs.conf
+dhcp-host=52:58:15:8a:56:f6,10.10.10.10,kitchen,infinite
+```
+
+Reserved addresses may sit **outside** the dynamic `dhcp-range` (e.g. `.10` while the pool starts at `.50`) — dnsmasq honours reservations first.
+
+3. Install the reservation and restart dnsmasq:
+
+```bash
+sudo "$PCCS_HOME/scripts/install-dnsmasq-screens.sh"
+```
+
+4. On the touchscreen Pi, renew DHCP (reboot, or `sudo nmcli device reapply eth0` / replug Ethernet). Confirm it receives the reserved address:
+
+```bash
+ip -4 addr show eth0
+ping -c1 10.10.10.1
+```
+
+**Passwordless SSH** — when a linked reed opens or closes, PCCS wakes or blanks those screens over SSH. Configure each screen under `[screens]` in `config/pccs.conf` (host, username, `brightness_path`, linked reed). Test from the **Screens** tile on the System tab.
+
+On the PCCS Pi, logged in as `$USERNAME` (the same user that runs `pccs4.service`):
+
+```bash
+export SCREEN_USER=joel
+export SCREEN_HOST=10.10.10.10
+"$PCCS_HOME/scripts/setup-screen-ssh.sh"
+```
+
+The script creates a dedicated `~/.ssh/pccs_screen` key (separate from the GitHub deploy key), adds a `Host` block to `~/.ssh/config`, and runs `ssh-copy-id` — you will be prompted for the **touchscreen** password once. Repeat for each panel with that panel's `SCREEN_USER` and `SCREEN_HOST`.
 
 Verify non-interactive login (PCCS uses the same SSH flags):
 
 ```bash
-ssh -o BatchMode=yes -o PreferredAuthentications=publickey $SCREEN_USER@$SCREEN_HOST 'echo ok'
+ssh -o BatchMode=yes -o PreferredAuthentications=publickey \
+    -o UserKnownHostsFile=~/.pccs/screen_known_hosts \
+    $SCREEN_USER@$SCREEN_HOST 'echo ok'
 ```
 
-On each remote Pi, the SSH user must be able to write the brightness/blank sysfs file. See the notes under `[screens]` in `config/pccs.conf` if wake/sleep fails with permission errors.
+Set `brightness_path` in `config/pccs.conf` to match the remote OS:
+
+- **Armbian + KDE Plasma / Wayland** (e.g. ROCK 5C kitchen HDMI panel): `dbus:org.kde.ScreenBrightness:/org/kde/ScreenBrightness/display0` — only needs SSH keys. List displays with `busctl --user tree org.kde.ScreenBrightness` on the remote.
+- **Radxa OS / sysfs fb blank**: `/sys/class/graphics/fb0/blank` — after SSH keys, run (prompts for touchscreen sudo once):
+
+```bash
+SCREEN_USER=joel SCREEN_HOST=10.10.10.10 "$PCCS_HOME/scripts/setup-screen-remote-perms.sh"
+```
+
+See the notes under `[screens]` in `config/pccs.conf` if wake/sleep still fails.
 
 ---
 13. Do another permissions refresh to eliminate any lingering access issues:
@@ -525,6 +573,11 @@ Re-run the NetworkManager polkit installer if `config/polkit/` changed (safe to 
 sudo "$PCCS_HOME/scripts/install-networkmanager-perms.sh"
 ```
 
+Re-run the dnsmasq screen reservation installer if `config/dnsmasq/` changed:
+```bash
+sudo "$PCCS_HOME/scripts/install-dnsmasq-screens.sh"
+```
+
 Reboot if asked, otherwise restart the PCCS service:
 ```bash
 sudo systemctl restart pccs4
@@ -612,10 +665,24 @@ dhcp-range=10.10.10.50,10.10.10.200,255.255.255.0,12h
 dhcp-option=3,10.10.10.1   # gateway (this Pi)
 dhcp-option=6,10.10.10.1   # DNS (this Pi)
 ```
+
 Then enable and start the service:
 ```bash
 sudo systemctl enable --now dnsmasq
 ```
+
+**Touchscreen DHCP reservations:** PCCS expects fixed IPs for remote screens (see main install step 12). Edit `dhcp-host=` lines in `config/dnsmasq/50-pccs-screens.conf` (installed to `/etc/dnsmasq.d/` — do **not** duplicate them in `/etc/dnsmasq.conf`), then **install and apply**:
+
+```bash
+export PCCS_HOME=/home/$USERNAME/pccs4
+sudo "$PCCS_HOME/scripts/install-dnsmasq-screens.sh"
+```
+
+The install script copies reservations into `/etc/dnsmasq.d/`, removes any duplicate `dhcp-host=` lines from `/etc/dnsmasq.conf`, clears stale leases for those MACs, and restarts dnsmasq. Until you run it, touchscreens keep their old dynamic address (e.g. `.113`).
+
+On each touchscreen, renew DHCP after applying (reboot, or replug Ethernet). Confirm with `ip -4 addr show` on the panel and `cat /var/lib/misc/dnsmasq.leases` on the PCCS Pi — kitchen should show `10.10.10.10`.
+
+If a panel still keeps the wrong address, check it is using **DHCP** on eth0 (not a static IP in NetworkManager) and that the Ethernet MAC in `dhcp-host=` matches `dnsmasq.leases`.
 
 
 3. Enable IP forwarding (if not already done):

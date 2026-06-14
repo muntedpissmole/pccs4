@@ -53,26 +53,27 @@ def _gps_connected() -> bool:
     return bool(serial and getattr(serial, "is_open", False))
 
 
-def _victron_shunt_connected() -> bool:
-    if _victron_module is None or not getattr(_victron_module, "shunt_address", None):
+def _victron_device_connected(role: str) -> bool:
+    if _victron_module is None:
         return False
     try:
         state = _victron_module.get_state()
     except Exception:
         return False
-    return not state.get("stale") and state.get("voltage") is not None
+    device = state.get(role) or {}
+    return bool(device.get("configured")) and device.get("connected") and not device.get("stale")
+
+
+def _victron_shunt_connected() -> bool:
+    if _victron_module is None or not getattr(_victron_module, "shunt_address", None):
+        return False
+    return _victron_device_connected("shunt")
 
 
 def _victron_mppt_connected() -> bool:
     if _victron_module is None or not getattr(_victron_module, "mppt_address", None):
         return False
-    try:
-        state = _victron_module.get_state()
-    except Exception:
-        return False
-    if state.get("stale"):
-        return False
-    return state.get("solar_current_a") is not None or state.get("solar_power_w") is not None
+    return _victron_device_connected("mppt")
 
 
 _MODULES: list[dict[str, Any]] = [

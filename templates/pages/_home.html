@@ -159,23 +159,10 @@
                             <button type="button" class="sonos-tile__mute-btn" id="sonos-mute" aria-label="Mute" aria-pressed="false">
                                 <i class="fa-solid fa-volume-high" id="sonos-mute-icon" aria-hidden="true"></i>
                             </button>
-                            <div class="sonos-tile__volume-wrap">
-                                <div class="sonos-tile__volume-track">
-                                    <div class="sonos-tile__volume-fill-clip" aria-hidden="true">
-                                        <div class="sonos-tile__volume-fill" id="sonos-volume-fill"></div>
-                                    </div>
-                                </div>
-                                <input
-                                    type="range"
-                                    class="sonos-tile__volume"
-                                    id="sonos-volume"
-                                    min="0"
-                                    max="100"
-                                    value="0"
-                                    aria-label="Volume"
-                                >
-                            </div>
-                            <span class="sonos-tile__volume-pct" id="sonos-volume-pct" aria-live="polite">—%</span>
+                            <span class="sonos-tile__volume-readout" aria-live="polite">
+                                <span class="sonos-tile__volume-label">Volume</span>
+                                <span class="sonos-tile__volume-pct" id="sonos-volume-pct">—%</span>
+                            </span>
                         </div>
                     </div>
                 </div>

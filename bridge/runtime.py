@@ -50,6 +50,7 @@ class PCCSRuntime:
             relay_actuator=self.relay_actuator,
             screen_actuator=self.screen_actuator,
             on_state_emit=self._emit_state,
+            on_screens_emit=self._emit_screens_observed,
             ramp_ms_for_source=self._ramp_ms_for_source,
             on_drift=self._on_hardware_drift,
         )
@@ -101,6 +102,49 @@ class PCCSRuntime:
             self.socketio.emit("state_update", state, namespace="/")
         except Exception as e:
             logger.warning(f"state_update broadcast failed: {e}")
+
+    def _screen_policy_payload(self, snap=None) -> list[dict]:
+        if not self.screen_actuator:
+            return []
+        snap = snap or self.world.snapshot()
+        desired = desired_outputs(snap, self.compiled)
+        screens = []
+        for name, brightness in desired.screens.items():
+            pct = max(0, min(100, int(brightness)))
+            self.screen_actuator._observed[name] = pct
+            screens.append({
+                "name": name,
+                "on": pct > 0,
+                "brightness_pct": pct if pct > 0 else None,
+            })
+        return screens
+
+    def _emit_screens_update(self, screens: list[dict]):
+        if not self.socketio or not screens:
+            return
+        try:
+            self.socketio.emit("screens_update", {"screens": screens}, namespace="/")
+        except Exception as e:
+            logger.warning(f"screens_update broadcast failed: {e}")
+
+    def _emit_screens_preview(self, snap=None):
+        """Push policy-derived screen power/brightness immediately (reed/phase changes)."""
+        self._emit_screens_update(self._screen_policy_payload(snap))
+
+    def _emit_screens_observed(self, names: list):
+        if not self.screen_actuator or not names:
+            return
+        screens = []
+        for name in names:
+            if name not in self.compiled.screens:
+                continue
+            pct = self.screen_actuator._observed.get(name, 0)
+            screens.append({
+                "name": name,
+                "on": pct > 0,
+                "brightness_pct": pct if pct > 0 else None,
+            })
+        self._emit_screens_update(screens)
 
     def _schedule_post_ramp_read(self, ramp_ms: int):
         """Re-read hardware after a ramp so observed state catches up before drift checks."""
@@ -180,10 +224,12 @@ class PCCSRuntime:
         self.world.clear_light_intents_for_reeds(affected_reeds)
         self._emit_state(self._preview_partial_ui_state("reed", affected_lights))
         self._emit_reeds()
+        self._emit_screens_preview(snap_after)
         self._reconcile_async("reed")
 
     def on_phase_change(self, phase: str, forced: Optional[str], invalidate: bool):
         self.world.set_phase(phase, forced, invalidate=invalidate)
+        self._emit_screens_preview()
         self.reconcile(ramp_source="phase")
         self.broadcast_ui_state()
 
@@ -279,6 +325,7 @@ class PCCSRuntime:
         preview = self._preview_partial_ui_state("reed", affected_lights)
         self._emit_state(preview)
         self._emit_reeds()
+        self._emit_screens_preview(snap_after)
         self._reconcile_async("reed")
         return preview
 

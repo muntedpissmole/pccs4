@@ -95,6 +95,11 @@ def validate_compiled_config(raw_cfg, compiled: CompiledConfig) -> List[str]:
             errors.append(
                 f"Screen '{screen}' linked_reed '{linked}' is not in [reeds]"
             )
+        for phase, level in (meta.get("phase_brightness") or {}).items():
+            if not 0 <= int(level) <= 100:
+                errors.append(
+                    f"Screen '{screen}' {phase} brightness must be 0–100 (got {level})"
+                )
 
     # Scenes
     for scene_key, scene in compiled.scenes.items():

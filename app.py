@@ -400,9 +400,9 @@ def api_get_reeds():
 
 def _screen_frontend_item(name: str, conf: dict, conn: dict | None = None) -> dict:
     """Build one screen record for the system tile."""
-    observed = False
+    observed_pct = 0
     if runtime.screen_actuator:
-        observed = runtime.screen_actuator._observed.get(name, False)
+        observed_pct = runtime.screen_actuator._observed.get(name, 0)
 
     item = {
         "name": name,
@@ -410,8 +410,9 @@ def _screen_frontend_item(name: str, conf: dict, conn: dict | None = None) -> di
         "icon": conf.get("icon", "fa-display"),
         "online": False,
         "latency": None,
-        "on": observed,
+        "on": observed_pct > 0,
         "brightness": None,
+        "brightness_pct": observed_pct if observed_pct > 0 else None,
         "ssh_passwordless": False,
         "ssh_error": None,
     }
@@ -420,6 +421,8 @@ def _screen_frontend_item(name: str, conf: dict, conn: dict | None = None) -> di
             item["on"] = conn["on"]
         item["online"] = conn.get("online", False)
         item["brightness"] = conn.get("brightness")
+        if conn.get("brightness_pct") is not None:
+            item["brightness_pct"] = conn["brightness_pct"]
         item["ssh_passwordless"] = conn.get("ssh_passwordless", False)
         item["ssh_error"] = conn.get("ssh_error")
     return item
@@ -447,6 +450,34 @@ def api_get_screens_status():
     return jsonify({"screens": _screens_list(probe=True)})
 
 
+def _cleanup_best_effort(timeout_s: float = 10) -> None:
+    """Run cleanup without blocking shutdown if hardware teardown hangs."""
+    try:
+        worker = threading.Thread(target=cleanup, daemon=True, name="shutdown-cleanup")
+        worker.start()
+        worker.join(timeout=timeout_s)
+        if worker.is_alive():
+            logger.warning("Shutdown cleanup did not finish within %.0fs", timeout_s)
+    except Exception as e:
+        logger.error(f"Shutdown cleanup error: {e}")
+
+
+def _issue_host_shutdown() -> bool:
+    """Schedule host power-off. Never call this in tests without mocking."""
+    try:
+        subprocess.Popen(
+            ["sudo", "-n", "shutdown", "-h", "now"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        logger.warning("Host shutdown command issued")
+        return True
+    except Exception as e:
+        logger.error(f"Host shutdown failed: {e}")
+        return False
+
+
 @app.route("/api/system/shutdown", methods=["POST"])
 def api_system_shutdown():
     """Shut down remote touchscreens, then this Pi."""
@@ -458,18 +489,15 @@ def api_system_shutdown():
     def _shutdown_host():
         import time
 
-        time.sleep(2)
-        cleanup()
-        try:
-            subprocess.Popen(
-                ["sudo", "-n", "shutdown", "-h", "now"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as e:
-            logger.error(f"Host shutdown failed: {e}")
+        # Issue host shutdown before cleanup — GPIO factory.close() can hang
+        # indefinitely and previously prevented shutdown from ever running.
+        if not _issue_host_shutdown():
+            return
 
-    threading.Thread(target=_shutdown_host, daemon=True).start()
+        time.sleep(2)
+        _cleanup_best_effort()
+
+    threading.Thread(target=_shutdown_host, daemon=True, name="shutdown-host").start()
     return jsonify({"ok": True, "message": "Shutting down…"})
 
 
@@ -570,8 +598,34 @@ def handle_gps_simulation(data):
 
 @socketio.on("screen_manual_toggle")
 def handle_screen_manual_toggle(data):
-    if runtime.screen_actuator:
-        runtime.screen_actuator.manual_toggle(data.get("name"), data.get("on"))
+    if not runtime.screen_actuator:
+        return
+    name = data.get("name")
+    if not name:
+        return
+
+    brightness = data.get("brightness_pct")
+    if brightness is not None:
+        try:
+            brightness = max(0, min(100, int(brightness)))
+        except (TypeError, ValueError):
+            return
+        runtime.screen_actuator.manual_toggle(name, brightness_pct=brightness)
+        runtime._emit_screens_observed([name])
+        return
+
+    on = data.get("on")
+    if on:
+        from engine.precedence import resolve_screen
+
+        screen = runtime.compiled.screens.get(name)
+        if screen:
+            brightness = resolve_screen(screen, runtime.world.snapshot(), runtime.compiled)
+            runtime.screen_actuator.manual_toggle(name, brightness_pct=brightness)
+            runtime._emit_screens_observed([name])
+        return
+    runtime.screen_actuator.manual_toggle(name, force_on=on)
+    runtime._emit_screens_observed([name])
 
 
 @socketio.on("set_global_dark_mode")

@@ -24,8 +24,10 @@
         return;
     }
 
+    const CORE_LABEL = 'PCCS Core';
+    const CORE_DETAIL = 'Control system core';
+
     const state = {
-        hostname: 'PCCS Core',
         screens: [],
         shuttingDown: false,
     };
@@ -35,8 +37,8 @@
     function getTargetItems() {
         return [
             {
-                label: state.hostname,
-                detail: 'This Raspberry Pi',
+                label: CORE_LABEL,
+                detail: CORE_DETAIL,
                 icon: 'fa-server',
             },
             ...state.screens.map((screen) => ({
@@ -80,9 +82,19 @@
             return;
         }
 
+        const offlineCount = state.screens.filter((screen) => screen.online === false).length;
+
+        if (offlineCount > 0) {
+            detailEl.textContent = offlineCount === 1
+                ? '1 touchscreen may be unreachable — host will still shut down.'
+                : `${offlineCount} touchscreens may be unreachable — host will still shut down.`;
+            detailEl.classList.add('is-warning');
+            return;
+        }
+
         detailEl.textContent = screenCount
-            ? 'Shuts down this Pi and all configured touchscreens.'
-            : 'Shuts down this Raspberry Pi.';
+            ? 'Shuts down PCCS Core and all configured touchscreens.'
+            : 'Shuts down the control system core.';
         detailEl.classList.remove('is-warning');
     }
 
@@ -92,8 +104,8 @@
             ? `Shut down ${screenCount + 1} devices?`
             : 'Shut down PCCS Core?';
         dialogMessageEl.textContent = screenCount
-            ? 'This will power off the PCCS Pi and all configured touchscreens. This cannot be undone.'
-            : 'This will power off this Raspberry Pi. This cannot be undone.';
+            ? 'This will power off PCCS Core and all configured touchscreens. This cannot be undone.'
+            : 'This will power off the control system core. This cannot be undone.';
         renderTargetList(dialogTargetsEl, getTargetItems());
     }
 
@@ -135,15 +147,7 @@
         if (!window.PCCS4?.isSystemTabActive) return;
 
         try {
-            const [coreRes, screensRes] = await Promise.all([
-                fetch('/api/system', { cache: 'no-store' }),
-                fetch('/api/screens', { cache: 'no-store' }),
-            ]);
-
-            if (coreRes.ok) {
-                const core = await coreRes.json();
-                state.hostname = core?.core?.hostname || core?.host?.hostname || state.hostname;
-            }
+            const screensRes = await fetch('/api/screens/status', { cache: 'no-store' });
 
             if (screensRes.ok) {
                 const data = await screensRes.json();

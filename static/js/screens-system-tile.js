@@ -14,6 +14,7 @@
     const state = {
         screens: [],
         testing: {},
+        brightnessDrag: null,
         bootstrapped: false,
     };
 
@@ -29,15 +30,63 @@
         return Boolean(state.testing[name]);
     }
 
+    function isDraggingBrightness(name) {
+        return state.brightnessDrag === name;
+    }
+
+    function clampBrightness(value) {
+        return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+    }
+
+    function sliderValue(screen) {
+        if (screen.brightness_pct != null) return clampBrightness(screen.brightness_pct);
+        if (screen.on === false) return 0;
+        if (screen.on === true) return 100;
+        return 0;
+    }
+
+    function powerState(screen) {
+        if (isTesting(screen.name)) {
+            return { label: 'Checking…', modifier: 'is-pending' };
+        }
+        if (!screen.online) {
+            return { label: 'Unreachable', modifier: 'is-offline' };
+        }
+        if (screen.on === true) {
+            return { label: 'On', modifier: 'is-on' };
+        }
+        if (screen.on === false) {
+            return { label: 'Off', modifier: 'is-off' };
+        }
+        return { label: '—', modifier: 'is-unknown' };
+    }
+
+    function brightnessState(screen) {
+        if (isTesting(screen.name) || !screen.online) {
+            return { label: '—', pct: null };
+        }
+        if (screen.on === false) {
+            if (screen.brightness_pct != null) {
+                return { label: '0%', pct: 0 };
+            }
+            if (screen.brightness != null) {
+                return { label: `Blank ${screen.brightness}`, pct: 0 };
+            }
+            return { label: 'Off', pct: 0 };
+        }
+        if (screen.brightness_pct != null) {
+            return { label: `${screen.brightness_pct}%`, pct: screen.brightness_pct };
+        }
+        if (screen.on === true) {
+            return { label: 'On', pct: null };
+        }
+        return { label: '—', pct: null };
+    }
+
     function linkLabel(screen) {
         if (isTesting(screen.name)) return 'Checking…';
         if (!screen.online) {
             return screen.ssh_error ? 'SSH error' : 'Unreachable';
-        }
-        if (screen.on === true) return 'Awake';
-        if (screen.on === false) {
-            if (screen.brightness != null) return `Asleep · blank ${screen.brightness}`;
-            return 'Asleep';
         }
         if (screen.latency != null) return `${screen.latency} ms`;
         return 'Connected';
@@ -56,8 +105,11 @@
         const online = state.screens.filter((screen) => screen.online).length;
         const awake = state.screens.filter((screen) => screen.online && screen.on).length;
         const asleep = state.screens.filter((screen) => screen.online && screen.on === false).length;
+        const withBrightness = state.screens.filter(
+            (screen) => screen.online && screen.on && screen.brightness_pct != null,
+        );
 
-        headlineEl.textContent = `${online} of ${total} reachable · ${awake} awake · ${asleep} asleep`;
+        headlineEl.textContent = `${online} of ${total} reachable · ${awake} on · ${asleep} off`;
 
         const sshIssues = state.screens.filter(
             (screen) => screen.online && screen.ssh_passwordless === false
@@ -77,8 +129,71 @@
             return;
         }
 
+        if (withBrightness.length === 1 && total === 1) {
+            detailEl.textContent = `Brightness ${withBrightness[0].brightness_pct}%`;
+            return;
+        }
+
         detailEl.textContent = online === total ? 'All panels responding' : 'Some panels are offline';
         detailEl.classList.toggle('is-warning', online < total);
+    }
+
+    function updateSegmentState(card, screen) {
+        if (!card) return;
+        const awake = screen.on === true;
+        const asleep = screen.on === false;
+        const online = screen.online;
+        const testing = isTesting(screen.name);
+        const controlsDisabled = !online || testing;
+
+        card.querySelectorAll('[data-screen-action="wake"], [data-screen-action="sleep"]').forEach((button) => {
+            button.disabled = controlsDisabled;
+        });
+
+        const wakeBtn = card.querySelector('[data-screen-action="wake"]');
+        const sleepBtn = card.querySelector('[data-screen-action="sleep"]');
+        if (wakeBtn) {
+            wakeBtn.classList.toggle('is-selected', awake);
+            wakeBtn.setAttribute('aria-pressed', awake ? 'true' : 'false');
+        }
+        if (sleepBtn) {
+            sleepBtn.classList.toggle('is-selected', asleep);
+            sleepBtn.setAttribute('aria-pressed', asleep ? 'true' : 'false');
+        }
+    }
+
+    function updateCardBrightnessUi(card, screen) {
+        if (!card || !screen) return;
+
+        const pct = sliderValue(screen);
+        const power = powerState(screen);
+
+        card.style.setProperty('--screen-brightness-pct', String(pct));
+        card.classList.toggle('is-awake', screen.on === true);
+        card.classList.toggle('is-asleep', screen.on === false);
+
+        const powerEl = card.querySelector('.screens-system-tile__power');
+        if (powerEl) {
+            powerEl.className = `screens-system-tile__power ${power.modifier}`;
+            powerEl.textContent = power.label;
+        }
+
+        const fill = card.querySelector('.sonos-tile__volume-fill');
+        if (fill) {
+            fill.style.setProperty('--sonos-volume', `${pct}%`);
+        }
+
+        const sliderPctEl = card.querySelector('.sonos-tile__volume-pct');
+        if (sliderPctEl) {
+            sliderPctEl.textContent = `${pct}%`;
+        }
+
+        const slider = card.querySelector('[data-screen-brightness]');
+        if (slider && document.activeElement !== slider) {
+            slider.value = String(pct);
+        }
+
+        updateSegmentState(card, screen);
     }
 
     function renderCard(screen) {
@@ -86,6 +201,11 @@
         const awake = screen.on === true;
         const asleep = screen.on === false;
         const online = screen.online;
+        const power = powerState(screen);
+        const brightness = brightnessState(screen);
+        const brightnessPct = brightness.pct == null ? '' : String(brightness.pct);
+        const sliderPct = sliderValue(screen);
+        const controlsDisabled = !online || testing;
 
         const modifiers = [
             online ? 'is-online' : 'is-offline',
@@ -98,48 +218,86 @@
             <article class="screens-system-tile__card ${modifiers}"
                      data-screen-name="${screen.name}"
                      role="listitem"
-                     aria-label="${screen.label}">
+                     aria-label="${screen.label}"
+                     ${brightnessPct !== '' ? `style="--screen-brightness-pct: ${brightnessPct}"` : ''}>
+                <header class="screens-system-tile__header">
+                    <h3 class="screens-system-tile__title">${screen.label}</h3>
+                    <div class="screens-system-tile__header-actions">
+                        <span class="screens-system-tile__power ${power.modifier}"
+                              aria-live="polite"
+                              aria-label="Power state">${power.label}</span>
+                        <button type="button"
+                                class="screens-system-tile__refresh"
+                                data-screen-action="test"
+                                aria-label="Refresh ${screen.label}"
+                                ${testing ? 'disabled' : ''}>
+                            <i class="fa-solid fa-arrows-rotate${testing ? ' fa-spin' : ''}" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </header>
+
                 <div class="screens-system-tile__preview" aria-hidden="true">
                     <div class="screens-system-tile__bezel">
                         <div class="screens-system-tile__face">
                             <i class="fa-solid ${screen.icon}" aria-hidden="true"></i>
+                            <div class="screens-system-tile__brightness-bar">
+                                <span class="screens-system-tile__brightness-fill"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <h3 class="screens-system-tile__title">${screen.label}</h3>
+                <div class="screens-system-tile__controls">
+                    <div class="screens-system-tile__slider-group">
+                        <span class="sonos-tile__volume-label" id="screen-brightness-label-${screen.name}">
+                            Brightness
+                        </span>
+                        <span class="sonos-tile__volume-pct" aria-live="polite">${sliderPct}%</span>
+                        <div class="sonos-tile__volume-wrap">
+                            <div class="sonos-tile__volume-track">
+                                <div class="sonos-tile__volume-fill-clip" aria-hidden="true">
+                                    <div class="sonos-tile__volume-fill"
+                                         style="--sonos-volume: ${sliderPct}%"></div>
+                                </div>
+                            </div>
+                            <input type="range"
+                                   class="sonos-tile__volume"
+                                   data-screen-brightness="${screen.name}"
+                                   min="0"
+                                   max="100"
+                                   value="${sliderPct}"
+                                   aria-labelledby="screen-brightness-label-${screen.name}"
+                                   ${controlsDisabled ? 'disabled' : ''}>
+                        </div>
+                    </div>
 
-                <div class="screens-system-tile__segmented" role="group" aria-label="${screen.label} power">
-                    <button type="button"
-                            class="screens-system-tile__segment${awake ? ' is-selected' : ''}"
-                            data-screen-action="wake"
-                            aria-pressed="${awake ? 'true' : 'false'}"
-                            ${!online || testing ? 'disabled' : ''}>
-                        Awake
-                    </button>
-                    <button type="button"
-                            class="screens-system-tile__segment${asleep ? ' is-selected' : ''}"
-                            data-screen-action="sleep"
-                            aria-pressed="${asleep ? 'true' : 'false'}"
-                            ${!online || testing ? 'disabled' : ''}>
-                        Sleep
-                    </button>
+                    <div class="screens-system-tile__segmented" role="group" aria-label="${screen.label} power">
+                        <button type="button"
+                                class="screens-system-tile__segment${awake ? ' is-selected' : ''}"
+                                data-screen-action="wake"
+                                aria-pressed="${awake ? 'true' : 'false'}"
+                                ${controlsDisabled ? 'disabled' : ''}>
+                            <i class="fa-solid fa-sun" aria-hidden="true"></i>
+                            <span>Awake</span>
+                        </button>
+                        <button type="button"
+                                class="screens-system-tile__segment${asleep ? ' is-selected' : ''}"
+                                data-screen-action="sleep"
+                                aria-pressed="${asleep ? 'true' : 'false'}"
+                                ${controlsDisabled ? 'disabled' : ''}>
+                            <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                            <span>Sleep</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="screens-system-tile__footer">
+                <footer class="screens-system-tile__footer">
                     <span class="screens-system-tile__link${online ? ' is-up' : ' is-down'}${testing ? ' is-pending' : ''}"
                           aria-live="polite">
                         <span class="screens-system-tile__link-dot" aria-hidden="true"></span>
                         <span class="screens-system-tile__link-text">${linkLabel(screen)}</span>
                     </span>
-                    <button type="button"
-                            class="screens-system-tile__refresh"
-                            data-screen-action="test"
-                            aria-label="Refresh ${screen.label}"
-                            ${testing ? 'disabled' : ''}>
-                        <i class="fa-solid fa-arrows-rotate${testing ? ' fa-spin' : ''}" aria-hidden="true"></i>
-                    </button>
-                </div>
+                </footer>
             </article>`;
     }
 
@@ -152,14 +310,34 @@
         grid.innerHTML = state.screens.map(renderCard).join('');
     }
 
-    function mergeScreens(incoming) {
+    function mergeScreens(incoming, { observedOnly = false } = {}) {
         if (!Array.isArray(incoming)) return;
         const byName = new Map(state.screens.map((screen) => [screen.name, screen]));
         incoming.forEach((screen) => {
             const prev = byName.get(screen.name) || {};
+            if (isDraggingBrightness(screen.name)) {
+                const { brightness_pct: _brightness, on: _on, ...rest } = screen;
+                byName.set(screen.name, { ...prev, ...rest });
+                return;
+            }
+            if (observedOnly) {
+                const next = { ...prev };
+                if (Object.prototype.hasOwnProperty.call(screen, 'on')) {
+                    next.on = screen.on;
+                }
+                if (Object.prototype.hasOwnProperty.call(screen, 'brightness_pct')) {
+                    next.brightness_pct = screen.brightness_pct;
+                }
+                byName.set(screen.name, next);
+                return;
+            }
             byName.set(screen.name, { ...prev, ...screen });
         });
         state.screens = Array.from(byName.values());
+        if (state.brightnessDrag) {
+            renderSummary();
+            return;
+        }
         render();
     }
 
@@ -174,8 +352,31 @@
         }
 
         screen.on = awake;
+        if (!awake) {
+            screen.brightness_pct = 0;
+        }
         render();
         socket.emit('screen_manual_toggle', { name, on: awake });
+        setTimeout(() => testScreen(name), 1000);
+    }
+
+    function setScreenBrightness(name, pct) {
+        const screen = getScreen(name);
+        if (!screen) return;
+
+        const socket = getSocket();
+        if (!socket?.connected) {
+            console.warn('[PCCS4] screen brightness skipped — socket unavailable', name);
+            return;
+        }
+
+        const level = clampBrightness(pct);
+        screen.brightness_pct = level;
+        screen.on = level > 0;
+        const card = grid.querySelector(`[data-screen-name="${name}"]`);
+        updateCardBrightnessUi(card, screen);
+        renderSummary();
+        socket.emit('screen_manual_toggle', { name, brightness_pct: level });
         setTimeout(() => testScreen(name), 1000);
     }
 
@@ -238,6 +439,61 @@
         }
     });
 
+    grid.addEventListener('contextmenu', (event) => {
+        if (event.target.closest('[data-screen-brightness], .sonos-tile__volume-wrap')) {
+            event.preventDefault();
+        }
+    });
+
+    grid.addEventListener('pointerdown', (event) => {
+        const slider = event.target.closest('[data-screen-brightness]');
+        if (!slider || slider.disabled) return;
+        state.brightnessDrag = slider.dataset.screenBrightness;
+        if (event.pointerType === 'touch') {
+            event.preventDefault();
+            slider.setPointerCapture(event.pointerId);
+        }
+    });
+
+    grid.addEventListener('input', (event) => {
+        const slider = event.target.closest('[data-screen-brightness]');
+        if (!slider || slider.disabled) return;
+
+        const name = slider.dataset.screenBrightness;
+        const screen = getScreen(name);
+        if (!screen) return;
+
+        const level = clampBrightness(slider.value);
+        screen.brightness_pct = level;
+        screen.on = level > 0;
+        updateCardBrightnessUi(slider.closest('[data-screen-name]'), screen);
+        renderSummary();
+    });
+
+    grid.addEventListener('pointerup', (event) => {
+        const slider = event.target.closest('[data-screen-brightness]');
+        if (slider?.hasPointerCapture(event.pointerId)) {
+            slider.releasePointerCapture(event.pointerId);
+        }
+        state.brightnessDrag = null;
+    });
+
+    grid.addEventListener('pointercancel', (event) => {
+        const slider = event.target.closest('[data-screen-brightness]');
+        if (slider?.hasPointerCapture(event.pointerId)) {
+            slider.releasePointerCapture(event.pointerId);
+        }
+        state.brightnessDrag = null;
+    });
+
+    grid.addEventListener('change', (event) => {
+        const slider = event.target.closest('[data-screen-brightness]');
+        if (!slider || slider.disabled) return;
+
+        state.brightnessDrag = null;
+        setScreenBrightness(slider.dataset.screenBrightness, slider.value);
+    });
+
     window.PCCS4 = window.PCCS4 || {};
     async function loadScreens() {
         if (!window.PCCS4?.isSystemTabActive) return;
@@ -263,10 +519,29 @@
             render();
             refreshAll();
         },
+        onScreensUpdate(payload) {
+            const incoming = payload?.screens || [];
+            if (!incoming.length) return;
+
+            if (!state.screens.length) {
+                state.screens = incoming.map((screen) => ({
+                    online: false,
+                    icon: 'fa-display',
+                    label: screen.name,
+                    ...screen,
+                }));
+                state.bootstrapped = true;
+                render();
+                return;
+            }
+
+            mergeScreens(incoming, { observedOnly: true });
+        },
         refresh: refreshAll,
         loadScreens,
         testScreen,
         setScreenPower,
+        setScreenBrightness,
     };
 
     setInterval(refreshAll, POLL_INTERVAL_MS);

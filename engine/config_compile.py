@@ -10,6 +10,12 @@ VALID_PHASES = ("day", "evening", "night")
 Level = Tuple[int, str]  # brightness, mode
 
 
+def _parse_screen_brightness(val: Optional[str], default: int) -> int:
+    if val is None or not str(val).strip():
+        return max(0, min(100, int(default)))
+    return max(0, min(100, int(str(val).strip())))
+
+
 def _parse_level(val: str, default_mode: str = "white") -> Optional[Level]:
     if not val or not str(val).strip():
         return None
@@ -176,6 +182,14 @@ def compile_config(cfg) -> CompiledConfig:
             parts = [p.strip() for p in str(line).split("|")]
             if len(parts) < 5:
                 continue
+            phase_brightness = {
+                "day": _parse_screen_brightness(parts[6] if len(parts) > 6 else None, 100),
+                "evening": _parse_screen_brightness(parts[7] if len(parts) > 7 else None, 30),
+                "night": _parse_screen_brightness(parts[8] if len(parts) > 8 else None, 5),
+            }
+            blank_path = None
+            if len(parts) > 9 and str(parts[9]).startswith("/"):
+                blank_path = parts[9]
             out.screens[name] = {
                 "friendly": parts[0],
                 "linked_reed": parts[1],
@@ -183,6 +197,8 @@ def compile_config(cfg) -> CompiledConfig:
                 "username": parts[3],
                 "brightness_path": parts[4],
                 "icon": parts[5] if len(parts) > 5 else "fa-display",
+                "phase_brightness": phase_brightness,
+                "blank_path": blank_path,
             }
 
     from .config_validate import validate_compiled_config

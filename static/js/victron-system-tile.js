@@ -142,8 +142,6 @@
             ['Temperature', device.temperature != null ? `${formatNumber(device.temperature, 1)} °C` : '—', 'is-nowrap'],
             ['Alarm', device.alarm],
             ['Aux input', device.aux_mode],
-            ['Starter voltage', device.starter_voltage != null ? `${formatNumber(device.starter_voltage, 2)} V` : '—', 'is-nowrap'],
-            ['Midpoint voltage', device.midpoint_voltage != null ? `${formatNumber(device.midpoint_voltage, 2)} V` : '—', 'is-nowrap'],
             ['Last advert', formatUpdated(device.last_update), 'is-nowrap'],
         ]);
     }
@@ -173,7 +171,6 @@
             ['Battery voltage', device.battery_voltage != null ? `${formatNumber(device.battery_voltage, 2)} V` : '—', 'is-nowrap'],
             ['Charge current', device.battery_charging_current != null ? `${formatNumber(device.battery_charging_current, 2)} A` : '—', 'is-nowrap'],
             ['Yield today', yieldLabel],
-            ['External load', device.external_device_load != null ? `${formatNumber(device.external_device_load, 2)} A` : '—', 'is-nowrap'],
             ['Last advert', formatUpdated(device.last_update), 'is-nowrap'],
         ]);
     }

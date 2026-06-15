@@ -4,6 +4,8 @@ from actuators.screens import (
     DbusKdeBrightnessControl,
     DbusScreenSaverControl,
     SysfsControl,
+    _compose_screen_remote,
+    _effective_blank_path,
     _parse_busctl_bool,
     _parse_busctl_int,
     _parse_control,
@@ -32,44 +34,60 @@ class ScreenControlTests(unittest.TestCase):
         self.assertEqual(control.path, "/sys/class/graphics/fb0/blank")
 
     def test_dbus_state_active_means_asleep(self):
-        on, brightness = _state_from_read(
+        on, brightness, pct = _state_from_read(
             DbusScreenSaverControl("org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver"),
             "b true\n",
         )
         self.assertFalse(on)
         self.assertEqual(brightness, 1)
+        self.assertEqual(pct, 0)
 
     def test_dbus_state_inactive_means_awake(self):
-        on, brightness = _state_from_read(
+        on, brightness, pct = _state_from_read(
             DbusScreenSaverControl("org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver"),
             "b false\n",
         )
         self.assertTrue(on)
         self.assertEqual(brightness, 0)
+        self.assertEqual(pct, 100)
 
     def test_kde_brightness_zero_is_asleep(self):
-        on, brightness = _state_from_read(
+        on, brightness, pct = _state_from_read(
             DbusKdeBrightnessControl("org.kde.ScreenBrightness", "/org/kde/ScreenBrightness/display0"),
             "i 0\n",
         )
         self.assertFalse(on)
         self.assertEqual(brightness, 0)
+        self.assertEqual(pct, 0)
 
     def test_kde_brightness_positive_is_awake(self):
-        on, brightness = _state_from_read(
+        on, brightness, pct = _state_from_read(
             DbusKdeBrightnessControl("org.kde.ScreenBrightness", "/org/kde/ScreenBrightness/display0"),
+            "i 10000\n",
             "i 10000\n",
         )
         self.assertTrue(on)
         self.assertEqual(brightness, 10000)
+        self.assertEqual(pct, 100)
+
+    def test_kde_brightness_partial(self):
+        on, brightness, pct = _state_from_read(
+            DbusKdeBrightnessControl("org.kde.ScreenBrightness", "/org/kde/ScreenBrightness/display0"),
+            "i 3000\n",
+            "i 10000\n",
+        )
+        self.assertTrue(on)
+        self.assertEqual(brightness, 3000)
+        self.assertEqual(pct, 30)
 
     def test_blank_sysfs_zero_is_awake(self):
-        on, brightness = _state_from_read(
+        on, brightness, pct = _state_from_read(
             SysfsControl("/sys/class/graphics/fb0/blank"),
             "0\n",
         )
         self.assertTrue(on)
         self.assertEqual(brightness, 0)
+        self.assertEqual(pct, 100)
 
     def test_parse_busctl_bool(self):
         self.assertTrue(_parse_busctl_bool("b true"))
@@ -78,6 +96,64 @@ class ScreenControlTests(unittest.TestCase):
     def test_parse_busctl_int(self):
         self.assertEqual(_parse_busctl_int("i 10000"), 10000)
         self.assertIsNone(_parse_busctl_int("b true"))
+
+    def test_kde_sleep_blanks_framebuffer(self):
+        control = DbusKdeBrightnessControl(
+            "org.kde.ScreenBrightness",
+            "/org/kde/ScreenBrightness/display0",
+        )
+        remote = _compose_screen_remote(
+            control,
+            0,
+            "/sys/class/graphics/fb0/blank",
+        )
+        self.assertIn("SetBrightness iu 0 0", remote)
+        self.assertIn("/sys/class/graphics/fb0/blank", remote)
+        self.assertIn("tee", remote)
+
+    def test_kde_wake_unblanks_before_brightness(self):
+        control = DbusKdeBrightnessControl(
+            "org.kde.ScreenBrightness",
+            "/org/kde/ScreenBrightness/display0",
+        )
+        remote = _compose_screen_remote(
+            control,
+            30,
+            "/sys/class/graphics/fb0/blank",
+        )
+        self.assertLess(
+            remote.index("/sys/class/graphics/fb0/blank"),
+            remote.index("SetBrightness"),
+        )
+        self.assertIn("&&", remote)
+
+    def test_blank_read_overrides_low_brightness(self):
+        control = DbusKdeBrightnessControl(
+            "org.kde.ScreenBrightness",
+            "/org/kde/ScreenBrightness/display0",
+        )
+        on, brightness, pct = _state_from_read(
+            control,
+            "i 50\n",
+            "i 10000\n",
+            blank_output="1\n",
+        )
+        self.assertFalse(on)
+        self.assertEqual(brightness, 0)
+        self.assertEqual(pct, 0)
+
+    def test_kde_defaults_blank_path(self):
+        control = DbusKdeBrightnessControl(
+            "org.kde.ScreenBrightness",
+            "/org/kde/ScreenBrightness/display0",
+        )
+        self.assertEqual(
+            _effective_blank_path({}, control),
+            "/sys/class/graphics/fb0/blank",
+        )
+        self.assertIsNone(
+            _effective_blank_path({"blank_path": "none"}, control),
+        )
 
 
 if __name__ == "__main__":

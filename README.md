@@ -368,7 +368,7 @@ dhcp-host=52:58:15:8a:56:f6,10.10.10.10,kitchen,infinite
 
 Reserved addresses may sit **outside** the dynamic `dhcp-range` (e.g. `.10` while the pool starts at `.50`) — dnsmasq honours reservations first.
 
-3. Install the reservation and restart dnsmasq:
+3. Install the reservations (see [Scripts](#scripts) — `install-dnsmasq-screens.sh`):
 
 ```bash
 sudo "$PCCS_HOME/scripts/install-dnsmasq-screens.sh"
@@ -381,34 +381,18 @@ ip -4 addr show eth0
 ping -c1 10.10.10.1
 ```
 
-**Passwordless SSH** — when a linked reed opens or closes, PCCS wakes or blanks those screens over SSH. Configure each screen under `[screens]` in `config/pccs.conf` (host, username, `brightness_path`, linked reed). Test from the **Screens** tile on the System tab.
-
-On the PCCS Pi, logged in as `$USERNAME` (the same user that runs `pccs4.service`):
+**Remote touchscreen setup** — configure each screen under `[screens]` in `config/pccs.conf` (host, username, `brightness_path`, phase dim levels, linked reed), then run `setup-screen.sh` once per panel (see [Scripts](#scripts)). Test from the **Screens** tile on the System tab.
 
 ```bash
-export SCREEN_USER=joel
+export SCREEN_USER=joel   # must match [screens] username
 export SCREEN_HOST=10.10.10.10
-"$PCCS_HOME/scripts/setup-screen-ssh.sh"
-```
-
-The script creates a dedicated `~/.ssh/pccs_screen` key (separate from the GitHub deploy key), adds a `Host` block to `~/.ssh/config`, and runs `ssh-copy-id` — you will be prompted for the **touchscreen** password once. Repeat for each panel with that panel's `SCREEN_USER` and `SCREEN_HOST`.
-
-Verify non-interactive login (PCCS uses the same SSH flags):
-
-```bash
-ssh -o BatchMode=yes -o PreferredAuthentications=publickey \
-    -o UserKnownHostsFile=~/.pccs/screen_known_hosts \
-    $SCREEN_USER@$SCREEN_HOST 'echo ok'
+"$PCCS_HOME/scripts/setup-screen.sh"
 ```
 
 Set `brightness_path` in `config/pccs.conf` to match the remote OS:
 
-- **Armbian + KDE Plasma / Wayland** (e.g. ROCK 5C kitchen HDMI panel): `dbus:org.kde.ScreenBrightness:/org/kde/ScreenBrightness/display0` — only needs SSH keys. List displays with `busctl --user tree org.kde.ScreenBrightness` on the remote.
-- **Radxa OS / sysfs fb blank**: `/sys/class/graphics/fb0/blank` — after SSH keys, run (prompts for touchscreen sudo once):
-
-```bash
-SCREEN_USER=joel SCREEN_HOST=10.10.10.10 "$PCCS_HOME/scripts/setup-screen-remote-perms.sh"
-```
+- **Armbian + KDE Plasma / Wayland** (e.g. ROCK 5C kitchen HDMI panel): `dbus:org.kde.ScreenBrightness:/org/kde/ScreenBrightness/display0` — use phase dim levels plus `blank_path` (see `[screens]` notes). List displays with `busctl --user tree org.kde.ScreenBrightness` on the remote.
+- **Radxa OS / sysfs fb blank**: `/sys/class/graphics/fb0/blank`
 
 See the notes under `[screens]` in `config/pccs.conf` if wake/sleep still fails.
 
@@ -524,9 +508,7 @@ sudo systemctl start pccs4.service
 sudo systemctl status pccs4.service
 ```
 
-Allow the PCCS service user to run live Wi‑Fi scans and connections. Without this, the System tab may show cached scan results and connect attempts fail with *Not authorized to control networking*.
-
-The service user must be in the `netdev` group, and `scripts/install-networkmanager-perms.sh` installs a polkit rule (`config/polkit/50-pccs-networkmanager.rules` → `/etc/polkit-1/rules.d/50-pccs-networkmanager.rules`) so background services can use NetworkManager without a desktop login session. The rule grants `network-control`, Wi‑Fi scan, and connection-profile changes to `netdev` members.
+Allow the PCCS service user to run live Wi‑Fi scans and connections (see [Scripts](#scripts) — `install-networkmanager-perms.sh`):
 
 ```bash
 sudo usermod -aG netdev "$USERNAME"
@@ -548,6 +530,76 @@ Access the UI via the IP address e.g. `http://10.10.10.1` or via the Cloudflare 
 
 Access the log files at `\\10.10.10.1\pccs4\logs`.
 
+### Scripts
+
+Utility scripts live in `scripts/`. Export `PCCS_HOME` before running them (see the env block at the start of [Software Installation](#software-installation--configuration)).
+
+| Script | Run as | When |
+|--------|--------|------|
+| `setup-screen.sh` | `$USERNAME` (not sudo) | Once per remote touchscreen (install step 12) |
+| `install-dnsmasq-screens.sh` | `sudo` | After editing `config/dnsmasq/50-pccs-screens.conf` |
+| `install-networkmanager-perms.sh` | `sudo` | Install step 14; re-run after `config/polkit/` changes |
+
+#### `setup-screen.sh`
+
+Prepares a remote touchscreen Pi so PCCS can wake, dim, and blank it over SSH when the linked reed opens or closes.
+
+1. Creates `~/.ssh/pccs_screen` (if missing) and adds a `Host` block to `~/.ssh/config`
+2. Runs `ssh-copy-id` — prompts for the **touchscreen SSH password** once
+3. Installs passwordless sudo on the touchscreen for framebuffer blanking (`/sys/class/graphics/fb0/blank`) — prompts for **touchscreen sudo** once
+
+Safe to re-run: existing keys and SSH config entries are skipped; blank sudoers is overwritten with the same rule, not duplicated.
+
+```bash
+export SCREEN_USER=joel      # SSH user on the touchscreen ([screens] username)
+export SCREEN_HOST=10.10.10.10
+"$PCCS_HOME/scripts/setup-screen.sh"
+```
+
+| Option / env | Effect |
+|--------------|--------|
+| `--ssh-only` | SSH keys only |
+| `--blank-only` | Blank permissions only (SSH must already work) |
+| `SKIP_BLANK=1` | Skip framebuffer blank setup |
+| `BLANK_PATH=...` | Override blank sysfs path (default `/sys/class/graphics/fb0/blank`) |
+| `SCREEN_ALIAS=...` | SSH config alias (default `kitchen-screen`) |
+
+Repeat with each panel's `SCREEN_USER` and `SCREEN_HOST`. The script verifies passwordless SSH at the end (same flags PCCS uses).
+
+#### `install-dnsmasq-screens.sh`
+
+Applies fixed DHCP reservations for touchscreen Pis from the repo into the running dnsmasq instance.
+
+1. Copies `config/dnsmasq/50-pccs-screens.conf` → `/etc/dnsmasq.d/50-pccs-screens.conf`
+2. Removes duplicate `dhcp-host=` lines for the same MAC from `/etc/dnsmasq.conf`
+3. Clears stale leases in `/var/lib/misc/dnsmasq.leases` so reserved MACs pick up their fixed IP immediately
+4. Validates config and restarts dnsmasq
+
+Edit `dhcp-host=` lines in the repo file first (MAC must match `dnsmasq.leases`; IP must match `[screens] host` in `config/pccs.conf`), then:
+
+```bash
+sudo "$PCCS_HOME/scripts/install-dnsmasq-screens.sh"
+```
+
+Renew DHCP on each touchscreen after running (reboot or replug Ethernet).
+
+#### `install-networkmanager-perms.sh`
+
+Installs the polkit rule that lets the PCCS service user control Wi‑Fi without a desktop login session.
+
+1. Copies `config/polkit/50-pccs-networkmanager.rules` → `/etc/polkit-1/rules.d/50-pccs-networkmanager.rules`
+2. Grants `network-control`, Wi‑Fi scan, and connection-profile changes to members of the `netdev` group
+
+The service user must also be in `netdev` (`sudo usermod -aG netdev "$USERNAME"`). Without this, the System tab Wi‑Fi tile may show cached scan results and connect attempts fail with *Not authorized to control networking*.
+
+```bash
+sudo usermod -aG netdev "$USERNAME"
+sudo "$PCCS_HOME/scripts/install-networkmanager-perms.sh"
+sudo systemctl restart pccs4.service
+```
+
+Safe to re-run on every update when `config/polkit/` changes.
+
 ### Updating the PCCS
 1.  SSH into the Pi and git pull the newest version:
 ```bash
@@ -568,14 +620,10 @@ Update the Pi OS at the same time:
 sudo apt update && sudo apt upgrade -y
 ```
 
-Re-run the NetworkManager polkit installer if `config/polkit/` changed (safe to run every update):
+Re-run installers if their config changed (see [Scripts](#scripts)):
 ```bash
-sudo "$PCCS_HOME/scripts/install-networkmanager-perms.sh"
-```
-
-Re-run the dnsmasq screen reservation installer if `config/dnsmasq/` changed:
-```bash
-sudo "$PCCS_HOME/scripts/install-dnsmasq-screens.sh"
+sudo "$PCCS_HOME/scripts/install-networkmanager-perms.sh"   # config/polkit/
+sudo "$PCCS_HOME/scripts/install-dnsmasq-screens.sh"      # config/dnsmasq/
 ```
 
 Reboot if asked, otherwise restart the PCCS service:
@@ -671,16 +719,9 @@ Then enable and start the service:
 sudo systemctl enable --now dnsmasq
 ```
 
-**Touchscreen DHCP reservations:** PCCS expects fixed IPs for remote screens (see main install step 12). Edit `dhcp-host=` lines in `config/dnsmasq/50-pccs-screens.conf` (installed to `/etc/dnsmasq.d/` — do **not** duplicate them in `/etc/dnsmasq.conf`), then **install and apply**:
+**Touchscreen DHCP reservations:** PCCS expects fixed IPs for remote screens (see main install step 12). Edit `dhcp-host=` lines in `config/dnsmasq/50-pccs-screens.conf` (do **not** duplicate them in `/etc/dnsmasq.conf`), then run `install-dnsmasq-screens.sh` (see [Scripts](#scripts)). Until you run it, touchscreens keep their old dynamic address (e.g. `.113`).
 
-```bash
-export PCCS_HOME=/home/$USERNAME/pccs4
-sudo "$PCCS_HOME/scripts/install-dnsmasq-screens.sh"
-```
-
-The install script copies reservations into `/etc/dnsmasq.d/`, removes any duplicate `dhcp-host=` lines from `/etc/dnsmasq.conf`, clears stale leases for those MACs, and restarts dnsmasq. Until you run it, touchscreens keep their old dynamic address (e.g. `.113`).
-
-On each touchscreen, renew DHCP after applying (reboot, or replug Ethernet). Confirm with `ip -4 addr show` on the panel and `cat /var/lib/misc/dnsmasq.leases` on the PCCS Pi — kitchen should show `10.10.10.10`.
+Confirm with `ip -4 addr show` on the panel and `cat /var/lib/misc/dnsmasq.leases` on the PCCS Pi — kitchen should show `10.10.10.10`.
 
 If a panel still keeps the wrong address, check it is using **DHCP** on eth0 (not a static IP in NetworkManager) and that the Ethernet MAC in `dhcp-host=` matches `dnsmasq.leases`.
 

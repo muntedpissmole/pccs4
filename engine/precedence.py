@@ -202,5 +202,13 @@ def resolve_light(light: str, world: WorldState, cfg: CompiledConfig) -> Resolve
     return _safety_clamp(light, auto.clamped(), world, cfg)
 
 
-def resolve_screen(linked_reed: str, world: WorldState, cfg: CompiledConfig) -> bool:
-    return not effective_reed_closed(world, linked_reed, cfg)
+def resolve_screen(screen: dict, world: WorldState, cfg: CompiledConfig) -> int:
+    """Brightness percent (0–100) when the linked reed is open; 0 when closed."""
+    linked_reed = screen.get("linked_reed", "")
+    if effective_reed_closed(world, linked_reed, cfg):
+        return 0
+    phase = _phase_key(world)
+    if phase is None:
+        return 0
+    levels = screen.get("phase_brightness") or {}
+    return max(0, min(100, int(levels.get(phase, 100))))

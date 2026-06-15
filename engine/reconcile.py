@@ -27,6 +27,7 @@ class Reconciler:
         relay_actuator,
         screen_actuator=None,
         on_state_emit: Optional[Callable[[dict], None]] = None,
+        on_screens_emit: Optional[Callable[[List[str]], None]] = None,
         ramp_ms_for_source: Optional[Callable[[str], int]] = None,
         on_drift: Optional[Callable[[List[dict]], None]] = None,
     ):
@@ -36,13 +37,14 @@ class Reconciler:
         self.relays = relay_actuator
         self.screens = screen_actuator
         self.on_state_emit = on_state_emit
+        self.on_screens_emit = on_screens_emit
         self.on_drift = on_drift
         self._ramp_ms = ramp_ms_for_source or (lambda _s: cfg.reed_ramp_ms)
         self._last_desired: Optional[DesiredOutputs] = None
         self._last_ramp_source: str = "unknown"
         self._commanded_lights: Dict[str, CommandedLight] = {}
         self._commanded_relays: Dict[str, bool] = {}
-        self._commanded_screens: Dict[str, bool] = {}
+        self._commanded_screens: Dict[str, int] = {}
         self._commanded_at: Dict[str, float] = {}
         self._drift_grace_s = max(
             5.0,
@@ -201,15 +203,26 @@ class Reconciler:
                 self._commanded_relays[relay] = on
                 self._commanded_at[f"relay:{relay}"] = now
 
+        screens_changed: list[str] = []
         if self.screens:
             observed_screens = self.screens.read_screens()
-            for screen, awake in desired.screens.items():
+            for screen, brightness in desired.screens.items():
                 if reed_pass and screen not in self._pending_reed_screens:
                     continue
-                if observed_screens.get(screen) != awake:
-                    self.screens.set_screen(screen, awake)
+                commanded = self._commanded_screens.get(screen, -1)
+                observed = observed_screens.get(screen, -1)
+                if (
+                    commanded != brightness
+                    or abs(observed - brightness) > DRIFT_BRIGHTNESS_TOLERANCE
+                ):
+                    self.screens.set_screen(screen, brightness)
+                    self._commanded_screens[screen] = brightness
+                    screens_changed.append(screen)
                 if reed_pass:
                     self._pending_reed_screens.discard(screen)
+
+        if screens_changed and self.on_screens_emit:
+            self.on_screens_emit(screens_changed)
 
         if scene_pass:
             scene_lights = {

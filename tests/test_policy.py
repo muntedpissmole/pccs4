@@ -80,6 +80,7 @@ def minimal_cfg() -> CompiledConfig:
             "username": "joel",
             "brightness_path": "/sys/class/graphics/fb0/blank",
             "icon": "fa-utensils",
+            "phase_brightness": {"day": 100, "evening": 30, "night": 5},
         }
     }
     cfg.scenes = {
@@ -553,21 +554,34 @@ class PolicyTests(unittest.TestCase):
 
     # ── Screens ───────────────────────────────────────────────────────────
 
-    def test_screen_awake_when_panel_open(self):
-        world = WorldState(reeds=_default_reeds(open_names=["kitchen_panel"]))
-        self.assertTrue(resolve_screen("kitchen_panel", world, minimal_cfg()))
+    def test_screen_day_brightness_when_panel_open(self):
+        world = WorldState(reeds=_default_reeds(open_names=["kitchen_panel"]), phase="day")
+        screen = minimal_cfg().screens["kitchen"]
+        self.assertEqual(resolve_screen(screen, world, minimal_cfg()), 100)
 
-    def test_screen_asleep_when_panel_closed(self):
-        world = WorldState(reeds=_default_reeds(closed_names=["kitchen_panel"]))
-        self.assertFalse(resolve_screen("kitchen_panel", world, minimal_cfg()))
+    def test_screen_evening_brightness_when_panel_open(self):
+        world = WorldState(reeds=_default_reeds(open_names=["kitchen_panel"]), phase="evening")
+        screen = minimal_cfg().screens["kitchen"]
+        self.assertEqual(resolve_screen(screen, world, minimal_cfg()), 30)
+
+    def test_screen_night_brightness_when_panel_open(self):
+        world = WorldState(reeds=_default_reeds(open_names=["kitchen_panel"]), phase="night")
+        screen = minimal_cfg().screens["kitchen"]
+        self.assertEqual(resolve_screen(screen, world, minimal_cfg()), 5)
+
+    def test_screen_off_when_panel_closed(self):
+        world = WorldState(reeds=_default_reeds(closed_names=["kitchen_panel"]), phase="day")
+        screen = minimal_cfg().screens["kitchen"]
+        self.assertEqual(resolve_screen(screen, world, minimal_cfg()), 0)
 
     def test_screen_follows_forced_panel_open(self):
         world = WorldState(
             reeds=_default_reeds(closed_names=["kitchen_panel"]),
             reed_forces={"kitchen_panel": False},
+            phase="evening",
         )
         out = desired_outputs(world, minimal_cfg())
-        self.assertTrue(out.screens["kitchen"])
+        self.assertEqual(out.screens["kitchen"], 30)
 
     # ── Intent lifecycle ──────────────────────────────────────────────────
 
@@ -838,13 +852,19 @@ class PolicyTests(unittest.TestCase):
 
     def test_real_config_kitchen_screen_follows_panel(self):
         cfg = real_cfg()
-        open_panel = WorldState(reeds={name: True for name in cfg.reed_names})
+        open_panel = WorldState(
+            reeds={name: True for name in cfg.reed_names},
+            phase="day",
+        )
         open_panel.reeds["kitchen_panel"] = False
-        closed_panel = WorldState(reeds={name: True for name in cfg.reed_names})
+        closed_panel = WorldState(
+            reeds={name: True for name in cfg.reed_names},
+            phase="day",
+        )
         out_open = desired_outputs(open_panel, cfg)
         out_closed = desired_outputs(closed_panel, cfg)
-        self.assertTrue(out_open.screens["kitchen"])
-        self.assertFalse(out_closed.screens["kitchen"])
+        self.assertGreater(out_open.screens["kitchen"], 0)
+        self.assertEqual(out_closed.screens["kitchen"], 0)
 
     def test_bedtime_scene_leaves_undefined_lights_on_automation_source(self):
         world = WorldState(

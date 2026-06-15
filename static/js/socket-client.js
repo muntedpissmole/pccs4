@@ -117,6 +117,10 @@
             window.PCCS4.screensSystem?.onScreensInit?.(data);
         });
 
+        socket.on('screens_update', (data) => {
+            window.PCCS4.screensSystem?.onScreensUpdate?.(data);
+        });
+
         // Dark mode (phase-driven + manual override)
         socket.on('global_dark_mode_update', (data) => {
             window.colorMode?.applyFromServer?.(data);

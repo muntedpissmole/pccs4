@@ -16,7 +16,7 @@ class DesiredOutputs:
     light_modes: Dict[str, str] = field(default_factory=dict)
     light_sources: Dict[str, str] = field(default_factory=dict)
     relays: Dict[str, bool] = field(default_factory=dict)
-    screens: Dict[str, bool] = field(default_factory=dict)
+    screens: Dict[str, int] = field(default_factory=dict)
     ramp_source: str = "auto"
 
 
@@ -37,6 +37,6 @@ def desired_outputs(world: WorldState, cfg: CompiledConfig) -> DesiredOutputs:
             out.relays[relay] = world.observed_relays.get(relay, False)
 
     for name, screen in cfg.screens.items():
-        out.screens[name] = resolve_screen(screen["linked_reed"], world, cfg)
+        out.screens[name] = resolve_screen(screen, world, cfg)
 
     return out

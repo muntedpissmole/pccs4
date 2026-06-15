@@ -67,23 +67,62 @@ A Waveshare (or similar) touchscreen on a separate Raspberry Pi or Rock 5c board
 
 The UI runs on touchscreens, tablets, and phones. Red indicators mark bug-mode-capable lights.
 
-| | |
-|:---:|:---:|
-| ![Neumorphism dark — iPad landscape](images/ipad_neumorphism_dark_home_landscape.png) | ![Neumorphism light — iPad landscape](images/ipad_neumorphism_light_home_landscape.png) |
-| **Neumorphism (Dark)** | **Neumorphism (Light)** |
-| ![Glassmorphism dark — iPad landscape](images/ipad_glassmorphism_dark_home_landscape.png) | ![Glassmorphism light — iPad landscape](images/ipad_glassmorphism_light_home_landscape.png) |
-| **Glassmorphism (Dark)** | **Glassmorphism (Light)** |
-| ![Glassmorphism dark — iPad portrait](images/ipad_glassmorphism_dark_home_portrait.png) | ![Neumorphism dark — iPhone landscape](images/iphone_neumorphism_dark_home_landscape.png) |
+<table>
+  <tr>
+    <td align="center"><img src="images/ipad_neumorphism_dark_home_landscape.png" alt="Neumorphism dark — iPad landscape"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Neumorphism (Dark)</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/ipad_neumorphism_light_home_landscape.png" alt="Neumorphism light — iPad landscape"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Neumorphism (Light)</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/ipad_glassmorphism_dark_home_landscape.png" alt="Glassmorphism dark — iPad landscape"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Glassmorphism (Dark)</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/ipad_glassmorphism_light_home_landscape.png" alt="Glassmorphism light — iPad landscape"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Glassmorphism (Light)</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/ipad_glassmorphism_dark_home_portrait.png" alt="Glassmorphism dark — iPad portrait" height="50%"></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/iphone_neumorphism_dark_home_landscape.png" alt="Neumorphism dark — iPhone landscape"></td>
+  </tr>
+</table>
 
 ### Additional themes
 
-Nine alternate visual styles sit alongside the default Neumorphism and Glassmorphism looks. Pick any theme from the **System** page; each one respects the global light/dark appearance setting. Hover a preview to see the theme name.
-
-| | | |
-|:---:|:---:|:---:|
-| <img src="images/themes/claymorphism.png" alt="Claymorphism" title="Claymorphism"> | <img src="images/themes/cyberpunk.png" alt="Cyberpunk" title="Cyberpunk"> | <img src="images/themes/ember.png" alt="Ember" title="Ember"> |
-| <img src="images/themes/industrial.png" alt="Industrial" title="Industrial"> | <img src="images/themes/oled_minimal.png" alt="OLED Minimal" title="OLED Minimal"> | <img src="images/themes/nebula.png" alt="Nebula" title="Nebula"> |
-| <img src="images/themes/obsidian.png" alt="Obsidian" title="Obsidian"> | <img src="images/themes/terminal.png" alt="Terminal" title="Terminal"> | <img src="images/themes/void.png" alt="Void" title="Void"> |
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="images/themes/claymorphism.png" alt="Claymorphism" title="Claymorphism"></td>
+    <td align="center" width="50%"><img src="images/themes/cyberpunk.png" alt="Cyberpunk" title="Cyberpunk"></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/themes/ember.png" alt="Ember" title="Ember"></td>
+    <td align="center"><img src="images/themes/industrial.png" alt="Industrial" title="Industrial"></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/themes/nebula.png" alt="Nebula" title="Nebula"></td>
+    <td align="center"><img src="images/themes/oled_minimal.png" alt="OLED Minimal" title="OLED Minimal"></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/themes/obsidian.png" alt="Obsidian" title="Obsidian"></td>
+    <td align="center"><img src="images/themes/terminal.png" alt="Terminal" title="Terminal"></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><img src="images/themes/void.png" alt="Void" title="Void"></td>
+  </tr>
+</table>
 
 More examples in the [`/images`](images/) folder.
 

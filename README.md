@@ -93,10 +93,8 @@ The UI runs on touchscreens, tablets, and phones. Red indicators mark bug-mode-c
     <td align="center"><strong>Glassmorphism (Dark) — Lighting</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="images/iphone_neumorphism_dark_home_portrait.png" alt="Neumorphism dark — iPhone portrait" width="335"></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="images/iphone_neumorphism_dark_home_landscape.png" alt="Neumorphism dark — iPhone landscape"></td>
+    <td align="center" width="50%"><img src="images/iphone_neumorphism_dark_home_portrait.png" alt="Neumorphism dark — iPhone portrait" height="407"></td>
+    <td align="center" width="50%"><img src="images/iphone_neumorphism_dark_home_landscape.png" alt="Neumorphism dark — iPhone landscape"></td>
   </tr>
 </table>
 
@@ -496,7 +494,7 @@ sudo find . -type f -exec chmod 664 {} \;
 
 ### Victron setup
 
-If you use a Victron SmartShunt and/or MPPT SmartSolar, PCCS reads them via passive BLE advertisements (Instant Readout). This does **not** join the VictronConnect mesh — only Instant Readout must be enabled on each device, and the Pi must be within BLE range.
+If you use a Victron SmartShunt and/or MPPT SmartSolar, PCCS reads them via passive Instant Readout so Instant Readout must be enabled on each device and the Pi must be within range.
 
 #### USB Bluetooth dongle (required)
 
@@ -696,7 +694,11 @@ Safe to re-run on every update when `config/polkit/` changes.
 
 ### Updating the PCCS
 
-1. SSH into the Pi and pull the newest version:
+1. SSH into the Pi and copy the latest project files into `$PCCS_HOME`.
+
+   **Samba** (step 7): from your PC, copy updated files into `\\10.10.10.1\pccs4`. You can overwrite the project tree; keep local files such as `config/pccs.conf`, `logs/`, and anything else you have customised.
+
+   **Git** (optional — only if you installed from the step 9 clone and still have a `.git` folder):
 
 ```bash
 export USERNAME=pi
@@ -704,6 +706,12 @@ export PCCS_HOME=/home/$USERNAME/pccs4
 
 cd "$PCCS_HOME"
 git pull
+```
+
+   Then refresh Python dependencies:
+
+```bash
+cd "$PCCS_HOME"
 source venv/bin/activate
 pip install -r requirements.txt
 

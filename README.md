@@ -100,6 +100,10 @@ The UI runs on touchscreens, tablets, and phones. Red indicators mark bug-mode-c
     <td align="center" width="50%"><img src="images/iphone_neumorphism_dark_home_portrait.png" alt="Neumorphism dark — iPhone portrait" height="407"></td>
     <td align="center" width="50%"><img src="images/iphone_neumorphism_dark_home_landscape.png" alt="Neumorphism dark — iPhone landscape"></td>
   </tr>
+  <tr>
+    <td align="center"><strong>Neumorphism (Dark) — iPhone Portrait</strong></td>
+    <td align="center"><strong>Neumorphism (Dark) — iPhone Landscape</strong></td>
+  </tr>
 </table>
 
 ### Additional themes

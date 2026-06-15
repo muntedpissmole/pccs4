@@ -159,14 +159,14 @@ Wiring, installation, scripts, updates, and network setup are on the **[project 
 
 | Topic | Wiki page |
 |-------|-----------|
-| Wiring | [Wiring](https://github.com/muntedpissmole/pccs4/wiki/01-Wiring) |
-| Installation | [Installation](https://github.com/muntedpissmole/pccs4/wiki/02-Installation) |
-| Victron setup | [Victron Setup](https://github.com/muntedpissmole/pccs4/wiki/03-Victron-Setup) |
-| Scripts | [Scripts](https://github.com/muntedpissmole/pccs4/wiki/04-Scripts) |
-| Updating | [Updating](https://github.com/muntedpissmole/pccs4/wiki/05-Updating) |
-| Run manually | [Run Manually](https://github.com/muntedpissmole/pccs4/wiki/06-Run-Manually) |
-| NAT and Internet | [NAT and Internet](https://github.com/muntedpissmole/pccs4/wiki/07-NAT-and-Internet) |
-| UniFi OS Server | [UniFi OS Server](https://github.com/muntedpissmole/pccs4/wiki/08-UniFi-OS-Server) |
+| Wiring | [Wiring](https://github.com/muntedpissmole/pccs4/wiki/Wiring) |
+| Installation | [Installation](https://github.com/muntedpissmole/pccs4/wiki/Installation) |
+| Victron setup | [Victron Setup](https://github.com/muntedpissmole/pccs4/wiki/Victron-Setup) |
+| Scripts | [Scripts](https://github.com/muntedpissmole/pccs4/wiki/Scripts) |
+| Updating | [Updating](https://github.com/muntedpissmole/pccs4/wiki/Updating) |
+| Run manually | [Run Manually](https://github.com/muntedpissmole/pccs4/wiki/Run-Manually) |
+| NAT and Internet | [NAT and Internet](https://github.com/muntedpissmole/pccs4/wiki/NAT-and-Internet) |
+| UniFi OS Server | [UniFi OS Server](https://github.com/muntedpissmole/pccs4/wiki/UniFi-OS-Server) |
 
 ---
 

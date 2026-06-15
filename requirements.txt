@@ -1,5 +1,5 @@
 # PCCS4 runtime dependencies (pinned for reproducible Pi installs).
-# System packages still required — see INSTALL.md step 6:
+# System packages still required — see README.md step 6:
 #   python3-venv python3-lgpio bluez network-manager nginx ...
 
 flask==3.1.3

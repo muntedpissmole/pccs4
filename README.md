@@ -92,6 +92,9 @@ The UI runs on touchscreens, tablets, and phones. Red indicators mark bug-mode-c
   <tr>
     <td align="center"><strong>Glassmorphism (Dark) — Lighting</strong></td>
   </tr>
+</table>
+
+<table>
   <tr>
     <td align="center" width="50%"><img src="images/iphone_neumorphism_dark_home_portrait.png" alt="Neumorphism dark — iPhone portrait" height="407"></td>
     <td align="center" width="50%"><img src="images/iphone_neumorphism_dark_home_landscape.png" alt="Neumorphism dark — iPhone landscape"></td>
@@ -110,12 +113,20 @@ The UI runs on touchscreens, tablets, and phones. Red indicators mark bug-mode-c
     <td align="center"><strong>Cyberpunk</strong></td>
   </tr>
   <tr>
+    <td align="center">&nbsp;</td>
+    <td align="center">&nbsp;</td>
+  </tr>
+  <tr>
     <td align="center"><img src="images/themes/ember.png" alt="Ember" title="Ember"></td>
     <td align="center"><img src="images/themes/industrial.png" alt="Industrial" title="Industrial"></td>
   </tr>
   <tr>
     <td align="center"><strong>Ember</strong></td>
     <td align="center"><strong>Industrial</strong></td>
+  </tr>
+  <tr>
+    <td align="center">&nbsp;</td>
+    <td align="center">&nbsp;</td>
   </tr>
   <tr>
     <td align="center"><img src="images/themes/nebula.png" alt="Nebula" title="Nebula"></td>
@@ -126,6 +137,10 @@ The UI runs on touchscreens, tablets, and phones. Red indicators mark bug-mode-c
     <td align="center"><strong>OLED Minimal</strong></td>
   </tr>
   <tr>
+    <td align="center">&nbsp;</td>
+    <td align="center">&nbsp;</td>
+  </tr>
+  <tr>
     <td align="center"><img src="images/themes/obsidian.png" alt="Obsidian" title="Obsidian"></td>
     <td align="center"><img src="images/themes/terminal.png" alt="Terminal" title="Terminal"></td>
   </tr>
@@ -134,10 +149,17 @@ The UI runs on touchscreens, tablets, and phones. Red indicators mark bug-mode-c
     <td align="center"><strong>Terminal</strong></td>
   </tr>
   <tr>
+    <td align="center">&nbsp;</td>
+    <td align="center">&nbsp;</td>
+  </tr>
+  <tr>
     <td align="center" colspan="2"><img src="images/themes/void.png" alt="Void" title="Void"></td>
   </tr>
   <tr>
     <td align="center" colspan="2"><strong>Void</strong></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">&nbsp;</td>
   </tr>
 </table>
 
@@ -466,7 +488,7 @@ ping -c1 10.10.10.1
 Pair each panel — configure `[screens]` in `config/pccs.conf` (host, username, `brightness_path`, phase dim levels, linked reed), then run `setup-screen.sh` once per panel (see [Scripts](#scripts)). Test from the **Screens** tile on the System tab.
 
 ```bash
-export SCREEN_USER=joel   # must match [screens] username
+export SCREEN_USER=pi   # must match [screens] username
 export SCREEN_HOST=10.10.10.10
 "$PCCS_HOME/scripts/setup-screen.sh"
 ```
@@ -641,7 +663,7 @@ Prepares a remote touchscreen Pi so PCCS can wake, dim, and blank it over SSH wh
 Safe to re-run: existing keys and SSH config entries are skipped; blank sudoers is overwritten with the same rule, not duplicated.
 
 ```bash
-export SCREEN_USER=joel      # SSH user on the touchscreen ([screens] username)
+export SCREEN_USER=pi      # SSH user on the touchscreen ([screens] username)
 export SCREEN_HOST=10.10.10.10
 "$PCCS_HOME/scripts/setup-screen.sh"
 ```

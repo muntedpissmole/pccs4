@@ -11,13 +11,14 @@ The Pissmole Camping Control System (PCCS) is a Raspberry Pi-based control syste
 -   Lighting scenes such as bedtime, bathroom and all off
 -   Time-of-day phase calculation (day, evening and night) and accurate sunset/sunrise times based on GPS derived co-ordinates
 -   Reed switch monitoring of panel doors that switch on linked lights to levels based on time-of-day/phase
+-   Support for turning on/off touchscreen screens that are mounted behind reed-monitored panels doors to save battery and screen burn-in
 -   Ambient lighting such as accent and awning that turn on whenever any panel is open
 -   Protection against turning on the rooftop tent lights when closed where the LED strip may be pressed against bedding
 -   Comprehensive logging that shows what light turned on and what activated it (phase change, scene, reed, user interface etc.)
 -   A flexible & scalable UI that can be accessed from any device including touchscreens, tablets and phones
 -   Full support for Cloudflare Tunnels for if the Internet connection is behind cgnat (e.g. Starlink, hotspots)
 -   A toast/message popup system with helpful information when events happen like GPS fix acquired/lost and phase changes
--   Modern UI themes with light/dark modes including Glassmorphism/Frosted Glass, Neumorphism, Deep Minimal/Stealth and automatic toggling of light and dark modes in the evening and morning
+-   Modern UI themes with light/dark modes (see examples below)
 -   A diagnostics and settings page with extensive override controls and additional information
 
 **Environmental data**
@@ -30,7 +31,7 @@ The Pissmole Camping Control System (PCCS) is a Raspberry Pi-based control syste
 
 The PCCS provides a better glamping experience when installed alongside other RPI packages:
 
-- NAT and DHCP via dnsmasq; upstream via USB tethering, 5G modem, or Starlink
+- NAT and DHCP for upstream internet via USB/WiFi hotspot, 5G modem or Starlink
 - UniFi controller for UniFi WAPs
 - Pi-hole for ad blocking
 
@@ -53,7 +54,7 @@ Built for:
 
 ### Frontend
 
-A Waveshare (or similar) touchscreen on a separate Raspberry Pi or Rock 5c board for heavier graphics.
+A Waveshare (or similar) touchscreen (kitchen touchscreen in this project) on a separate Raspberry Pi or Rock 5c board for better graphics handling.
 
 ### Other hardware
 
@@ -109,57 +110,38 @@ The UI runs on touchscreens, tablets, and phones. Red indicators mark bug-mode-c
     <td align="center" width="50%"><img src="images/themes/cyberpunk.png" alt="Cyberpunk" title="Cyberpunk"></td>
   </tr>
   <tr>
-    <td align="center"><strong>Claymorphism</strong></td>
-    <td align="center"><strong>Cyberpunk</strong></td>
-  </tr>
-  <tr>
-    <td align="center">&nbsp;</td>
-    <td align="center">&nbsp;</td>
+    <td align="center"><strong>Claymorphism</strong><br></td>
+    <td align="center"><strong>Cyberpunk</strong><br></td>
   </tr>
   <tr>
     <td align="center"><img src="images/themes/ember.png" alt="Ember" title="Ember"></td>
     <td align="center"><img src="images/themes/industrial.png" alt="Industrial" title="Industrial"></td>
   </tr>
   <tr>
-    <td align="center"><strong>Ember</strong></td>
-    <td align="center"><strong>Industrial</strong></td>
-  </tr>
-  <tr>
-    <td align="center">&nbsp;</td>
-    <td align="center">&nbsp;</td>
+    <td align="center"><strong>Ember</strong><br></td>
+    <td align="center"><strong>Industrial</strong><br></td>
   </tr>
   <tr>
     <td align="center"><img src="images/themes/nebula.png" alt="Nebula" title="Nebula"></td>
     <td align="center"><img src="images/themes/oled_minimal.png" alt="OLED Minimal" title="OLED Minimal"></td>
   </tr>
   <tr>
-    <td align="center"><strong>Nebula</strong></td>
-    <td align="center"><strong>OLED Minimal</strong></td>
-  </tr>
-  <tr>
-    <td align="center">&nbsp;</td>
-    <td align="center">&nbsp;</td>
+    <td align="center"><strong>Nebula</strong><br></td>
+    <td align="center"><strong>OLED Minimal</strong><br></td>
   </tr>
   <tr>
     <td align="center"><img src="images/themes/obsidian.png" alt="Obsidian" title="Obsidian"></td>
     <td align="center"><img src="images/themes/terminal.png" alt="Terminal" title="Terminal"></td>
   </tr>
   <tr>
-    <td align="center"><strong>Obsidian</strong></td>
-    <td align="center"><strong>Terminal</strong></td>
-  </tr>
-  <tr>
-    <td align="center">&nbsp;</td>
-    <td align="center">&nbsp;</td>
+    <td align="center"><strong>Obsidian</strong><br></td>
+    <td align="center"><strong>Terminal</strong><br></td>
   </tr>
   <tr>
     <td align="center" colspan="2"><img src="images/themes/void.png" alt="Void" title="Void"></td>
   </tr>
   <tr>
-    <td align="center" colspan="2"><strong>Void</strong></td>
-  </tr>
-  <tr>
-    <td align="center" colspan="2">&nbsp;</td>
+    <td align="center" colspan="2"><strong>Void</strong><br></td>
   </tr>
 </table>
 
@@ -190,7 +172,7 @@ More examples in the [`/images`](images/) folder.
 
 **Notes**
 
-- Enable 1-Wire in `raspi-config` during [installation](#software-installation--configuration) (step 10).
+- Temp sensors need 1-Wire comms enabled in `raspi-config` during [installation](#software-installation--configuration) (step 10).
 - Victron equipment needs a USB Bluetooth dongle ([Victron setup](#victron-setup)).
 - 5 V for peripherals (GPS, relay module, etc.) is not shown in the table above.
 
@@ -221,8 +203,8 @@ More examples in the [`/images`](images/) folder.
 
 **Notes**
 
-- Arduino Mega is used because Pi PWM/I²C servo boards lack the drive strength for these MOSFET loads.
-- A breadboard carrier for MOSFETs and field wiring is required.
+- Arduino Mega is used as RPI PWM/I2C servo driver expansion boards don't have enough power to drive the MOSFETs
+- Breadboard circuitboard for MOSFETs and outgoing lighting circuit connections is required.
 - Some analog conditioning may still be needed for the water tank sender on A1.
 - Blue RGB channels are unused (Arduino pin budget); green softens red bug mode.
 
@@ -238,8 +220,8 @@ These instructions use the following network layout (adjust to match your site, 
 RPI IP: 10.10.10.1
 DHCP range: 10.10.10.50-10.10.10.200
 Kitchen touchscreen (reserved): 10.10.10.10
-Internet connection: USB hotspot or WiFi (for workshop use)
-Network: Wired ethernet on eth0 serves touchscreens and WAPs — not bridged to upstream internet
+Internet connection: USB hotspot or WiFi
+LAN Network: Wired ethernet port
 ```
 
 1. Format an SD card with **Debian Trixie 64-bit** (or Raspberry Pi OS 64-bit). Enable SSH during imaging and set customization options to suit.
@@ -254,7 +236,7 @@ dtparam=spi=on
 
 3. Save and eject the card, boot the Pi, and log in via SSH, e.g. `ssh $USERNAME@192.168.0.78`.
 
-After your first SSH login (step 4), set the Linux account and install path for every bash snippet below:
+Set the Linux account and install path for every bash snippet below:
 
 ```bash
 export USERNAME=pi
@@ -794,7 +776,7 @@ sudo systemctl start pccs4.service
 
 **Before you begin:**
 
-- Connect WAN (iPhone tether or Wi‑Fi). For iPhone USB tethering: `nmcli device connect eth1` (or the name from `nmcli device status`).
+- Connect WAN (iPhone tether or Wi‑Fi). For iPhone USB hotspot: `nmcli device connect eth1` (or the name from `nmcli device status`).
 - Tether interfaces commonly appear on the UI as `eth1` (not `usb0`) when wired LAN is already `eth0`. WAN is either Wi‑Fi (`wlan0`) or the iPhone tether.
 
 1. Configure the LAN static IP (eth0) and upstream route priorities:
@@ -815,7 +797,7 @@ nmcli device status
 ip -br link show | grep -E 'eth|usb'
 ```
 
-Prefer iPhone USB tethering (`eth1`) over Wi‑Fi (`wlan0`):
+Prefer iPhone USB hotspot (`eth1`) over Wi‑Fi (`wlan0`):
 
 ```bash
 nmcli connection show
@@ -946,3 +928,9 @@ sudo usermod -aG uosserver "$USERNAME"
 ```
 
 Access the UI at `https://10.10.10.1:11443`.
+
+---
+
+## License
+
+Licensed under the [MIT License](LICENSE).

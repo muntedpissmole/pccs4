@@ -50,5 +50,5 @@ if command -v dnsmasq >/dev/null 2>&1; then
     systemctl restart dnsmasq
     echo "dnsmasq restarted — renew DHCP on each touchscreen (reboot or replug Ethernet)"
 else
-    echo "dnsmasq not found — install it first (see README)"
+    echo "dnsmasq not found — install it first (see INSTALL.md)"
 fi

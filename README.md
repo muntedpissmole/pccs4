@@ -159,6 +159,7 @@ Wiring, installation, scripts, updates, and network setup are on the **[project 
 
 | Topic | Wiki page |
 |-------|-----------|
+| Shopping list | [Shopping List](https://github.com/muntedpissmole/pccs4/wiki/Shopping-List) |
 | Wiring | [Wiring](https://github.com/muntedpissmole/pccs4/wiki/Wiring) |
 | Installation | [Installation](https://github.com/muntedpissmole/pccs4/wiki/Installation) |
 | Victron setup | [Victron Setup](https://github.com/muntedpissmole/pccs4/wiki/Victron-Setup) |

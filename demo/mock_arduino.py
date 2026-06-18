@@ -7,6 +7,7 @@ import re
 import threading
 import time
 
+from demo.water_scheduler import current_water_level_pct
 from modules.arduino import ArduinoManager, brightness_to_pwm, pwm_to_brightness
 
 logger = logging.getLogger("pccs")
@@ -22,7 +23,6 @@ class DemoArduinoManager(ArduinoManager):
     def __init__(self, config):
         super().__init__(config)
         self._pin_pwm: dict[int, int] = {}
-        self._water_level_pct = config.getfloat("demo", "water_level_pct", fallback=72.0)
         self._lock = threading.Lock()
 
     def init_serial(self) -> bool:
@@ -59,7 +59,7 @@ class DemoArduinoManager(ArduinoManager):
             if analog:
                 pin = int(analog.group(1))
                 if pin == self.config.getint("arduino analog", "water_pin", fallback=1):
-                    raw = int(self._water_level_pct * 10.23)
+                    raw = int(current_water_level_pct() * 10.23)
                     return f"ANALOG {pin} {raw}"
                 return f"ANALOG {pin} 0"
 

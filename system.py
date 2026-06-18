@@ -17,6 +17,7 @@ PCCS4_VERSION = get_version()
 _runtime = None
 _gps_module = None
 _victron_module = None
+_demo_module_scheduler = None
 
 
 def set_runtime(runtime) -> None:
@@ -33,6 +34,11 @@ def set_gps_module(gps_module) -> None:
 def set_victron_module(victron_module) -> None:
     global _victron_module
     _victron_module = victron_module
+
+
+def set_demo_module_scheduler(scheduler) -> None:
+    global _demo_module_scheduler
+    _demo_module_scheduler = scheduler
 
 
 def _arduino_connected() -> bool:
@@ -424,16 +430,21 @@ def get_core_info() -> dict[str, Any]:
 
 def get_system_status() -> dict[str, Any]:
     modules = [dict(module) for module in _MODULES]
-    probes = {
-        "arduino": _arduino_connected,
-        "gps": _gps_connected,
-        "shunt": _victron_shunt_connected,
-        "mppt": _victron_mppt_connected,
-    }
-    for module in modules:
-        probe = probes.get(module["id"])
-        if probe:
-            module["connected"] = probe()
+    if _demo_module_scheduler is not None:
+        connectivity = _demo_module_scheduler.get_connectivity()
+        for module in modules:
+            module["connected"] = connectivity.get(module["id"], True)
+    else:
+        probes = {
+            "arduino": _arduino_connected,
+            "gps": _gps_connected,
+            "shunt": _victron_shunt_connected,
+            "mppt": _victron_mppt_connected,
+        }
+        for module in modules:
+            probe = probes.get(module["id"])
+            if probe:
+                module["connected"] = probe()
     online = sum(1 for module in modules if module.get("connected"))
     host = get_host_stats()
     core = get_core_info()

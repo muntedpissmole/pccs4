@@ -2,7 +2,7 @@
 
 A self-contained demo of the Pissmole Camper Control System — runs on Linux. Lights, reed switches, Sonos, battery/solar, water, and GPS are simulated so you can explore the full web UI (lighting, scenes, home dashboard, system tab).
 
-Reed switches open and close on their own every few hours; the Sonos tile plays through a built-in playlist.
+Reed switches open and close on their own every few hours; the Sonos tile plays through a built-in indie/alternative playlist.
 
 ## Install
 
@@ -23,13 +23,28 @@ The installer sets up the Python venv, `requirements-demo.txt`, and a `pccs-demo
 sudo systemctl status pccs-demo
 sudo journalctl -u pccs-demo -f
 ```
+
 To make sure there's no errors.
 
-After pulling code changes: `sudo systemctl restart pccs-demo`
+## Update
+
+Pull the latest `demo` branch and restart the service:
+
+```bash
+cd ~/pccs-demo
+git pull origin demo
+sudo systemctl restart pccs-demo
+```
+
+If dependencies or the demo playlist changed, re-run the installer (safe to run again):
+
+```bash
+sudo ./scripts/install-demo.sh
+```
 
 ## Uninstall
 
-Removes the systemd service, Python venv, logs, firewall rule, and any legacy nginx site from older installs. The repo directory is kept — delete it manually if you no longer need it.
+Removes the systemd service, Python venv, logs, and firewall rule. The repo directory is kept — delete it manually if you no longer need it.
 
 ```bash
 cd ~/pccs-demo

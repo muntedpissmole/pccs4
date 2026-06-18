@@ -6,13 +6,11 @@
 #   chmod +x scripts/uninstall-demo.sh
 #   sudo ./scripts/uninstall-demo.sh
 #
-# Stops the service, removes the systemd unit, venv, logs, firewall rule,
-# and any legacy nginx site from older installers. Does not delete the repo
-# or uninstall system packages (python3-venv, etc.).
+# Stops the service, removes the systemd unit, venv, logs, and firewall rule.
+# Does not delete the repo or uninstall system packages (python3-venv, etc.).
 set -euo pipefail
 
 SERVICE_NAME="pccs-demo"
-NGINX_SITE="pccs-demo"
 APP_PORT="${APP_PORT:-5000}"
 INSTALL_DIR="${INSTALL_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 
@@ -31,22 +29,6 @@ close_firewall_port() {
         echo "==> Removing firewalld rule for port $port/tcp (if present)"
         firewall-cmd --permanent --remove-port="${port}/tcp" >/dev/null 2>&1 || true
         firewall-cmd --reload >/dev/null 2>&1 || true
-    fi
-}
-
-remove_nginx_site() {
-    local removed=false
-    for path in \
-        "/etc/nginx/sites-enabled/$NGINX_SITE" \
-        "/etc/nginx/sites-available/$NGINX_SITE"; do
-        if [[ -e "$path" ]]; then
-            rm -f "$path"
-            removed=true
-        fi
-    done
-    if $removed && command -v nginx >/dev/null 2>&1; then
-        echo "==> Reloading nginx after removing legacy $NGINX_SITE site"
-        nginx -t >/dev/null 2>&1 && systemctl reload nginx >/dev/null 2>&1 || true
     fi
 }
 
@@ -71,7 +53,6 @@ if [[ -f "$UNIT_DST" ]]; then
     systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
 fi
 
-remove_nginx_site
 close_firewall_port "$APP_PORT"
 
 if [[ -d "$INSTALL_DIR/venv" ]]; then

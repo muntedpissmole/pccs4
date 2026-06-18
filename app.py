@@ -24,9 +24,15 @@ from modules.toasts import ToastManager
 from modules.ui_state import ConfigManager
 
 import modules.toasts
-from network import build_network_status
+from network import build_demo_network_status, build_network_status
 from sonos import get_sonos_status, set_muted, set_sonos_manager, set_transport, set_volume
-from system import get_system_status, set_gps_module as set_system_gps, set_runtime, set_victron_module
+from system import (
+    get_system_status,
+    set_demo_module_scheduler,
+    set_gps_module as set_system_gps,
+    set_runtime,
+    set_victron_module,
+)
 from victron import get_power_status, set_victron_manager as set_power_victron
 from weather import get_weather_status, set_gps_module as set_weather_gps
 from wifi import connect_wifi, get_wifi_status, scan_wifi_networks
@@ -109,6 +115,8 @@ first_state_read_done = False
 shutdown_event = threading.Event()
 _cleanup_done = False
 _demo_reed_scheduler = None
+_demo_module_scheduler = None
+_demo_water_scheduler = None
 
 
 def _is_demo_mode() -> bool:
@@ -135,6 +143,8 @@ def _extract_css_friendly_name(filepath: str, fallback: str) -> str:
 
 def _network_status_payload() -> dict:
     start_time = getattr(app, "_start_time", None)
+    if _is_demo_mode():
+        return build_demo_network_status(start_time)
     return build_network_status(start_time)
 
 
@@ -803,13 +813,26 @@ def cleanup():
         except Exception as e:
             logger.debug(f"Sonos stop: {e}")
 
-    global _demo_reed_scheduler
+    global _demo_reed_scheduler, _demo_module_scheduler, _demo_water_scheduler
     if _demo_reed_scheduler:
         try:
             _demo_reed_scheduler.stop()
         except Exception as e:
             logger.debug(f"Demo reed scheduler stop: {e}")
         _demo_reed_scheduler = None
+    if _demo_module_scheduler:
+        try:
+            _demo_module_scheduler.stop()
+        except Exception as e:
+            logger.debug(f"Demo module scheduler stop: {e}")
+        _demo_module_scheduler = None
+        set_demo_module_scheduler(None)
+    if _demo_water_scheduler:
+        try:
+            _demo_water_scheduler.stop()
+        except Exception as e:
+            logger.debug(f"Demo water scheduler stop: {e}")
+        _demo_water_scheduler = None
 
     try:
         runtime.stop()
@@ -818,7 +841,16 @@ def cleanup():
 
 
 def _startup():
-    global gps_module, phase_manager, sensor_manager, victron_module, sonos_module, _demo_reed_scheduler
+    global (
+        gps_module,
+        phase_manager,
+        sensor_manager,
+        victron_module,
+        sonos_module,
+        _demo_reed_scheduler,
+        _demo_module_scheduler,
+        _demo_water_scheduler,
+    )
 
     demo = _is_demo_mode()
     logger.info("Starting PCCS4 %s backend...", "demo" if demo else "lighting")
@@ -832,7 +864,12 @@ def _startup():
     if demo:
         from demo.mock_gps import DemoGPSModule
         from demo.mock_sensors import DemoSensorManager
+        from demo.module_scheduler import DemoModuleScheduler
         from demo.reed_scheduler import DemoReedScheduler
+        from demo.water_scheduler import DemoWaterScheduler
+
+        _demo_water_scheduler = DemoWaterScheduler(config)
+        _demo_water_scheduler.start()
 
         gps_module = DemoGPSModule(config, socketio)
         sensor_manager = DemoSensorManager(config, runtime.arduino.send_command, socketio)
@@ -889,6 +926,10 @@ def _startup():
 
         _demo_reed_scheduler = DemoReedScheduler(runtime.gpio, config)
         _demo_reed_scheduler.start()
+
+        _demo_module_scheduler = DemoModuleScheduler(config)
+        _demo_module_scheduler.start()
+        set_demo_module_scheduler(_demo_module_scheduler)
     else:
         if getattr(gps_module, "serial", None):
             gps_module.start_reader()

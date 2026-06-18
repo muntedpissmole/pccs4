@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import subprocess
 import time
 from datetime import datetime
@@ -170,6 +171,41 @@ def _signal_quality(wifi: dict[str, Any]) -> str | None:
         return f"{int(signal)}%"
     except (TypeError, ValueError):
         return str(signal)
+
+
+def build_demo_network_status(app_start_time: datetime | None = None) -> dict[str, Any]:
+    """Simulated USB phone tether — always online with cellular-style stats."""
+    t = time.time()
+    ping_ms = int(34 + math.sin(t / 45.0) * 5)
+    signal_pct = int(88 + math.sin(t / 110.0) * 4)
+    rx_kbps = round(145 + math.sin(t / 28.0) * 55, 1)
+    tx_kbps = round(52 + math.sin(t / 22.0) * 28, 1)
+
+    payload: dict[str, Any] = {
+        "internet": {
+            "connected": True,
+            "friendly_name": "USB Tethering",
+            "rx_kbps": rx_kbps,
+            "tx_kbps": tx_kbps,
+            "ping_ms": ping_ms,
+            "ping_status": "good",
+            "signal_quality": f"{signal_pct}%",
+            "link_speed_mbps": None,
+            "iface": "usb0",
+            "ssid": None,
+            "connection_type": "usb",
+        },
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "source": "demo",
+    }
+
+    if app_start_time:
+        uptime_s = max(0, int((datetime.now() - app_start_time).total_seconds()))
+        hours = uptime_s // 3600
+        minutes = (uptime_s % 3600) // 60
+        payload["app_uptime"] = f"{hours}h {minutes}m" if hours else f"{minutes}m"
+
+    return payload
 
 
 def build_network_status(app_start_time: datetime | None = None) -> dict[str, Any]:

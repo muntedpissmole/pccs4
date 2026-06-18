@@ -7,6 +7,8 @@ import math
 import threading
 import time
 
+from demo.water_scheduler import current_water_level_pct
+
 logger = logging.getLogger("pccs")
 
 
@@ -46,8 +48,8 @@ class DemoSensorManager:
 
     def update_sensors(self):
         t = time.time() - self._start
-        water_pct = self.config.getfloat("demo", "water_level_pct", fallback=72.0)
-        water_pct = max(0.0, min(100.0, water_pct + math.sin(t / 900.0) * 2.0))
+        water_pct = current_water_level_pct()
+        water_pct = max(0.0, min(100.0, water_pct + math.sin(t / 900.0) * 1.5))
 
         outside = 18.0 + math.sin(t / 1200.0) * 4.0
         fridge = 4.0 + math.sin(t / 800.0) * 0.4
@@ -55,7 +57,7 @@ class DemoSensorManager:
 
         litres = round(self.WATER_CAPACITY_LITRES * water_pct / 100.0, 1)
         payload = {
-            "water_pct": round(water_pct, 1),
+            "water_percent": round(water_pct, 1),
             "water_litres": litres,
             "water_capacity_litres": self.WATER_CAPACITY_LITRES,
             "outside_temp_c": round(outside, 1),

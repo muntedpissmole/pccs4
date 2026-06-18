@@ -28,28 +28,17 @@ To make sure there's no errors.
 
 ## Update
 
-Pull the latest `demo` branch and restart the service:
+Use the update script (handles `git pull`, dependency refresh, and config safely):
 
 ```bash
 cd ~/pccs-demo
-git pull origin demo
-sudo systemctl restart pccs-demo
+chmod +x scripts/update-demo.sh
+sudo ./scripts/update-demo.sh
 ```
 
-If `git pull` complains about `config/pccs.conf`, an older install edited that file directly. Discard the local diff, pull, then re-run the installer (it now writes `config/pccs.local.conf` instead, which git ignores):
+**Do not edit `config/pccs.conf` on the server.** The installer writes machine-specific settings (port, `debug = false`, etc.) to `config/pccs.local.conf`, which git ignores. If you need custom settings, edit `pccs.local.conf` and restart the service.
 
-```bash
-git checkout -- config/pccs.conf
-git pull origin demo
-sudo ./scripts/install-demo.sh
-sudo systemctl restart pccs-demo
-```
-
-If dependencies or the demo playlist changed, re-run the installer (safe to run again):
-
-```bash
-sudo ./scripts/install-demo.sh
-```
+If you previously hit a `git pull` error about `config/pccs.conf`, run `update-demo.sh` once — it resets that file and pulls cleanly.
 
 ## Uninstall
 

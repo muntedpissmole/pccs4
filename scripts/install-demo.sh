@@ -31,6 +31,13 @@ else
 fi
 SERVICE_GROUP="$(id -gn "$SERVICE_USER")"
 
+# Tracked config is shared with the repo; never edit it on a demo server.
+# install-demo.sh writes machine overrides to config/pccs.local.conf instead.
+if [[ -d "$INSTALL_DIR/.git" ]] && ! sudo -u "$SERVICE_USER" git -C "$INSTALL_DIR" diff --quiet -- config/pccs.conf 2>/dev/null; then
+    echo "==> Resetting config/pccs.conf (overrides: config/pccs.local.conf)"
+    sudo -u "$SERVICE_USER" git -C "$INSTALL_DIR" checkout -- config/pccs.conf
+fi
+
 open_firewall_port() {
     local port="$1"
     if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q 'Status: active'; then
@@ -105,4 +112,4 @@ echo "  Service : systemctl status $SERVICE_NAME"
 echo "  Logs    : journalctl -u $SERVICE_NAME -f"
 echo "  URL     : http://$(hostname -I | awk '{print $1}'):${APP_PORT}/"
 echo ""
-echo "To update app code: git pull origin demo, then sudo systemctl restart $SERVICE_NAME"
+echo "To update: sudo ./scripts/update-demo.sh"

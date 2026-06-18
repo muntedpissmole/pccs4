@@ -7,17 +7,39 @@ from typing import Optional
 
 from actuators.arduino import ArduinoActuator
 from actuators.relays import RelayActuator
-from actuators.screens import ScreenActuator
 from engine.config_compile import compile_config
 from engine.policy import desired_outputs
 from engine.precedence import any_reed_open
 from engine.reconcile import ANIMATED_RAMP_SOURCES, Reconciler
 from engine.world import WorldStore
 from inputs.reeds import ReedInput
-from modules.arduino import ArduinoManager
-from modules.gpio import GPIODeviceManager
 
 logger = logging.getLogger("pccs")
+
+
+def _is_demo_mode(config) -> bool:
+    return config.getboolean("demo", "enabled", fallback=False)
+
+
+def _create_hardware_managers(config):
+    if _is_demo_mode(config):
+        from demo.mock_arduino import DemoArduinoManager
+        from demo.mock_gpio import DemoGPIODeviceManager
+        return DemoArduinoManager(config), DemoGPIODeviceManager(config)
+
+    from modules.arduino import ArduinoManager
+    from modules.gpio import GPIODeviceManager
+    return ArduinoManager(config), GPIODeviceManager(config)
+
+
+def _create_screen_actuator(config, compiled):
+    if not compiled.screens:
+        return None
+    if _is_demo_mode(config):
+        from demo.mock_screens import DemoScreenActuator
+        return DemoScreenActuator(compiled.screens, compiled)
+    from actuators.screens import ScreenActuator
+    return ScreenActuator(compiled.screens, compiled)
 
 
 class PCCSRuntime:
@@ -29,8 +51,7 @@ class PCCSRuntime:
         self.compiled = compile_config(config)
         self.dark_mode_config = dark_mode_config
 
-        self.arduino = ArduinoManager(config)
-        self.gpio = GPIODeviceManager(config)
+        self.arduino, self.gpio = _create_hardware_managers(config)
 
         self.world = WorldStore(
             self.compiled.reed_names,
@@ -41,7 +62,7 @@ class PCCSRuntime:
 
         self.arduino_actuator = ArduinoActuator(self.arduino, self.compiled)
         self.relay_actuator = RelayActuator(self.gpio, self.compiled.relay_names)
-        self.screen_actuator = ScreenActuator(self.compiled.screens, self.compiled) if self.compiled.screens else None
+        self.screen_actuator = _create_screen_actuator(config, self.compiled)
 
         self.reconciler = Reconciler(
             world=self.world,

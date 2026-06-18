@@ -1,0 +1,20 @@
+{
+  "speaker_name": "Kitchen",
+  "volume": 35,
+  "tracks": [
+    {
+      "title": "Demo Track One",
+      "artist": "Placeholder Artist",
+      "album": "Demo Playlist",
+      "duration_seconds": 240,
+      "file": null
+    },
+    {
+      "title": "Demo Track Two",
+      "artist": "Placeholder Artist",
+      "album": "Demo Playlist",
+      "duration_seconds": 195,
+      "file": null
+    }
+  ]
+}

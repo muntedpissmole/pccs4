@@ -18,10 +18,8 @@ from flask_socketio import SocketIO, emit
 from bridge.runtime import PCCSRuntime
 from gps import get_gps_status, set_gps_module
 from modules.config import config
-from modules.gps import GPSModule
 from modules.logger import setup_logging
 from modules.phases import PhaseManager
-from modules.sensors import SensorManager
 from modules.toasts import ToastManager
 from modules.ui_state import ConfigManager
 
@@ -110,6 +108,11 @@ sonos_module = None
 first_state_read_done = False
 shutdown_event = threading.Event()
 _cleanup_done = False
+_demo_reed_scheduler = None
+
+
+def _is_demo_mode() -> bool:
+    return config.getboolean("demo", "enabled", fallback=False)
 
 
 def _theme_sort_key(item: dict) -> tuple:
@@ -800,6 +803,14 @@ def cleanup():
         except Exception as e:
             logger.debug(f"Sonos stop: {e}")
 
+    global _demo_reed_scheduler
+    if _demo_reed_scheduler:
+        try:
+            _demo_reed_scheduler.stop()
+        except Exception as e:
+            logger.debug(f"Demo reed scheduler stop: {e}")
+        _demo_reed_scheduler = None
+
     try:
         runtime.stop()
     except Exception as e:
@@ -807,9 +818,10 @@ def cleanup():
 
 
 def _startup():
-    global gps_module, phase_manager, sensor_manager, victron_module, sonos_module
+    global gps_module, phase_manager, sensor_manager, victron_module, sonos_module, _demo_reed_scheduler
 
-    logger.info("Starting PCCS4 lighting backend...")
+    demo = _is_demo_mode()
+    logger.info("Starting PCCS4 %s backend...", "demo" if demo else "lighting")
     from modules.clock import ensure_clock_for_automation, log_clock_status
 
     log_clock_status(logger)
@@ -817,7 +829,20 @@ def _startup():
 
     runtime.start_hardware()
 
-    gps_module = GPSModule(config, socketio)
+    if demo:
+        from demo.mock_gps import DemoGPSModule
+        from demo.mock_sensors import DemoSensorManager
+        from demo.reed_scheduler import DemoReedScheduler
+
+        gps_module = DemoGPSModule(config, socketio)
+        sensor_manager = DemoSensorManager(config, runtime.arduino.send_command, socketio)
+    else:
+        from modules.gps import GPSModule
+        from modules.sensors import SensorManager
+
+        gps_module = GPSModule(config, socketio)
+        sensor_manager = SensorManager(config, runtime.arduino.send_command, socketio)
+
     set_gps_module(gps_module)
     set_weather_gps(gps_module)
     set_system_gps(gps_module)
@@ -826,13 +851,12 @@ def _startup():
     runtime.phase_manager = phase_manager
     runtime.gps = gps_module
 
-    sensor_manager = SensorManager(config, runtime.arduino.send_command, socketio)
-    runtime.sensor_manager = sensor_manager
-
     gps_module.init_gps()
     gps_module.init_geolocator()
 
-    ensure_clock_for_automation(logger, config)
+    if not demo:
+        ensure_clock_for_automation(logger, config)
+
     runtime.bootstrap_phase()
     runtime.finish_startup()
     phase_manager.start()
@@ -840,34 +864,60 @@ def _startup():
 
     runtime.start_background_threads()
 
-    if getattr(gps_module, "serial", None):
+    if demo:
         gps_module.start_reader()
+        from demo.mock_victron import DemoVictronManager
+        from demo.mock_sonos import DemoSonosManager
 
-    try:
-        from modules.victron import VictronManager
+        try:
+            victron_module = DemoVictronManager(socketio, config, phase_manager=phase_manager)
+            victron_module.start()
+            set_victron_module(victron_module)
+            set_power_victron(victron_module)
+            phase_manager.register_night_listener(victron_module.reset_daily_generation)
+        except Exception as e:
+            logger.error(f"Demo Victron init failed: {e}")
+            victron_module = None
 
-        victron_module = VictronManager(socketio, config, phase_manager=phase_manager)
-        victron_module.start()
-        set_victron_module(victron_module)
-        set_power_victron(victron_module)
-        phase_manager.register_night_listener(victron_module.reset_daily_generation)
-    except Exception as e:
-        logger.error(f"Victron init failed: {e}")
-        victron_module = None
+        try:
+            sonos_module = DemoSonosManager(socketio, config)
+            sonos_module.start()
+            set_sonos_manager(sonos_module)
+        except Exception as e:
+            logger.error(f"Demo Sonos init failed: {e}")
+            sonos_module = None
 
-    try:
-        from modules.sonos import SonosManager
+        _demo_reed_scheduler = DemoReedScheduler(runtime.gpio, config)
+        _demo_reed_scheduler.start()
+    else:
+        if getattr(gps_module, "serial", None):
+            gps_module.start_reader()
 
-        sonos_module = SonosManager(socketio, config)
-        sonos_module.start()
-        set_sonos_manager(sonos_module)
-    except Exception as e:
-        logger.error(f"Sonos init failed: {e}")
-        sonos_module = None
+        try:
+            from modules.victron import VictronManager
+
+            victron_module = VictronManager(socketio, config, phase_manager=phase_manager)
+            victron_module.start()
+            set_victron_module(victron_module)
+            set_power_victron(victron_module)
+            phase_manager.register_night_listener(victron_module.reset_daily_generation)
+        except Exception as e:
+            logger.error(f"Victron init failed: {e}")
+            victron_module = None
+
+        try:
+            from modules.sonos import SonosManager
+
+            sonos_module = SonosManager(socketio, config)
+            sonos_module.start()
+            set_sonos_manager(sonos_module)
+        except Exception as e:
+            logger.error(f"Sonos init failed: {e}")
+            sonos_module = None
 
     threading.Thread(target=network_status_broadcaster, daemon=True).start()
 
-    logger.info("PCCS4 lighting backend ready")
+    logger.info("PCCS4 %s backend ready", "demo" if demo else "lighting")
 
 
 if __name__ == "__main__":

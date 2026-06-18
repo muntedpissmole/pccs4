@@ -1,0 +1,1 @@
+"""PCCS4 demo mode — hardware-free simulation for Ubuntu server deployments."""

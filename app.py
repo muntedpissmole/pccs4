@@ -841,16 +841,8 @@ def cleanup():
 
 
 def _startup():
-    global (
-        gps_module,
-        phase_manager,
-        sensor_manager,
-        victron_module,
-        sonos_module,
-        _demo_reed_scheduler,
-        _demo_module_scheduler,
-        _demo_water_scheduler,
-    )
+    global gps_module, phase_manager, sensor_manager, victron_module, sonos_module
+    global _demo_reed_scheduler, _demo_module_scheduler, _demo_water_scheduler
 
     demo = _is_demo_mode()
     logger.info("Starting PCCS4 %s backend...", "demo" if demo else "lighting")

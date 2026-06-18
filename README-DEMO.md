@@ -18,33 +18,42 @@ Self-contained demo branch for running PCCS on **Ubuntu Server** without Raspber
 
 ```bash
 cd ~/pccs-demo
-chmod +x scripts/run-demo.sh
+chmod +x scripts/run-demo.sh scripts/setup-demo-playlist.py
+./scripts/setup-demo-playlist.py   # optional: refresh CC trance tracks + artwork
 ./scripts/run-demo.sh
 ```
 
 Open `http://<server-ip>:5000` in a browser.
 
-## Playlist (Sonos tile)
+### Running the app
 
-Edit `config/demo_playlist.json` and restart the app:
+Use a **virtualenv** — `scripts/run-demo.sh` creates one, activates it, installs `requirements-demo.txt`, then runs `python app.py` inside that venv.
 
-```json
-{
-  "speaker_name": "Kitchen",
-  "volume": 35,
-  "tracks": [
-    {
-      "title": "Your Song",
-      "artist": "Artist Name",
-      "album": "Album",
-      "duration_seconds": 240,
-      "file": "/path/to/song.mp3"
-    }
-  ]
-}
+Equivalent manual steps:
+
+```bash
+cd ~/pccs-demo
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements-demo.txt
+python app.py
 ```
 
-The `file` field is reserved for future local audio playback. For now, tracks drive the Sonos tile UI (title, artist, progress bar, transport controls).
+Either way, the important part is that `python app.py` runs **inside** the activated venv, not system Python.
+
+## Playlist (Sonos tile)
+
+The demo ships with **10 Creative Commons trance tracks** from [ccMixter](https://ccmixter.org), each with generated artwork in `static/demo/sonos-art/`.
+
+To refresh tracks and art:
+
+```bash
+./scripts/setup-demo-playlist.py
+```
+
+Edit `config/demo_playlist.json` to swap tracks or point `album_art` at your own images under `static/`. Restart the app after changes.
+
+The `file` field points at downloaded MP3s under `static/demo/music/` when available; local audio playback can be wired up later. The Sonos tile already uses title, artist, artwork, progress bar, and transport controls.
 
 ## Configuration
 

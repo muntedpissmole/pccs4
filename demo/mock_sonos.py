@@ -160,7 +160,7 @@ class DemoSonosManager:
                 "track": track.get("title") or "Nothing playing",
                 "artist": track.get("artist") or "",
                 "album": track.get("album") or "",
-                "album_art": None,
+                "album_art": track.get("album_art"),
                 "is_playing": self._playing,
                 "mute": self._muted,
                 "volume": self._volume,

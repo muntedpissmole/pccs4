@@ -1,8 +1,8 @@
 # PCCS4 Demo
 
-A self-contained demo of the Pissmole Camper Control System — runs on Ubuntu Server with no Raspberry Pi hardware. Lights, reed switches, Sonos, battery/solar, water, and GPS are simulated so you can explore the full web UI (lighting, scenes, home dashboard, system tab) as if the camper were real.
+A self-contained demo of the Pissmole Camper Control System — runs on Linux. Lights, reed switches, Sonos, battery/solar, water, and GPS are simulated so you can explore the full web UI (lighting, scenes, home dashboard, system tab).
 
-Reed switches open and close on their own every few hours; the Sonos tile plays through a built-in trance playlist with artwork.
+Reed switches open and close on their own every few hours; the Sonos tile plays through a built-in playlist.
 
 ## Install
 
@@ -23,5 +23,6 @@ The installer sets up the Python venv, `requirements-demo.txt`, a `pccs-demo` sy
 sudo systemctl status pccs-demo
 sudo journalctl -u pccs-demo -f
 ```
+To make sure there's no errors.
 
 After pulling code changes: `sudo systemctl restart pccs-demo`

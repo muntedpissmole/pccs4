@@ -7,7 +7,7 @@
       "artist": "London Grammar",
       "album": "If You Wait",
       "duration_seconds": 243,
-      "album_art": "/static/demo/sonos-art/01-london-grammar-strong.svg",
+      "album_art": "/static/demo/sonos-art/01-london-grammar-strong.jpg",
       "file": "static/demo/music/01-london-grammar-strong.mp3",
       "source_url": "https://ccmixter.org/content/widardizier/widardizier_-_Alone_1.mp3",
       "license": "Creative Commons (ccMixter demo audio)"
@@ -17,7 +17,7 @@
       "artist": "London Grammar",
       "album": "If You Wait",
       "duration_seconds": 245,
-      "album_art": "/static/demo/sonos-art/02-london-grammar-wasting-my-young-years.svg",
+      "album_art": "/static/demo/sonos-art/02-london-grammar-wasting-my-young-years.jpg",
       "file": "static/demo/music/02-london-grammar-wasting-my-young-years.mp3",
       "source_url": "https://ccmixter.org/content/jaspertine/jaspertine_-_Wearing_the_Self_like_a_Hat_11.mp3",
       "license": "Creative Commons (ccMixter demo audio)"
@@ -27,7 +27,7 @@
       "artist": "Florence + The Machine",
       "album": "Lungs",
       "duration_seconds": 256,
-      "album_art": "/static/demo/sonos-art/03-florence-cosmic-love.svg",
+      "album_art": "/static/demo/sonos-art/03-florence-cosmic-love.jpg",
       "file": "static/demo/music/03-florence-cosmic-love.mp3",
       "source_url": "https://ccmixter.org/content/PorchCat/PorchCat_-_Dreams_in_the_Sacred_Cube_1.mp3",
       "license": "Creative Commons (ccMixter demo audio)"
@@ -37,7 +37,7 @@
       "artist": "Alt-J",
       "album": "An Awesome Wave",
       "duration_seconds": 227,
-      "album_art": "/static/demo/sonos-art/04-alt-j-breezeblocks.svg",
+      "album_art": "/static/demo/sonos-art/04-alt-j-breezeblocks.jpg",
       "file": "static/demo/music/04-alt-j-breezeblocks.mp3",
       "source_url": "https://ccmixter.org/content/Mo71/Mo71_-_Switching_Accounts.mp3",
       "license": "Creative Commons (ccMixter demo audio)"
@@ -47,7 +47,7 @@
       "artist": "The xx",
       "album": "xx",
       "duration_seconds": 127,
-      "album_art": "/static/demo/sonos-art/05-the-xx-intro.svg",
+      "album_art": "/static/demo/sonos-art/05-the-xx-intro.jpg",
       "file": "static/demo/music/05-the-xx-intro.mp3",
       "source_url": "https://ccmixter.org/content/Javolenus/Javolenus_-_Weather_Or_Not.mp3",
       "license": "Creative Commons (ccMixter demo audio)"
@@ -57,7 +57,7 @@
       "artist": "Bon Iver",
       "album": "Bon Iver",
       "duration_seconds": 337,
-      "album_art": "/static/demo/sonos-art/06-bon-iver-holocene.svg",
+      "album_art": "/static/demo/sonos-art/06-bon-iver-holocene.jpg",
       "file": "static/demo/music/06-bon-iver-holocene.mp3",
       "source_url": "https://ccmixter.org/content/KungFuFrijters/KungFuFrijters_-_Hawkesbury-Dyarubbin_(Dream_Mix).mp3",
       "license": "Creative Commons (ccMixter demo audio)"
@@ -67,7 +67,7 @@
       "artist": "Daughter",
       "album": "If You Leave",
       "duration_seconds": 283,
-      "album_art": "/static/demo/sonos-art/07-daughter-youth.svg",
+      "album_art": "/static/demo/sonos-art/07-daughter-youth.jpg",
       "file": "static/demo/music/07-daughter-youth.mp3",
       "source_url": "https://ccmixter.org/content/scomber/scomber_-_A_Coffee_and_Cigarette.mp3",
       "license": "Creative Commons (ccMixter demo audio)"
@@ -77,7 +77,7 @@
       "artist": "CHVRCHES",
       "album": "The Bones of What You Believe",
       "duration_seconds": 192,
-      "album_art": "/static/demo/sonos-art/08-chvrches-the-mother-we-share.svg",
+      "album_art": "/static/demo/sonos-art/08-chvrches-the-mother-we-share.jpg",
       "file": "static/demo/music/08-chvrches-the-mother-we-share.mp3",
       "source_url": "https://ccmixter.org/content/airtone/airtone_-_reCycles.mp3",
       "license": "Creative Commons (ccMixter demo audio)"
@@ -87,7 +87,7 @@
       "artist": "Arctic Monkeys",
       "album": "AM",
       "duration_seconds": 272,
-      "album_art": "/static/demo/sonos-art/09-arctic-monkeys-do-i-wanna-know.svg",
+      "album_art": "/static/demo/sonos-art/09-arctic-monkeys-do-i-wanna-know.jpg",
       "file": "static/demo/music/09-arctic-monkeys-do-i-wanna-know.mp3",
       "source_url": "https://ccmixter.org/content/JeffSpeed68/JeffSpeed68_-_Peacemaker.mp3",
       "license": "Creative Commons (ccMixter demo audio)"
@@ -97,7 +97,7 @@
       "artist": "The Lumineers",
       "album": "The Lumineers",
       "duration_seconds": 279,
-      "album_art": "/static/demo/sonos-art/10-lumineers-stubborn-love.svg",
+      "album_art": "/static/demo/sonos-art/10-lumineers-stubborn-love.jpg",
       "file": "static/demo/music/10-lumineers-stubborn-love.mp3",
       "source_url": "https://ccmixter.org/content/SpinOpel/SpinOpel_-_Hot_spring.mp3",
       "license": "Creative Commons (ccMixter demo audio)"

@@ -284,11 +284,17 @@ def proxy_sonos_album_art():
 
 @app.route("/api/wifi")
 def api_wifi():
+    if _is_demo_mode():
+        from demo.mock_wifi import get_demo_wifi_status
+        return jsonify(get_demo_wifi_status())
     return jsonify(get_wifi_status())
 
 
 @app.route("/api/wifi/scan", methods=["POST"])
 def api_wifi_scan():
+    if _is_demo_mode():
+        from demo.mock_wifi import scan_demo_wifi_networks
+        return jsonify(scan_demo_wifi_networks())
     return jsonify(scan_wifi_networks())
 
 
@@ -298,6 +304,9 @@ def api_wifi_connect():
     password = payload.get("password")
     if password is not None:
         password = str(password)
+    if _is_demo_mode():
+        from demo.mock_wifi import connect_demo_wifi
+        return jsonify(connect_demo_wifi(str(payload.get("ssid", "")), password))
     return jsonify(connect_wifi(str(payload.get("ssid", "")), password))
 
 

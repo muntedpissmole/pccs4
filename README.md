@@ -7,7 +7,7 @@ Reed switches open and close on their own every few hours; the Sonos tile plays 
 ## Install
 
 ```bash
-git clone -b demo git@github.com:muntedpissmole/pccs4.git ~/pccs-demo
+git clone -b demo https://github.com/muntedpissmole/pccs4.git ~/pccs-demo
 cd ~/pccs-demo
 chmod +x scripts/install-demo.sh
 sudo ./scripts/install-demo.sh

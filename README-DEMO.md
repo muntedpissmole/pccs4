@@ -14,32 +14,40 @@ Self-contained demo branch for running PCCS on **Ubuntu Server** without Raspber
 | **Water & temps** | Simulated tank level and DS18B20 readings |
 | **Screens** | Brightness tracked in memory (no SSH to remote Pis) |
 
-## Quick start (Ubuntu)
+## Install on Ubuntu Server (one-off)
+
+Clone the demo branch, then run the installer **once**. It creates the Python venv, installs a `pccs-demo` systemd service (enabled + started), and configures nginx on port 80 with WebSocket support for Socket.IO.
 
 ```bash
+git clone -b demo git@github.com:muntedpissmole/pccs4.git ~/pccs-demo
 cd ~/pccs-demo
-chmod +x scripts/run-demo.sh scripts/setup-demo-playlist.py
-./scripts/setup-demo-playlist.py   # optional: refresh CC trance tracks + artwork
-./scripts/run-demo.sh
+chmod +x scripts/install-demo.sh
+sudo ./scripts/install-demo.sh
 ```
 
-Open `http://<server-ip>:5000` in a browser.
+Open `http://<server-ip>/` in a browser (nginx proxies to the app on `127.0.0.1:5000`).
 
-### Running the app
+Optional environment overrides:
 
-Use a **virtualenv** — `scripts/run-demo.sh` creates one, activates it, installs `requirements-demo.txt`, then runs `python app.py` inside that venv.
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `INSTALL_DIR` | repo root | Where `app.py` lives |
+| `SERVER_NAME` | `_` | nginx `server_name` |
+| `SERVICE_USER` | `$SUDO_USER` | Unix user for the service |
 
-Equivalent manual steps:
+After code changes:
 
 ```bash
-cd ~/pccs-demo
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements-demo.txt
-python app.py
+cd ~/pccs-demo && git pull
+sudo systemctl restart pccs-demo
 ```
 
-Either way, the important part is that `python app.py` runs **inside** the activated venv, not system Python.
+Service management:
+
+```bash
+sudo systemctl status pccs-demo
+sudo journalctl -u pccs-demo -f
+```
 
 ## Playlist (Sonos tile)
 
@@ -48,12 +56,13 @@ The demo ships with **10 Creative Commons trance tracks** from [ccMixter](https:
 To refresh tracks and art:
 
 ```bash
-./scripts/setup-demo-playlist.py
+~/pccs-demo/venv/bin/python ~/pccs-demo/scripts/setup-demo-playlist.py
+sudo systemctl restart pccs-demo
 ```
 
-Edit `config/demo_playlist.json` to swap tracks or point `album_art` at your own images under `static/`. Restart the app after changes.
+Edit `config/demo_playlist.json` to swap tracks or point `album_art` at your own images under `static/`. Restart the service after changes.
 
-The `file` field points at downloaded MP3s under `static/demo/music/` when available; local audio playback can be wired up later. The Sonos tile already uses title, artist, artwork, progress bar, and transport controls.
+The `file` field points at downloaded MP3s under `static/demo/music/`. The Sonos tile uses title, artist, artwork, progress bar, and transport controls.
 
 ## Configuration
 
@@ -63,6 +72,8 @@ Demo settings live in `config/pccs.conf` under `[demo]`:
 - `latitude` / `longitude` / `timezone` / `suburb` — location for sun times and GPS tile
 - `reed_toggle_min_hours` / `reed_toggle_max_hours` — random reed event interval
 - `sonos_autoplay` — start playback on launch
+
+The installer sets `host = 127.0.0.1` and `debug = false` in `pccs.conf`.
 
 ## Git branch
 

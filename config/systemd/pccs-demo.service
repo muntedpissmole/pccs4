@@ -1,0 +1,23 @@
+[Unit]
+Description=PCCS4 Demo — self-contained camper control simulation
+Documentation=file://@INSTALL_DIR@/README-DEMO.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@SERVICE_USER@
+Group=@SERVICE_GROUP@
+WorkingDirectory=@INSTALL_DIR@
+Environment=PATH=@INSTALL_DIR@/venv/bin
+ExecStart=@INSTALL_DIR@/venv/bin/python app.py
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Hardening (compatible with demo; no hardware access needed)
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

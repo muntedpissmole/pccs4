@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# Remove everything installed by scripts/install-demo.sh.
+#
+# Run from the demo repo (or set INSTALL_DIR):
+#   cd ~/pccs-demo
+#   chmod +x scripts/uninstall-demo.sh
+#   sudo ./scripts/uninstall-demo.sh
+#
+# Stops the service, removes the systemd unit, venv, logs, firewall rule,
+# and any legacy nginx site from older installers. Does not delete the repo
+# or uninstall system packages (python3-venv, etc.).
+set -euo pipefail
+
+SERVICE_NAME="pccs-demo"
+NGINX_SITE="pccs-demo"
+APP_PORT="${APP_PORT:-5000}"
+INSTALL_DIR="${INSTALL_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+
+if [[ $EUID -ne 0 ]]; then
+    echo "Run as root (e.g. sudo ./scripts/uninstall-demo.sh)" >&2
+    exit 1
+fi
+
+close_firewall_port() {
+    local port="$1"
+    if command -v ufw >/dev/null 2>&1; then
+        echo "==> Removing ufw rule for port $port/tcp (if present)"
+        ufw delete allow "${port}/tcp" >/dev/null 2>&1 || true
+    fi
+    if command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld; then
+        echo "==> Removing firewalld rule for port $port/tcp (if present)"
+        firewall-cmd --permanent --remove-port="${port}/tcp" >/dev/null 2>&1 || true
+        firewall-cmd --reload >/dev/null 2>&1 || true
+    fi
+}
+
+remove_nginx_site() {
+    local removed=false
+    for path in \
+        "/etc/nginx/sites-enabled/$NGINX_SITE" \
+        "/etc/nginx/sites-available/$NGINX_SITE"; do
+        if [[ -e "$path" ]]; then
+            rm -f "$path"
+            removed=true
+        fi
+    done
+    if $removed && command -v nginx >/dev/null 2>&1; then
+        echo "==> Reloading nginx after removing legacy $NGINX_SITE site"
+        nginx -t >/dev/null 2>&1 && systemctl reload nginx >/dev/null 2>&1 || true
+    fi
+}
+
+echo "==> PCCS4 demo uninstall"
+echo "    Directory : $INSTALL_DIR"
+
+if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+    echo "==> Stopping $SERVICE_NAME"
+    systemctl stop "$SERVICE_NAME"
+fi
+
+if systemctl is-enabled --quiet "$SERVICE_NAME" 2>/dev/null; then
+    echo "==> Disabling $SERVICE_NAME"
+    systemctl disable "$SERVICE_NAME"
+fi
+
+UNIT_DST="/etc/systemd/system/${SERVICE_NAME}.service"
+if [[ -f "$UNIT_DST" ]]; then
+    echo "==> Removing systemd unit"
+    rm -f "$UNIT_DST"
+    systemctl daemon-reload
+    systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
+fi
+
+remove_nginx_site
+close_firewall_port "$APP_PORT"
+
+if [[ -d "$INSTALL_DIR/venv" ]]; then
+    echo "==> Removing Python virtualenv"
+    rm -rf "$INSTALL_DIR/venv"
+fi
+
+if [[ -d "$INSTALL_DIR/logs" ]]; then
+    echo "==> Removing logs directory"
+    rm -rf "$INSTALL_DIR/logs"
+fi
+
+CONF="$INSTALL_DIR/config/pccs.conf"
+if [[ -f "$CONF" ]] && grep -q '^host = ' "$CONF"; then
+    echo "==> Resetting host in config/pccs.conf"
+    sed -i 's/^host = .*/host = 0.0.0.0/' "$CONF"
+    sed -i '/^# Set by install-demo.sh/d' "$CONF"
+fi
+
+echo ""
+echo "PCCS4 demo uninstalled."
+echo "  Repo at $INSTALL_DIR was kept — delete the directory manually if you no longer need it."

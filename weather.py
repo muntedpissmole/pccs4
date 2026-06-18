@@ -72,6 +72,12 @@ def set_gps_module(gps_module) -> None:
     _gps_module = gps_module
 
 
+def invalidate_cache() -> None:
+    """Drop cached forecast (e.g. after demo GPS coordinates change)."""
+    _CACHE["ts"] = 0.0
+    _CACHE["payload"] = None
+
+
 def _coords() -> tuple[float, float]:
     if _gps_module is not None:
         state = _gps_module.get_state()

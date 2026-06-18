@@ -18,8 +18,8 @@ Self-contained demo branch for running PCCS on **Ubuntu Server** without Raspber
 
 ```bash
 cd ~/pccs-demo
-chmod +x bin/run-demo.sh
-./bin/run-demo.sh
+chmod +x scripts/run-demo.sh
+./scripts/run-demo.sh
 ```
 
 Open `http://<server-ip>:5000` in a browser.

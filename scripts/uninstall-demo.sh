@@ -65,11 +65,9 @@ if [[ -d "$INSTALL_DIR/logs" ]]; then
     rm -rf "$INSTALL_DIR/logs"
 fi
 
-CONF="$INSTALL_DIR/config/pccs.conf"
-if [[ -f "$CONF" ]] && grep -q '^host = ' "$CONF"; then
-    echo "==> Resetting host in config/pccs.conf"
-    sed -i 's/^host = .*/host = 0.0.0.0/' "$CONF"
-    sed -i '/^# Set by install-demo.sh/d' "$CONF"
+if [[ -f "$INSTALL_DIR/config/pccs.local.conf" ]]; then
+    echo "==> Removing config/pccs.local.conf"
+    rm -f "$INSTALL_DIR/config/pccs.local.conf"
 fi
 
 echo ""

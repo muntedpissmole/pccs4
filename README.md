@@ -36,6 +36,15 @@ git pull origin demo
 sudo systemctl restart pccs-demo
 ```
 
+If `git pull` complains about `config/pccs.conf`, an older install edited that file directly. Discard the local diff, pull, then re-run the installer (it now writes `config/pccs.local.conf` instead, which git ignores):
+
+```bash
+git checkout -- config/pccs.conf
+git pull origin demo
+sudo ./scripts/install-demo.sh
+sudo systemctl restart pccs-demo
+```
+
 If dependencies or the demo playlist changed, re-run the installer (safe to run again):
 
 ```bash

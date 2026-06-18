@@ -68,21 +68,17 @@ if [[ ! -f "$INSTALL_DIR/config/demo_playlist.json" ]] || [[ ! -d "$INSTALL_DIR/
     sudo -u "$SERVICE_USER" "$INSTALL_DIR/venv/bin/python" "$INSTALL_DIR/scripts/setup-demo-playlist.py"
 fi
 
-echo "==> Configuring app to listen on all interfaces (port $APP_PORT)"
-CONF="$INSTALL_DIR/config/pccs.conf"
-if grep -q '^host = ' "$CONF"; then
-    sed -i 's/^host = .*/host = 0.0.0.0/' "$CONF"
-else
-    printf '\n# Set by install-demo.sh — listen on all interfaces.\nhost = 0.0.0.0\n' >> "$CONF"
-fi
-if grep -q '^port = ' "$CONF"; then
-    sed -i "s/^port = .*/port = $APP_PORT/" "$CONF"
-else
-    printf 'port = %s\n' "$APP_PORT" >> "$CONF"
-fi
-if grep -q '^debug = ' "$CONF"; then
-    sed -i 's/^debug = .*/debug = false/' "$CONF"
-fi
+echo "==> Writing local config overrides (config/pccs.local.conf)"
+LOCAL_CONF="$INSTALL_DIR/config/pccs.local.conf"
+cat > "$LOCAL_CONF" <<EOF
+# Written by install-demo.sh — machine-specific overrides (gitignored).
+[system]
+host = 0.0.0.0
+port = $APP_PORT
+debug = false
+EOF
+chown "$SERVICE_USER:$SERVICE_GROUP" "$LOCAL_CONF"
+chmod 644 "$LOCAL_CONF"
 
 chown -R "$SERVICE_USER:$SERVICE_GROUP" "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR/logs"

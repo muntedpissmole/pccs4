@@ -16,6 +16,9 @@ __pycache__/
 config/active_theme.json
 config/active_dark_mode.json
 
+# Machine-specific overrides written by scripts/install-demo.sh
+config/pccs.local.conf
+
 # Logs and temporary files
 logs/
 *.log

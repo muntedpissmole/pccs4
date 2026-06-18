@@ -11,15 +11,19 @@ class PccsConfig:
         self._config = configparser.ConfigParser()
         self._config.optionxform = str
 
-        # Path to pccs.conf
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.path = os.path.join(base_dir, 'config', 'pccs.conf')
+        self.local_path = os.path.join(base_dir, 'config', 'pccs.local.conf')
 
         if os.path.exists(self.path):
             self._config.read(self.path, encoding='utf-8')
             logger.info(f"📋 Loaded config file: {self.path}")
         else:
             logger.warning(f"⚠️ Config file not found: {self.path}")
+
+        if os.path.exists(self.local_path):
+            self._config.read(self.local_path, encoding='utf-8')
+            logger.info(f"📋 Loaded local config overrides: {self.local_path}")
 
     def get(self, section, key, fallback=None):
         try:

@@ -249,7 +249,7 @@ html.light #tile-power .water-tile__gauge-markers span {
 .power-tile__marker-labels {
     position: relative;
     height: 1em;
-    padding-bottom: var(--space-datetime-curve-pad-y);
+    padding-bottom: 3em;
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     color: var(--color-text-muted);

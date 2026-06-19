@@ -9,6 +9,7 @@ set -euo pipefail
 
 INSTALL_DIR="${INSTALL_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 BRANCH="${BRANCH:-demo}"
+SERVICE_NAME="pccs-demo"
 
 if [[ $EUID -ne 0 ]]; then
     echo "Run as root (e.g. sudo ./scripts/update-demo.sh)" >&2
@@ -42,5 +43,19 @@ fi
 echo "==> Pulling origin/$BRANCH"
 sudo -u "$REPO_USER" git pull origin "$BRANCH"
 
+UNIT_DST="/etc/systemd/system/${SERVICE_NAME}.service"
+RESTART_AFTER=false
+if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+    RESTART_AFTER=true
+elif [[ ! -f "$UNIT_DST" ]]; then
+    # First install via update — start the service once setup completes.
+    RESTART_AFTER=true
+fi
+
 echo "==> Refreshing demo install"
-exec "$INSTALL_DIR/scripts/install-demo.sh"
+PCCS_DEMO_SKIP_SERVICE_RESTART=1 "$INSTALL_DIR/scripts/install-demo.sh"
+
+if $RESTART_AFTER; then
+    echo "==> Restarting $SERVICE_NAME"
+    systemctl restart "$SERVICE_NAME"
+fi

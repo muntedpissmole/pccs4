@@ -90,11 +90,11 @@ _MODULES: list[dict[str, Any]] = [
 ]
 
 _DEMO_CORE: dict[str, Any] = {
-    "hostname": "pissmole",
-    "model": "Raspberry Pi 5 Model B Rev 1.0",
-    "os": "Linux 6.18.33+rpt-rpi-2712",
-    "kernel": "6.18.33+rpt-rpi-2712",
-    "cpu_model": "Broadcom BCM2712 (4× Cortex-A76)",
+    "hostname": "pccs-demo",
+    "model": "Unknown",
+    "os": "Linux",
+    "kernel": "unknown",
+    "cpu_model": "Unknown",
     "cpu_cores": 4,
     "cpu_threads": 4,
     "load_avg": "0.18 0.14 0.11",
@@ -242,15 +242,78 @@ def _read_load_avg() -> str | None:
         return None
 
 
+_DMI_USELESS = frozenset({
+    "",
+    "to be filled by o.e.m.",
+    "default string",
+    "system product name",
+    "not specified",
+    "all series",
+    "product name",
+    "base board",
+})
+
+
+def _read_sys_text(path: str | Path) -> str | None:
+    try:
+        raw = Path(path).read_text(encoding="utf-8", errors="ignore").strip()
+        return raw or None
+    except OSError:
+        return None
+
+
+def _clean_dmi_value(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.strip()
+    if cleaned.lower() in _DMI_USELESS:
+        return None
+    return cleaned
+
+
+def _read_dmi_model() -> str | None:
+    for dmi_root in (Path("/sys/class/dmi/id"), Path("/sys/devices/virtual/dmi/id")):
+        if not dmi_root.is_dir():
+            continue
+
+        vendor = _clean_dmi_value(_read_sys_text(dmi_root / "sys_vendor"))
+        product = _clean_dmi_value(_read_sys_text(dmi_root / "product_name"))
+        board = _clean_dmi_value(_read_sys_text(dmi_root / "board_name"))
+
+        name = product or board
+        if not name:
+            continue
+        if vendor and vendor.lower() not in name.lower():
+            return f"{vendor} {name}"
+        return name
+
+    if shutil.which("dmidecode"):
+        try:
+            result = subprocess.check_output(
+                ["dmidecode", "-s", "system-product-name"],
+                stderr=subprocess.DEVNULL,
+                timeout=3,
+                text=True,
+            ).strip()
+            cleaned = _clean_dmi_value(result)
+            if cleaned:
+                return cleaned
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    return None
+
+
 def _read_model() -> str | None:
     for path in ("/proc/device-tree/model", "/sys/firmware/devicetree/base/model"):
         try:
-            raw = Path(path).read_bytes().decode("utf-8", errors="ignore").strip("\x00")
+            raw = Path(path).read_bytes().decode("utf-8", errors="ignore").strip("\x00").strip()
             if raw:
                 return raw
         except OSError:
             continue
-    return None
+
+    return _read_dmi_model()
 
 
 def _read_cpu_topology() -> tuple[int | None, int | None]:
@@ -267,8 +330,8 @@ def _read_cpu_topology() -> tuple[int | None, int | None]:
         elif line.startswith("physical id"):
             physical_ids.add(line.split(":", 1)[1].strip())
 
-    cores = len(physical_ids) or None
     threads = len(processor_ids) or None
+    cores = len(physical_ids) or threads
     return cores, threads
 
 
@@ -394,8 +457,7 @@ def get_core_info() -> dict[str, Any]:
     core["throttling_raw"] = throttle_raw
     core["throttling_ok"] = throttle_ok
 
-    if model:
-        core["model"] = model
+    core["model"] = model or core.get("model") or "Unknown"
     if cores:
         core["cpu_cores"] = cores
     if threads:
@@ -404,6 +466,8 @@ def get_core_info() -> dict[str, Any]:
     cpu_model = _read_cpu_model()
     if cpu_model:
         core["cpu_model"] = cpu_model
+    elif model and core.get("cpu_model") == "Unknown":
+        core["cpu_model"] = platform.machine() or core["cpu_model"]
 
     load_avg = _read_load_avg()
     if load_avg:

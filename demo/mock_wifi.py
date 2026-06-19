@@ -39,14 +39,6 @@ _DEMO_NETWORKS = [
         "saved": False,
         "secured": True,
     },
-    {
-        "ssid": "iPhone (Joel)",
-        "signal": 36,
-        "security": "WPA2",
-        "band": "5 GHz",
-        "saved": False,
-        "secured": True,
-    },
 ]
 
 _connected_ssid = "CamperNet"

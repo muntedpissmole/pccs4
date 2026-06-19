@@ -102,7 +102,9 @@ chmod 644 "$UNIT_DST"
 
 systemctl daemon-reload
 systemctl enable "$SERVICE_NAME"
-systemctl restart "$SERVICE_NAME"
+if [[ "${PCCS_DEMO_SKIP_SERVICE_RESTART:-}" != "1" ]]; then
+    systemctl restart "$SERVICE_NAME"
+fi
 
 open_firewall_port "$APP_PORT"
 

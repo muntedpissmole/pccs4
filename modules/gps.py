@@ -174,6 +174,12 @@ class GPSModule:
                 "speed_kmh": None,
                 "altitude_m": None,
             })
+        if self.config.getboolean('gps', 'pin_location', fallback=False):
+            lat, lon = self.get_fallback_coords()
+            state["latitude"] = lat
+            state["longitude"] = lon
+            state["suburb"] = self.get_fallback_name()
+            state["using_fallback"] = True
         return state
 
     def _parse_lat_lon(self, msg) -> Tuple[Optional[float], Optional[float]]:
@@ -412,8 +418,11 @@ class GPSModule:
                 self._update_sun_times()
 
     def _update_sun_times(self) -> bool:
-        lat = self.state.get("latitude")
-        lon = self.state.get("longitude")
+        if self.config.getboolean('gps', 'pin_location', fallback=False):
+            lat, lon = self.get_fallback_coords()
+        else:
+            lat = self.state.get("latitude")
+            lon = self.state.get("longitude")
         if not lat or not lon:
             return False
         try:
@@ -444,6 +453,8 @@ class GPSModule:
 
     def _update_suburb(self) -> None:
         """Update suburb name using online Nominatim or offline fallback towns."""
+        if self.config.getboolean('gps', 'pin_location', fallback=False):
+            return
         lat = self.state.get("latitude")
         lon = self.state.get("longitude")
         if not lat or not lon or self.state.get("force_no_fix"):

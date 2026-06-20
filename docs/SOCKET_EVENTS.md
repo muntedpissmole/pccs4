@@ -148,9 +148,9 @@ Full GPS telemetry from `modules/gps` (also drives home location tile).
 {
   "fix_quality": 2,
   "satellites": 9,
-  "latitude": -37.191,
-  "longitude": 145.711,
-  "suburb": "Alexandra",
+  "latitude": -37.8136,
+  "longitude": 144.9631,
+  "suburb": "Melbourne CBD",
   "hardware_missing": false
 }
 ```

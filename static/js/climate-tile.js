@@ -41,6 +41,7 @@
     let sensorFridge = null;
     let sensorFreezer = null;
     let forecastOutside = null;
+    let demoSensorMode = false;
     let lastWeather = {};
     let layoutParams = null;
     let curveReady = false;
@@ -245,10 +246,23 @@
         els.weatherIcon.className = `fa-solid ${icon} tile__icon`;
     }
 
+    function clampToDailyRange(temp) {
+        if (temp == null || Number.isNaN(Number(temp))) return temp;
+        const lo = lastWeather.temp_min;
+        const hi = lastWeather.temp_max;
+        if (lo == null || hi == null) return temp;
+        const min = Number(lo);
+        const max = Number(hi);
+        if (Number.isNaN(min) || Number.isNaN(max) || max <= min) return temp;
+        return Math.max(min, Math.min(max, Number(temp)));
+    }
+
     function currentOutsideTemp() {
-        if (sensorOutside != null) return Number(sensorOutside);
-        if (forecastOutside != null) return Number(forecastOutside);
-        return null;
+        let temp = null;
+        if (sensorOutside != null) temp = Number(sensorOutside);
+        else if (forecastOutside != null) temp = Number(forecastOutside);
+        if (temp == null || Number.isNaN(temp)) return null;
+        return demoSensorMode ? clampToDailyRange(temp) : temp;
     }
 
     function applyForecastPath(pathD, layout) {
@@ -1049,6 +1063,8 @@
 
     function applySensorTemps(data) {
         if (!data) return;
+
+        if (data.demo_mode) demoSensorMode = true;
 
         if (data.outside_temp_c != null) {
             sensorOutside = data.outside_temp_c;

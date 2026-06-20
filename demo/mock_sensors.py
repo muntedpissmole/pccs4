@@ -46,12 +46,32 @@ class DemoSensorManager:
                 logger.debug(f"Demo sensors: {e}")
             time.sleep(30.0)
 
+    def _outside_temp_c(self, elapsed_s: float) -> float:
+        """Drift within today's forecast min/max so the live reading matches the daily range."""
+        try:
+            from weather import get_weather_status
+
+            wx = get_weather_status()
+            t_min = wx.get("temp_min")
+            t_max = wx.get("temp_max")
+            if t_min is not None and t_max is not None:
+                lo = float(t_min)
+                hi = float(t_max)
+                if hi > lo:
+                    phase = 0.5 + 0.5 * math.sin(elapsed_s / 1200.0)
+                    return lo + (hi - lo) * phase
+                return lo
+        except Exception as e:
+            logger.debug(f"Demo outside temp from forecast: {e}")
+
+        return 18.0 + math.sin(elapsed_s / 1200.0) * 4.0
+
     def update_sensors(self):
         t = time.time() - self._start
         water_pct = current_water_level_pct()
         water_pct = max(0.0, min(100.0, water_pct + math.sin(t / 900.0) * 1.5))
 
-        outside = 18.0 + math.sin(t / 1200.0) * 4.0
+        outside = self._outside_temp_c(t)
         fridge = 4.0 + math.sin(t / 800.0) * 0.4
         freezer = -18.0 + math.sin(t / 700.0) * 0.5
 

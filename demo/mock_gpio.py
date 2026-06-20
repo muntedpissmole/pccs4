@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import random
 
 logger = logging.getLogger("pccs")
 
@@ -105,6 +106,14 @@ class DemoGPIODeviceManager:
                 self.reed_states[name] = closed
                 self.reed_to_light_map[name] = controls
                 logger.debug(f"🚪 Demo reed: {name} → {'closed' if closed else 'open'}")
+
+            open_reeds = [name for name, closed in self.reed_states.items() if not closed]
+            if not open_reeds and self.reeds:
+                count = random.randint(1, min(2, len(self.reeds)))
+                opened = random.sample(list(self.reeds.keys()), count)
+                for name in opened:
+                    self.set_reed_closed(name, False)
+                logger.info(f"🚪 Demo startup — opened {count} panel(s): {', '.join(opened)}")
 
         logger.info(
             f"🏭 Demo GPIO initialized → {len(self.relays)} relay(s), "

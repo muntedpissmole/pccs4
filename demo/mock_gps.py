@@ -37,10 +37,10 @@ class DemoGPSModule:
         lat = config.getfloat("demo", "latitude", fallback=None)
         lon = config.getfloat("demo", "longitude", fallback=None)
         if lat is None or lon is None:
-            lat = config.getfloat("gps", "fallback_latitude", fallback=-37.191)
-            lon = config.getfloat("gps", "fallback_longitude", fallback=145.711)
+            lat = config.getfloat("gps", "fallback_latitude", fallback=-37.8136)
+            lon = config.getfloat("gps", "fallback_longitude", fallback=144.9631)
 
-        suburb = config.get("demo", "suburb", fallback=config.get("gps", "fallback_name", fallback="Demo"))
+        suburb = config.get("demo", "suburb", fallback=config.get("gps", "fallback_name", fallback="Melbourne CBD"))
         self._ip_geolocation_enabled = config.getboolean("demo", "ip_geolocation", fallback=True)
 
         self.state = {
@@ -53,7 +53,7 @@ class DemoGPSModule:
             "fix_quality": 1,
             "hdop": 1.2,
             "speed_kmh": 0.0,
-            "altitude_m": 120.0,
+            "altitude_m": 12.0,
             "suburb": suburb,
             "timezone": self.fallback_timezone,
             "last_known_suburb": suburb,

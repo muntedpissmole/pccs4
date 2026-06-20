@@ -148,10 +148,18 @@ class DemoSonosManager:
         self._track_started_at = time.time()
         logger.info(f"🎵 Demo Sonos → now playing: {self._current_track().get('title')}")
 
+    def _live_position(self) -> int:
+        track = self._current_track()
+        duration = int(track.get("duration_seconds") or 0)
+        if not self._playing or duration <= 0:
+            return self._position
+        return min(int(time.time() - self._track_started_at), duration)
+
     def _build_state(self) -> dict:
         with self._lock:
             track = self._current_track()
             duration = int(track.get("duration_seconds") or 0)
+            position = self._live_position()
             return {
                 "enabled": True,
                 "source": "demo",
@@ -164,8 +172,10 @@ class DemoSonosManager:
                 "is_playing": self._playing,
                 "mute": self._muted,
                 "volume": self._volume,
-                "position": self._position,
+                "position": position,
+                "elapsed_seconds": position,
                 "duration": duration,
+                "duration_seconds": duration,
             }
 
     def _emit_state(self):

@@ -7,9 +7,9 @@
     const DAY_MINUTES = 1440;
     const SUN_ANIM_MS = 680;
 
-    /** Known IANA zones → coords (PCCS camper default: Alexandra, VIC). */
+    /** Known IANA zones → coords (PCCS demo default: Melbourne CBD). */
     const TIMEZONE_COORDS = {
-        'Australia/Melbourne': { lat: -37.191, lng: 145.711 },
+        'Australia/Melbourne': { lat: -37.8136, lng: 144.9631 },
         'Australia/Sydney': { lat: -33.8688, lng: 151.2093 },
         'Australia/Brisbane': { lat: -27.4698, lng: 153.0251 },
         'Australia/Hobart': { lat: -42.8821, lng: 147.3272 },
@@ -30,7 +30,7 @@
         }
 
         if (tz.startsWith('Australia/')) {
-            return { lat: -37.191, lng: 145.711 };
+            return { lat: -37.8136, lng: 144.9631 };
         }
 
         const lng = (-new Date().getTimezoneOffset() / 60) * 15;

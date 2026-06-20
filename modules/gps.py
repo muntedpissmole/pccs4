@@ -533,8 +533,8 @@ class GPSModule:
     # ====================== FALLBACK ACCESSORS (Single Source of Truth) ======================
     def get_fallback_coords(self) -> tuple[float, float]:
         """Return canonical fallback latitude/longitude from [gps] section"""
-        lat = self.config.getfloat('gps', 'fallback_latitude', fallback=-37.191)
-        lon = self.config.getfloat('gps', 'fallback_longitude', fallback=145.711)
+        lat = self.config.getfloat('gps', 'fallback_latitude', fallback=-37.8136)
+        lon = self.config.getfloat('gps', 'fallback_longitude', fallback=144.9631)
         return lat, lon
 
     def get_fallback_timezone(self) -> str:
@@ -543,7 +543,7 @@ class GPSModule:
 
     def get_fallback_name(self) -> str:
         """Return fallback location name"""
-        return self.config.get('gps', 'fallback_name', fallback='Alexandra')
+        return self.config.get('gps', 'fallback_name', fallback='Melbourne CBD')
 
     def get_fallback_data(self) -> dict:
         """Convenience: return all fallback info"""

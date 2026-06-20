@@ -95,20 +95,38 @@ class DemoVictronManager:
     def get_state(self) -> dict:
         return copy.deepcopy(self.state)
 
+    def _solar_day_factor(self) -> float:
+        """0.0 below the horizon, ~1.0 at solar noon."""
+        pm = self.phase_manager
+        if pm is None:
+            return 0.0
+        try:
+            use_fallback = not pm._has_valid_gps()
+            sunrise, sunset, _, now = pm._get_sun_times(use_fallback=use_fallback)
+            if now < sunrise or now >= sunset:
+                return 0.0
+            day_seconds = (sunset - sunrise).total_seconds()
+            if day_seconds <= 0:
+                return 0.0
+            elapsed = (now - sunrise).total_seconds()
+            return max(0.0, math.sin(math.pi * elapsed / day_seconds))
+        except Exception:
+            return 0.0
+
     def _apply_variation(self, initial: bool = False) -> None:
         t = 0.0 if initial else time.time() - self._start
-        hour = max(0.05, math.sin(t / 180.0) * 0.5 + 0.5)
+        day_factor = self._solar_day_factor()
 
         base_soc = self.config.getfloat("demo", "battery_soc", fallback=_DEMO_SHUNT["soc"])
         soc = max(45.0, min(99.0, base_soc + math.sin(t / 600.0) * 4.0))
-        solar_w = int(20 + hour * 180)
+        solar_w = int(day_factor * 200)
         solar_a = round(solar_w / 21.5, 1) if solar_w else 0.0
-        current = round(-1.2 - hour * 3.5, 1)
+        current = round(-1.2 - day_factor * 3.5, 1)
         voltage = round(12.6 + soc / 100.0 * 1.1, 2)
         temp = round(20.0 + math.sin(t / 900.0) * 2.0, 1)
         now = _now_iso()
 
-        if not initial:
+        if not initial and solar_w > 0:
             self._yield_today_wh += solar_w / 3600.0 * 5.0
 
         shunt = copy.deepcopy(_DEMO_SHUNT)

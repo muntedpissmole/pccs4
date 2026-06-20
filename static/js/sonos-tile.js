@@ -5,7 +5,7 @@
     'use strict';
 
     const POLL_INTERVAL_MS = 3000;
-    const TICK_INTERVAL_MS = 1000;
+    const PROGRESS_SYNC_DRIFT_S = 1.5;
 
     const els = {
         art: document.getElementById('sonos-art'),
@@ -41,6 +41,13 @@
     let localPlaying = false;
     let activeSpeaker = null;
     let socketConnected = false;
+    let progressAnchor = {
+        elapsed: 0,
+        duration: 0,
+        syncedAt: 0,
+        playing: false,
+    };
+    let progressRafId = 0;
 
     function getSocket() {
         return window.PCCS4?.socket ?? null;
@@ -190,11 +197,31 @@
         setControlsDisabled(false);
     }
 
-    function setProgress(elapsed, duration) {
+    function syncProgressAnchor(elapsed, duration, playing) {
+        progressAnchor = {
+            elapsed: Math.max(0, Number(elapsed) || 0),
+            duration: Math.max(0, Number(duration) || 0),
+            syncedAt: performance.now(),
+            playing: Boolean(playing),
+        };
+    }
+
+    function getInterpolatedElapsed() {
+        if (!progressAnchor.playing) {
+            return progressAnchor.elapsed;
+        }
+        const delta = (performance.now() - progressAnchor.syncedAt) / 1000;
+        return Math.min(progressAnchor.elapsed + delta, progressAnchor.duration);
+    }
+
+    function setProgressVisual(elapsed, duration) {
         const dur = Math.max(0, Number(duration) || 0);
         const el = Math.max(0, Math.min(Number(elapsed) || 0, dur));
         const pct = dur > 0 ? (el / dur) * 100 : 0;
         const rem = Math.max(0, dur - el);
+        const displayElapsed = Math.floor(el);
+
+        els.progress?.classList.toggle('is-playing', progressAnchor.playing && dur > 0);
 
         if (els.progressFill) {
             els.progressFill.style.setProperty('--sonos-progress', `${pct}%`);
@@ -202,8 +229,37 @@
         if (els.progress) {
             els.progress.setAttribute('aria-valuenow', String(Math.round(pct)));
         }
-        if (els.elapsed) els.elapsed.textContent = formatTime(el);
+        if (els.elapsed) els.elapsed.textContent = formatTime(displayElapsed);
         if (els.remaining) els.remaining.textContent = formatRemaining(rem);
+    }
+
+    function setProgress(elapsed, duration) {
+        syncProgressAnchor(elapsed, duration, localPlaying);
+        setProgressVisual(elapsed, duration);
+    }
+
+    function reconcileProgress(elapsed, duration, playing) {
+        const dur = Math.max(0, Number(duration) || 0);
+        const serverElapsed = Math.max(0, Number(elapsed) || 0);
+        const trackChanged = dur !== progressAnchor.duration;
+        const localElapsed = getInterpolatedElapsed();
+
+        if (!playing || trackChanged || Math.abs(localElapsed - serverElapsed) > PROGRESS_SYNC_DRIFT_S) {
+            syncProgressAnchor(serverElapsed, dur, playing);
+            setProgressVisual(serverElapsed, dur);
+            return;
+        }
+
+        progressAnchor.playing = true;
+        progressAnchor.duration = dur;
+        setProgressVisual(localElapsed, dur);
+    }
+
+    function progressAnimationLoop() {
+        if (progressAnchor.playing && progressAnchor.duration > 0) {
+            setProgressVisual(getInterpolatedElapsed(), progressAnchor.duration);
+        }
+        progressRafId = requestAnimationFrame(progressAnimationLoop);
     }
 
     function handleStatus(data) {
@@ -240,7 +296,11 @@
         if (state.muted !== undefined) setMuteState(state.muted);
         if (state.volume !== undefined && state.volume !== null) setVolume(state.volume);
 
-        setProgress(state.elapsed_seconds ?? 0, state.duration_seconds ?? 0);
+        reconcileProgress(
+            state.elapsed_seconds ?? 0,
+            state.duration_seconds ?? 0,
+            state.playing
+        );
     }
 
     function onSocketUpdate(data) {
@@ -320,16 +380,6 @@
         });
     }
 
-    function tickLocalProgress() {
-        if (!localPlaying) return;
-        const elapsedText = els.elapsed?.textContent || '0:00';
-        const remainingText = (els.remaining?.textContent || '-0:00').replace('-', '');
-        const elapsed = elapsedText.split(':').reduce((m, s) => m * 60 + Number(s), 0);
-        const remaining = remainingText.split(':').reduce((m, s) => m * 60 + Number(s), 0);
-        if (remaining <= 0) return;
-        setProgress(elapsed + 1, elapsed + remaining);
-    }
-
     function registerSocket(socket) {
         if (!socket) return;
         socket.on('connect', () => {
@@ -344,7 +394,7 @@
     bindControls();
     fetchStatus().then(refreshMarquees);
     setInterval(fetchStatus, POLL_INTERVAL_MS);
-    setInterval(tickLocalProgress, TICK_INTERVAL_MS);
+    progressRafId = requestAnimationFrame(progressAnimationLoop);
 
     const socket = getSocket();
     if (socket) {

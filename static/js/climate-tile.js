@@ -35,8 +35,8 @@
     if (!els.outside) return;
 
     const home = window.pccs4Location;
-    let lat = home?.latitude ?? -37.191;
-    let lng = home?.longitude ?? 145.711;
+    let lat = home?.latitude ?? -37.8136;
+    let lng = home?.longitude ?? 144.9631;
     let sensorOutside = null;
     let sensorFridge = null;
     let sensorFreezer = null;

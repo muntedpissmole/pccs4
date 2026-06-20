@@ -14,8 +14,8 @@ import requests
 
 _gps_module = None
 
-_DEFAULT_LAT = -37.191
-_DEFAULT_LNG = 145.711
+_DEFAULT_LAT = -37.8136
+_DEFAULT_LNG = 144.9631
 
 _CACHE: dict[str, Any] = {"ts": 0.0, "payload": None}
 _CACHE_TTL = 300.0

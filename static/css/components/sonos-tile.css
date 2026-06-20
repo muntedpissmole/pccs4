@@ -160,6 +160,10 @@
     transition: width var(--duration-fast) var(--ease-standard);
 }
 
+.sonos-tile__progress.is-playing .sonos-tile__progress-fill {
+    transition: none;
+}
+
 .sonos-tile__times {
     display: flex;
     justify-content: space-between;
@@ -449,6 +453,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .sonos-tile__progress.is-playing .sonos-tile__progress-fill {
+        transition: none;
+    }
+
     .sonos-tile__progress-fill,
     .sonos-tile__transport-btn,
     .sonos-tile__mute-btn {

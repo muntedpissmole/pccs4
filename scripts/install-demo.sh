@@ -83,6 +83,14 @@ cat > "$LOCAL_CONF" <<EOF
 host = 0.0.0.0
 port = $APP_PORT
 debug = false
+
+[demo]
+enabled = true
+ip_geolocation = false
+latitude = -37.8136
+longitude = 144.9631
+timezone = Australia/Melbourne
+suburb = Melbourne CBD
 EOF
 chown "$SERVICE_USER:$SERVICE_GROUP" "$LOCAL_CONF"
 chmod 644 "$LOCAL_CONF"

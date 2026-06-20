@@ -15,6 +15,12 @@ from demo.ip_geolocation import fetch_ip_geolocation
 
 logger = logging.getLogger("pccs")
 
+# Fixed demo location — never fall back to [gps] (may be stale on upgraded installs).
+_DEFAULT_LAT = -37.8136
+_DEFAULT_LON = 144.9631
+_DEFAULT_SUBURB = "Melbourne CBD"
+_DEFAULT_TIMEZONE = "Australia/Melbourne"
+
 
 class DemoGPSModule:
     """GPS module that uses the host clock and IP-geolocated coordinates (no serial hardware)."""
@@ -30,18 +36,17 @@ class DemoGPSModule:
         self._state_lock = threading.Lock()
 
         self.fallback_timezone = config.get(
-            "demo", "timezone",
-            fallback=config.get("gps", "fallback_timezone", fallback="Australia/Melbourne"),
+            "demo", "timezone", fallback=_DEFAULT_TIMEZONE,
         )
 
-        lat = config.getfloat("demo", "latitude", fallback=None)
-        lon = config.getfloat("demo", "longitude", fallback=None)
-        if lat is None or lon is None:
-            lat = config.getfloat("gps", "fallback_latitude", fallback=-37.8136)
-            lon = config.getfloat("gps", "fallback_longitude", fallback=144.9631)
+        self._pinned_lat = config.getfloat("demo", "latitude", fallback=_DEFAULT_LAT)
+        self._pinned_lon = config.getfloat("demo", "longitude", fallback=_DEFAULT_LON)
+        self._pinned_suburb = config.get("demo", "suburb", fallback=_DEFAULT_SUBURB)
+        self._ip_geolocation_enabled = config.getboolean("demo", "ip_geolocation", fallback=False)
 
-        suburb = config.get("demo", "suburb", fallback=config.get("gps", "fallback_name", fallback="Melbourne CBD"))
-        self._ip_geolocation_enabled = config.getboolean("demo", "ip_geolocation", fallback=True)
+        lat = self._pinned_lat
+        lon = self._pinned_lon
+        suburb = self._pinned_suburb
 
         self.state = {
             "latitude": lat,
@@ -184,17 +189,25 @@ class DemoGPSModule:
 
     def get_state(self) -> dict:
         with self._state_lock:
-            return dict(self.state)
+            state = dict(self.state)
+        if not self._ip_geolocation_enabled:
+            state["latitude"] = self._pinned_lat
+            state["longitude"] = self._pinned_lon
+            state["suburb"] = self._pinned_suburb
+            state["last_known_suburb"] = self._pinned_suburb
+            state["timezone"] = self.fallback_timezone
+            state["using_fallback"] = True
+            state["location_source"] = "config"
+        return state
 
     def get_fallback_coords(self) -> tuple[float, float]:
-        return float(self.state["latitude"]), float(self.state["longitude"])
+        return float(self._pinned_lat), float(self._pinned_lon)
 
     def get_fallback_timezone(self) -> str:
         return self._active_timezone()
 
     def get_fallback_name(self) -> str:
-        with self._state_lock:
-            return self.state.get("suburb") or "Demo"
+        return self._pinned_suburb
 
     def get_fallback_data(self) -> dict:
         lat, lon = self.get_fallback_coords()

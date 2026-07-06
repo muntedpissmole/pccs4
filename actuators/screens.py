@@ -78,6 +78,46 @@ def _is_blank_path(path: str) -> bool:
     return "blank" in path or "/graphics/fb" in path
 
 
+def _is_kscreen_blank(path: str) -> bool:
+    return path.startswith("kscreen:")
+
+
+def _kscreen_output_name(path: str) -> str:
+    return path.split(":", 1)[1]
+
+
+def _kscreen_env_prefix() -> str:
+    return (
+        "export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; "
+        "export WAYLAND_DISPLAY=wayland-0; "
+        "export XDG_RUNTIME_DIR=/run/user/$(id -u); "
+    )
+
+
+def _kscreen_set_cmd(
+    output: str,
+    brightness_pct: int,
+    control: Optional[DbusKdeBrightnessControl] = None,
+) -> str:
+    if not re.fullmatch(r"[\w.-]+", output):
+        raise ValueError(f"invalid kscreen output: {output!r}")
+    env = _kscreen_env_prefix()
+    pct = max(0, min(100, int(brightness_pct)))
+    if pct <= 0:
+        # Do not use ScreenSaver SetActive — on KDE Wayland it cannot be cleared
+        # remotely and leaves the panel stuck black after wake.
+        return f"{env}kscreen-doctor --dpms off output.{output}.brightness.0"
+    parts = [f"{env}kscreen-doctor --dpms on"]
+    if control:
+        parts.append(_dbus_kde_set_brightness_cmd(control, pct))
+    parts.append(f"{env}kscreen-doctor output.{output}.brightness.{pct}")
+    parts.append(
+        f"{env}busctl --user call org.freedesktop.ScreenSaver /org/freedesktop/ScreenSaver "
+        f"org.freedesktop.ScreenSaver SimulateUserActivity"
+    )
+    return "; ".join(parts)
+
+
 def _blank_awake_value(awake: bool) -> str:
     return "0" if awake else "1"
 
@@ -201,11 +241,14 @@ def _compose_screen_remote(
     blank_path: Optional[str],
 ) -> str:
     pct = max(0, min(100, int(brightness_pct)))
+    if blank_path and _is_kscreen_blank(blank_path):
+        kde_control = control if isinstance(control, DbusKdeBrightnessControl) else None
+        return _kscreen_set_cmd(_kscreen_output_name(blank_path), pct, kde_control)
     brightness_remote = _compose_brightness_remote(control, pct)
     if not blank_path or _is_blank_path(getattr(control, "path", "")):
         return brightness_remote
     if pct <= 0:
-        return f"{brightness_remote}; {_sysfs_write_cmd(blank_path, '1')}"
+        return f"{brightness_remote}; {_sysfs_write_cmd(blank_path, '4')}"
     return f"{_sysfs_write_cmd(blank_path, '0')} && {brightness_remote}"
 
 

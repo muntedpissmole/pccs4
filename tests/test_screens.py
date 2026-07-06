@@ -155,6 +155,29 @@ class ScreenControlTests(unittest.TestCase):
             _effective_blank_path({"blank_path": "none"}, control),
         )
 
+    def test_kde_sleep_uses_kscreen_dpms(self):
+        control = DbusKdeBrightnessControl(
+            "org.kde.ScreenBrightness",
+            "/org/kde/ScreenBrightness/display0",
+        )
+        remote = _compose_screen_remote(control, 0, "kscreen:HDMI-A-1")
+        self.assertIn("kscreen-doctor --dpms off", remote)
+        self.assertIn("output.HDMI-A-1.brightness.0", remote)
+        self.assertNotIn("fb0/blank", remote)
+        self.assertNotIn("SetActive", remote)
+
+    def test_kde_wake_uses_kscreen_dpms(self):
+        control = DbusKdeBrightnessControl(
+            "org.kde.ScreenBrightness",
+            "/org/kde/ScreenBrightness/display0",
+        )
+        remote = _compose_screen_remote(control, 30, "kscreen:HDMI-A-1")
+        self.assertIn("kscreen-doctor --dpms on", remote)
+        self.assertIn("output.HDMI-A-1.brightness.30", remote)
+        self.assertIn("SetBrightness", remote)
+        self.assertIn("SimulateUserActivity", remote)
+        self.assertNotIn("SetActive", remote)
+
 
 if __name__ == "__main__":
     unittest.main()

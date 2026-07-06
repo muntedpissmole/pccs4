@@ -188,8 +188,12 @@ def compile_config(cfg) -> CompiledConfig:
                 "night": _parse_screen_brightness(parts[8] if len(parts) > 8 else None, 5),
             }
             blank_path = None
-            if len(parts) > 9 and str(parts[9]).startswith("/"):
-                blank_path = parts[9]
+            if len(parts) > 9:
+                blank_val = str(parts[9]).strip()
+                if blank_val.lower() in ("none", "-", ""):
+                    blank_path = "none"
+                elif blank_val.startswith("/") or blank_val.startswith("kscreen:"):
+                    blank_path = blank_val
             out.screens[name] = {
                 "friendly": parts[0],
                 "linked_reed": parts[1],

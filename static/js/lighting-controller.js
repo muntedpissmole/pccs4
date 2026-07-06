@@ -177,40 +177,78 @@
         };
     }
 
+    function applyModesFromState(newState) {
+        const modeChanged = new Set();
+        state.lightsConfig.forEach((light) => {
+            if (!light.has_mode) return;
+            const modeKey = `${light.name}_mode`;
+            if (!(modeKey in newState)) return;
+            const nextMode = newState[modeKey] || 'white';
+            const prevMode = state.currentModes[light.name]
+                || state.currentState[modeKey]
+                || 'white';
+            if (nextMode !== prevMode) modeChanged.add(light.name);
+            state.currentModes[light.name] = nextMode;
+            state.currentState[modeKey] = nextMode;
+        });
+        return modeChanged;
+    }
+
+    function repaintLightFromState(name) {
+        const light = state.lightsConfig.find((l) => l.name === name);
+        if (!light) return;
+
+        let val = state.currentState[name];
+        if (val === undefined && light.type !== 'relay') {
+            const wrapper = document.querySelector(`.slider-wrapper[data-name="${name}"]`);
+            const parsed = parseInt(wrapper?.dataset.value, 10);
+            if (Number.isFinite(parsed)) val = parsed;
+        }
+        if (val === undefined) return;
+        updateLightUI(name, light.type === 'relay' ? !!val : (val || 0));
+    }
+
+    function repaintModeChanges(modeChanged, { skipNames = null } = {}) {
+        const skip = skipNames || new Set();
+        modeChanged.forEach((name) => {
+            if (skip.has(name)) return;
+            if (state.currentlyDragging.has(name) || state.locallyAnimating.has(name)) return;
+            repaintLightFromState(name);
+        });
+    }
+
     function applyStateToUI(newState, { animate = false, rampMs = SCENE_RAMP_MS } = {}) {
         const meta = extractStateMeta(newState);
         let shouldAnimate = animate || meta.animate;
         if (document.hidden) shouldAnimate = false;
         const effectiveRampMs = meta.rampMs || rampMs;
 
-        const protectedLights = new Set([
+        const protectedBrightness = new Set([
             ...state.currentlyDragging,
             ...state.locallyAnimating,
         ]);
         if (!shouldAnimate) {
-            state.userJustSet.forEach((name) => protectedLights.add(name));
+            state.userJustSet.forEach((name) => protectedBrightness.add(name));
         }
 
-        state.lightsConfig.forEach((light) => {
-            const modeKey = `${light.name}_mode`;
-            if (light.has_mode && newState[modeKey] && !protectedLights.has(light.name)) {
-                state.currentModes[light.name] = newState[modeKey];
-            }
-        });
+        const modeChanged = applyModesFromState(newState);
 
         if (!shouldAnimate) {
             Object.keys(newState).forEach((k) => {
                 if (k.endsWith('_mode') || STATE_META_KEYS.has(k)) return;
-                if (!protectedLights.has(k)) state.currentState[k] = newState[k];
+                if (!protectedBrightness.has(k)) state.currentState[k] = newState[k];
             });
             updateUIFromState();
+            repaintModeChanges(modeChanged);
             return;
         }
 
         cancelSceneAnimations();
 
+        const brightnessPainted = new Set();
+
         state.lightsConfig.forEach((light) => {
-            if (protectedLights.has(light.name)) return;
+            if (protectedBrightness.has(light.name)) return;
 
             const target = newState[light.name];
             if (target === undefined) return;
@@ -218,6 +256,7 @@
             if (light.type === 'relay') {
                 state.currentState[light.name] = !!target;
                 updateLightUI(light.name, !!target);
+                brightnessPainted.add(light.name);
                 return;
             }
 
@@ -229,12 +268,15 @@
 
             if (from === end) {
                 updateLightUI(light.name, end);
+                brightnessPainted.add(light.name);
                 return;
             }
 
             animateSlider(light.name, end, effectiveRampMs);
+            brightnessPainted.add(light.name);
         });
 
+        repaintModeChanges(modeChanged, { skipNames: brightnessPainted });
         updateRooftopTentControls();
     }
 
@@ -249,11 +291,7 @@
                 if (!hadConfig) renderLightingControls();
             }
             if (data.state) {
-                const meta = extractStateMeta(data.state);
-                applyStateToUI(data.state, {
-                    animate: meta.animate,
-                    rampMs: meta.rampMs || REED_RAMP_MS,
-                });
+                applyStateToUI(data.state, { animate: false });
             }
         } catch {
             /* socket will retry */
@@ -875,6 +913,12 @@
         }, 300);
     }
 
+    function initVisibilitySync() {
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) syncFromServer();
+        });
+    }
+
     function init() {
         if (!document.getElementById('lighting-controls')) return;
 
@@ -885,6 +929,7 @@
 
         renderLightingControls();
         initResize();
+        initVisibilitySync();
     }
 
     window.PCCS4 = window.PCCS4 || {};

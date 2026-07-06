@@ -37,6 +37,7 @@
             window.PCCS4.reedsSystem?.refresh?.();
             window.PCCS4.reedsHome?.refresh?.();
             window.PCCS4.lightingHome?.refresh?.();
+            window.PCCS4.lighting?.syncFromServer?.();
             window.PCCS4.phases?.refresh?.();
             window.PCCS4.explain?.refresh?.();
             window.PCCS4.wifi?.refresh?.({ quiet: true });

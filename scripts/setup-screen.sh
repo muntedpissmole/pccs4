@@ -109,6 +109,7 @@ EOF
 
 setup_blank() {
     # Do not pipe a script on stdin — that prevents ssh -t from allocating a TTY for sudo.
+    # Do not write fb0/blank here — on Rock 5C + KDE/Wayland that can leave HDMI dark after reboot.
     local remote_cmd
     remote_cmd=$(cat <<EOF
 set -euo pipefail
@@ -116,7 +117,7 @@ BLANK_PATH='${BLANK_PATH}'
 BLANK_SUDOERS='/etc/sudoers.d/pccs-screen-blank'
 SHUTDOWN_SUDOERS='/etc/sudoers.d/pccs-screen-shutdown'
 BLANK_LINE='${SCREEN_USER} ALL=(root) NOPASSWD: /usr/bin/tee ${BLANK_PATH}'
-SHUTDOWN_LINE='${SCREEN_USER} ALL=(root) NOPASSWD: /sbin/shutdown, /usr/sbin/shutdown, /sbin/poweroff, /usr/sbin/poweroff'
+SHUTDOWN_LINE='${SCREEN_USER} ALL=(root) NOPASSWD: /sbin/shutdown -h now, /usr/sbin/shutdown -h now, /sbin/poweroff, /usr/sbin/poweroff'
 install -d -m 755 /etc/sudoers.d
 printf '%s\n' "\$BLANK_LINE" > "\$BLANK_SUDOERS"
 chmod 440 "\$BLANK_SUDOERS"
@@ -124,11 +125,11 @@ visudo -cf "\$BLANK_SUDOERS"
 printf '%s\n' "\$SHUTDOWN_LINE" > "\$SHUTDOWN_SUDOERS"
 chmod 440 "\$SHUTDOWN_SUDOERS"
 visudo -cf "\$SHUTDOWN_SUDOERS"
+visudo -c
 echo "Installed \$BLANK_SUDOERS and \$SHUTDOWN_SUDOERS"
-echo 0 | sudo -n tee "\$BLANK_PATH" >/dev/null
-echo "blank=\$(cat "\$BLANK_PATH")"
-sudo -n shutdown --help >/dev/null
-echo "passwordless shutdown verified"
+sudo -n -l | grep -F "/usr/bin/tee \${BLANK_PATH}" >/dev/null
+sudo -n -l | grep -F '/sbin/shutdown -h now' >/dev/null
+echo "passwordless blank and shutdown sudo verified"
 EOF
 )
 
@@ -137,9 +138,9 @@ EOF
     ssh -t "${SSH_BASE[@]}" "${SCREEN_USER}@${SCREEN_HOST}" \
         "sudo bash -c $(printf '%q' "$remote_cmd")"
 
-    echo "Verifying blank wake command from PCCS (no password)..."
+    echo "Verifying passwordless sudo from PCCS (no fb blank write during setup)..."
     ssh "${SSH_BATCH[@]}" "${SCREEN_USER}@${SCREEN_HOST}" \
-        "echo 0 | sudo -n tee ${BLANK_PATH} >/dev/null && cat ${BLANK_PATH}"
+        "sudo -n -l | grep -F '/usr/bin/tee ${BLANK_PATH}'"
 }
 
 if [[ "$RUN_SSH" -eq 1 ]]; then

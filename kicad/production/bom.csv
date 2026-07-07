@@ -1,0 +1,54 @@
+﻿Designator,Footprint,Quantity,Value,LCSC Part #
+AR1,Arduino_Mega2560_R3_Shield,1,Arduino_Mega2560_R3_Shield,
+"C1, C2, C30",0805,3,10uF,C15850
+"C10, C13, C14, C15, C3, C4, C5, C6, C7, C8, C9",0805,11,1uF,C53084463
+"C11, C12, C16, C18, C20, C22, C24, C25, C26, C27, C31",0805,11,100nF,C53084462
+"C17, C19, C21, C23",CP_Radial_D6.3mm_P2.50mm,4,100uF,C44587
+C28,CP_Elec_8x10,1,220uF,C165536
+C29,1210,1,100uF,C90143
+"C32, C33, C34, C35, C39, C40, C41, C42, C43, C44, C45, C46",0805,12,22uF,C86816
+C36,0805,1,4.7uF,C1779
+"C37, C38",0805,2,0.1uF,C86041
+"D1, D11, D14, D16, D17, D18, D30, D4, D6, D7, D8, D9",0805,12,White,C84258
+"D10, D15, D19, D28, D5",D_PowerDI-5,5,~,C2759901
+"D12, D2",0805,2,Red,C84256
+"D13, D3",0805,2,Green,C84260
+"D20, D22, D24, D26",D_DO-41_SOD81_P10.16mm_Horizontal,4,1N4007,C84641
+"D21, D23, D25, D27",0805,4,Blue,C84259
+D29,D_SMB,1,SMAJ18A/TR13,C571369
+"F1, F2, F3, F4, F5, F6, F7, F8, F9",Fuse_Bourns_MF-RG1000,9,10A,C14767
+GPS,adafruit_ultimate_gps_breakout,1,adafruit Ultimate GPS Breakout,
+I1,"TerminalBlock_Phoenix_MKDS-1,5-16-5.08_1x16_P5.08mm_Horizontal",1,Reed Switches,C508906
+I2,"TerminalBlock_Phoenix_MKDS-1,5-3-5.08_1x03_P5.08mm_Horizontal",1,Temp Sensor 1,C8412
+I3,"TerminalBlock_Phoenix_MKDS-1,5-3-5.08_1x03_P5.08mm_Horizontal",1,Temp Sensor 2,C8412
+I4,"TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",1,Water,C8445
+I5,"TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",1,Input 1,C8445
+I6,"TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",1,Input 2,C8445
+I7,PinSocket_1x09_P2.54mm_Vertical,1,GPS,C2932673
+I8,"TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",1,Power,C8445
+J1,PinSocket_1x08_P2.54mm_Vertical,1,Power,C27438
+"J2, J3",PinSocket_1x08_P2.54mm_Vertical,2,Analog In,C27438
+J4,PinSocket_2x18_P2.54mm_Vertical,1,Digital,C132131
+J5,PinSocket_1x08_P2.54mm_Vertical,1,Communication,C27438
+J6,PinSocket_1x08_P2.54mm_Vertical,1,PWM,C27438
+J7,PinSocket_1x10_P2.54mm_Vertical,1,PWM,C35445
+"K1, K2, K3, K4",Relay_SPDT_SANYOU_SRD_Series_Form_C,4,Relay_SPDT,C35449
+"L1, L2",L_SXN_SMDRI127,2,3.3uH,C24550
+PI1_2,PinSocket_2x20_P2.54mm_Vertical,1,Raspberry PI HAT,C132132
+PI1,RaspberryPi_4_Upside_Down,1,Raspberry Pi,
+"PWM1, PWM2, PWM3","TerminalBlock_Phoenix_MKDS-1,5-10-5.08_1x10_P5.08mm_Horizontal",3,LED Channels,C29173
+PWM4,"TerminalBlock_Phoenix_MKDS-1,5-8-5.08_1x08_P5.08mm_Horizontal",1,LED Channels,C15084
+"Q1, Q10, Q11, Q12, Q13, Q14, Q15, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9",TO-220-3_Vertical,15,IRLB8721PBF,C148140
+"Q16, Q17, Q18, Q19",TO-220-3_Vertical,4,IRLZ44N,C38774
+"R1, R11, R12, R13, R14, R15, R16, R17, R18",0805,9,4.7K,C17673
+"R10, R9",0805,2,220R,C17557
+"R19, R21, R23, R25, R31, R33, R35, R37, R43, R45, R47, R49, R55, R57, R59, R66, R70, R74, R78, R83, R86",0805,21,10K,C17414
+"R2, R27, R28, R29, R3, R30, R39, R40, R41, R42, R5, R51, R52, R53, R54, R61, R62, R63, R64, R67, R68, R7, R71, R72, R75, R76, R79, R84",0805,28,330R,C17630
+"R20, R22, R24, R26, R32, R34, R36, R38, R44, R46, R48, R50, R56, R58, R60, R65, R69, R73, R77",0805,19,100R,C17408
+"R4, R6, R8",0805,3,1K,C17513
+R80,0805,1,1R,C25271
+"R81, R82",0805,2,51K,C17737
+R85,0805,1,2.21K,C17518
+"RE1, RE2, RE3, RE4",TerminalBlock_Phoenix_MKDS-3-5-5.08_1x05_P5.08mm_Horizontal,4,Relay 1,C8423
+"U1, U2, U3, U4",DIP-4_W7.62mm,4,PC817,C5353
+U5,Texas_RNN0018A,1,TPS568215RNN,C473367

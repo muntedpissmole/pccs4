@@ -25811,7 +25811,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -25869,7 +25869,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" ""
+		(property "LCSC Part #" "C35445"
 			(at 208.28 198.12 90)
 			(hide yes)
 			(show_name no)
@@ -25926,7 +25926,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -25984,7 +25984,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" ""
+		(property "LCSC Part #" "C27438"
 			(at 162.56 198.12 90)
 			(hide yes)
 			(show_name no)
@@ -28139,7 +28139,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -28197,7 +28197,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" ""
+		(property "LCSC Part #" "C27438"
 			(at 182.88 198.12 90)
 			(hide yes)
 			(show_name no)
@@ -29236,7 +29236,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-4_W10.16mm"
+		(property "Footprint" "Package_DIP:DIP-4_W7.62mm"
 			(at 471.17 262.89 0)
 			(hide yes)
 			(show_name no)
@@ -29272,7 +29272,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C41807"
+		(property "LCSC Part #" "C5353"
 			(at 466.09 267.97 90)
 			(hide yes)
 			(show_name no)
@@ -30934,7 +30934,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C457197"
+		(property "LCSC Part #" "C8423"
 			(at 551.18 342.9 0)
 			(hide yes)
 			(show_name no)
@@ -32015,7 +32015,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C480503"
+		(property "LCSC Part #" "C8445"
 			(at 43.18 267.97 0)
 			(hide yes)
 			(show_name no)
@@ -32075,7 +32075,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-4_W10.16mm"
+		(property "Footprint" "Package_DIP:DIP-4_W7.62mm"
 			(at 471.17 321.31 0)
 			(hide yes)
 			(show_name no)
@@ -32111,7 +32111,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C41807"
+		(property "LCSC Part #" "C5353"
 			(at 466.09 326.39 90)
 			(hide yes)
 			(show_name no)
@@ -32417,7 +32417,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -32475,7 +32475,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" ""
+		(property "LCSC Part #" "C27438"
 			(at 166.37 254 90)
 			(hide yes)
 			(show_name no)
@@ -32780,7 +32780,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C480503"
+		(property "LCSC Part #" "C8445"
 			(at 41.91 364.49 0)
 			(hide yes)
 			(show_name no)
@@ -33551,7 +33551,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -33609,7 +33609,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" ""
+		(property "LCSC Part #" "C27438"
 			(at 191.77 254 90)
 			(hide yes)
 			(show_name no)
@@ -35391,7 +35391,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -35449,7 +35449,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" ""
+		(property "LCSC Part #" "C132131"
 			(at 142.24 227.33 0)
 			(hide yes)
 			(show_name no)
@@ -36080,7 +36080,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C480509"
+		(property "LCSC Part #" "C8412"
 			(at 41.91 161.29 0)
 			(hide yes)
 			(show_name no)
@@ -37228,7 +37228,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C480509"
+		(property "LCSC Part #" "C8412"
 			(at 41.91 127 0)
 			(hide yes)
 			(show_name no)
@@ -37874,7 +37874,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C457197"
+		(property "LCSC Part #" "C8423"
 			(at 411.48 284.48 0)
 			(hide yes)
 			(show_name no)
@@ -39136,7 +39136,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C3019624"
+		(property "LCSC Part #" "C29173"
 			(at 546.1 50.8 0)
 			(hide yes)
 			(show_name no)
@@ -40566,7 +40566,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C480503"
+		(property "LCSC Part #" "C8445"
 			(at 43.18 217.17 0)
 			(hide yes)
 			(show_name no)
@@ -40733,7 +40733,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C457197"
+		(property "LCSC Part #" "C8423"
 			(at 411.48 342.9 0)
 			(hide yes)
 			(show_name no)
@@ -41185,7 +41185,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C5482573"
+		(property "LCSC Part #" "C508906"
 			(at 41.91 54.61 0)
 			(hide yes)
 			(show_name no)
@@ -41715,7 +41715,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -41773,7 +41773,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" ""
+		(property "LCSC Part #" "C132132"
 			(at 217.17 67.31 0)
 			(hide yes)
 			(show_name no)
@@ -44537,7 +44537,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-4_W10.16mm"
+		(property "Footprint" "Package_DIP:DIP-4_W7.62mm"
 			(at 331.47 321.31 0)
 			(hide yes)
 			(show_name no)
@@ -44573,7 +44573,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C41807"
+		(property "LCSC Part #" "C5353"
 			(at 326.39 326.39 90)
 			(hide yes)
 			(show_name no)
@@ -46399,7 +46399,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C480503"
+		(property "LCSC Part #" "C8445"
 			(at 43.18 242.57 0)
 			(hide yes)
 			(show_name no)
@@ -46719,7 +46719,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-4_W10.16mm"
+		(property "Footprint" "Package_DIP:DIP-4_W7.62mm"
 			(at 331.47 262.89 0)
 			(hide yes)
 			(show_name no)
@@ -46755,7 +46755,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C41807"
+		(property "LCSC Part #" "C5353"
 			(at 326.39 267.97 90)
 			(hide yes)
 			(show_name no)
@@ -47691,7 +47691,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C457197"
+		(property "LCSC Part #" "C8423"
 			(at 551.18 284.48 0)
 			(hide yes)
 			(show_name no)
@@ -49769,7 +49769,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C3019624"
+		(property "LCSC Part #" "C29173"
 			(at 546.1 104.14 0)
 			(hide yes)
 			(show_name no)
@@ -50177,7 +50177,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C480562"
+		(property "LCSC Part #" "C15084"
 			(at 546.1 208.28 0)
 			(hide yes)
 			(show_name no)
@@ -51078,7 +51078,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C3019624"
+		(property "LCSC Part #" "C29173"
 			(at 546.1 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -51657,7 +51657,7 @@
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom no)
+		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
@@ -51715,7 +51715,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" ""
+		(property "LCSC Part #" "C27438"
 			(at 217.17 254 90)
 			(hide yes)
 			(show_name no)

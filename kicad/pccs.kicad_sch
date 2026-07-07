@@ -14435,16 +14435,6 @@
 		)
 		(uuid "ec05d216-0464-4044-9a33-753e36f31042")
 	)
-	(text "L1 needs to be 3A saturation"
-		(exclude_from_sim no)
-		(at 69.596 356.362 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-		)
-		(uuid "ecba25fc-5390-47ea-9c10-9ae95bab0fc8")
-	)
 	(text "GND"
 		(exclude_from_sim no)
 		(at 41.91 321.31 0)
@@ -14532,16 +14522,6 @@
 			(justify left)
 		)
 		(uuid "f9c5d9ef-6d4b-4471-b2e7-10b777fbac11")
-	)
-	(text "L2 needs to be\n10A saturation"
-		(exclude_from_sim no)
-		(at 179.578 356.362 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-		)
-		(uuid "fa8ac6c5-7672-4057-891a-43cd1139ee46")
 	)
 	(text "+ NC"
 		(exclude_from_sim no)
@@ -25352,98 +25332,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:D_Schottky_Small")
-		(at 54.61 364.49 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "043608a4-1c29-4b6f-823d-d7d165b6b105")
-		(property "Reference" "D28"
-			(at 53.594 363.728 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 0.762 0.762)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "1N5822"
-			(at 53.594 365.252 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 0.762 0.762)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Package_TO_SOT_THT:TO-220-2_Vertical"
-			(at 54.61 364.49 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 54.61 364.49 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Schottky diode, small symbol"
-			(at 54.61 364.49 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC Part #" "C2476"
-			(at 54.61 364.49 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "6a411f62-3620-40aa-9d1f-a64e8ace9ca4")
-		)
-		(pin "2"
-			(uuid "1476671c-b3dc-44fb-8228-f500baae489f")
-		)
-		(instances
-			(project "pccs"
-				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
-					(reference "D28")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:C_Small")
 		(at 215.9 292.1 90)
 		(mirror x)
@@ -25531,6 +25419,98 @@
 			(project "pccs"
 				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
 					(reference "C13")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:D_Schottky_Small")
+		(at 535.94 91.44 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "061e1407-3117-482e-afb4-5229791dcbe0")
+		(property "Reference" "D10"
+			(at 536.956 92.202 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.762 0.762)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" ""
+			(at 536.956 90.678 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.762 0.762)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Diode_SMD:D_PowerDI-5"
+			(at 535.94 91.44 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 535.94 91.44 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Schottky diode, small symbol"
+			(at 535.94 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part #" "C2759901"
+			(at 535.94 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "c6bd8b97-6ea0-453d-85f7-f46d96aa91a0")
+		)
+		(pin "2"
+			(uuid "608e333c-3804-4705-95fc-ed1befab79d9")
+		)
+		(instances
+			(project "pccs"
+				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
+					(reference "D10")
 					(unit 1)
 				)
 			)
@@ -26380,7 +26360,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C165558"
+		(property "LCSC Part #" "C44587"
 			(at 528.32 40.64 0)
 			(hide yes)
 			(show_name no)
@@ -26401,6 +26381,98 @@
 			(project "pccs"
 				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
 					(reference "C17")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:D_Schottky_Small")
+		(at 535.94 144.78 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "09df1fcc-a343-4275-bdb3-50f24fcdef25")
+		(property "Reference" "D15"
+			(at 536.956 145.542 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.762 0.762)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" ""
+			(at 536.956 144.018 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.762 0.762)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Diode_SMD:D_PowerDI-5"
+			(at 535.94 144.78 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 535.94 144.78 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Schottky diode, small symbol"
+			(at 535.94 144.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part #" "C2759901"
+			(at 535.94 144.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "02ba292c-7998-4964-8c5c-33054ecd42ae")
+		)
+		(pin "2"
+			(uuid "ef0c6270-66a1-4bf7-ace3-286161873aeb")
+		)
+		(instances
+			(project "pccs"
+				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
+					(reference "D15")
 					(unit 1)
 				)
 			)
@@ -26595,6 +26667,98 @@
 			(project "pccs"
 				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
 					(reference "R80")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:D_Schottky_Small")
+		(at 535.94 198.12 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0c2978a3-8b4e-4043-b13a-2d33e807d9b4")
+		(property "Reference" "D19"
+			(at 536.956 198.882 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.762 0.762)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" ""
+			(at 536.956 197.358 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.762 0.762)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Diode_SMD:D_PowerDI-5"
+			(at 535.94 198.12 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 535.94 198.12 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Schottky diode, small symbol"
+			(at 535.94 198.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part #" "C2759901"
+			(at 535.94 198.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "e0682c69-3ce2-4f07-964f-157ce81d2858")
+		)
+		(pin "2"
+			(uuid "ea6f555d-bb1c-4018-83e4-0ebf00612ed1")
+		)
+		(instances
+			(project "pccs"
+				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
+					(reference "D19")
 					(unit 1)
 				)
 			)
@@ -29072,7 +29236,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-4_W7.62mm"
+		(property "Footprint" "Package_DIP:DIP-4_W10.16mm"
 			(at 471.17 262.89 0)
 			(hide yes)
 			(show_name no)
@@ -30838,7 +31002,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Diode_SMD:Nexperia_DSN1608-2_1.6x0.8mm"
+		(property "Footprint" "Diode_SMD:D_SMB"
 			(at 60.325 368.3 0)
 			(hide yes)
 			(show_name no)
@@ -30871,7 +31035,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C118306"
+		(property "LCSC Part #" "C571369"
 			(at 64.77 368.3 90)
 			(hide yes)
 			(show_name no)
@@ -31911,7 +32075,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-4_W7.62mm"
+		(property "Footprint" "Package_DIP:DIP-4_W10.16mm"
 			(at 471.17 321.31 0)
 			(hide yes)
 			(show_name no)
@@ -32240,97 +32404,6 @@
 			(project "pccs"
 				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
 					(reference "Q19")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:L_Small")
-		(at 69.85 364.49 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "47aa050d-4c0b-4c0c-b5c8-51ad9dac9361")
-		(property "Reference" "L1"
-			(at 69.85 359.41 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "15uH"
-			(at 69.85 361.95 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Inductor_SMD:L_10.4x10.4_H4.8"
-			(at 69.85 364.49 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 69.85 364.49 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Inductor, small symbol"
-			(at 69.85 364.49 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC Part #" "C16113"
-			(at 69.85 364.49 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "c29468bc-82af-4c2d-8598-972ffdbcb0f4")
-		)
-		(pin "2"
-			(uuid "fe1a82cf-8aaa-494e-bfd3-4752d7c8a75b")
-		)
-		(instances
-			(project "pccs"
-				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
-					(reference "L1")
 					(unit 1)
 				)
 			)
@@ -33388,98 +33461,6 @@
 			(project "pccs"
 				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
 					(reference "D13")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:D_Schottky_Small")
-		(at 535.94 144.78 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "4ec59fb2-a681-4c79-8a5b-c4472638e248")
-		(property "Reference" "D15"
-			(at 536.956 145.542 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 0.762 0.762)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "MBR1045"
-			(at 536.956 144.018 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 0.762 0.762)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Package_TO_SOT_THT:TO-220-2_Vertical"
-			(at 535.94 144.78 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 535.94 144.78 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Schottky diode, small symbol"
-			(at 535.94 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC Part #" "C260253"
-			(at 535.94 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "25263fa8-ff06-4aaa-a2d5-0d4611701220")
-		)
-		(pin "2"
-			(uuid "fe5b1801-57d3-46ae-85d0-d3d4957367bc")
-		)
-		(instances
-			(project "pccs"
-				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
-					(reference "D15")
 					(unit 1)
 				)
 			)
@@ -37181,98 +37162,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:D_Schottky_Small")
-		(at 535.94 198.12 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "7507b9b1-c7fa-4736-b20e-f40d998bef2f")
-		(property "Reference" "D19"
-			(at 536.956 198.882 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 0.762 0.762)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "MBR1045"
-			(at 536.956 197.358 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 0.762 0.762)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Package_TO_SOT_THT:TO-220-2_Vertical"
-			(at 535.94 198.12 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 535.94 198.12 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Schottky diode, small symbol"
-			(at 535.94 198.12 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC Part #" "C260253"
-			(at 535.94 198.12 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "f06e5242-0d63-415e-a582-08ab23d96696")
-		)
-		(pin "2"
-			(uuid "fd546721-0a21-4a37-962d-a24667d12878")
-		)
-		(instances
-			(project "pccs"
-				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
-					(reference "D19")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Connector:Screw_Terminal_01x03")
 		(at 41.91 127 0)
 		(mirror y)
@@ -38722,6 +38611,98 @@
 			(project "pccs"
 				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
 					(reference "D4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:D_Schottky_Small")
+		(at 54.61 364.49 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "82cff787-ab96-4d24-8647-2add32b924c5")
+		(property "Reference" "D28"
+			(at 53.594 363.728 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.762 0.762)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" ""
+			(at 53.594 365.252 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.762 0.762)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Diode_SMD:D_PowerDI-5"
+			(at 54.61 364.49 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 54.61 364.49 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Schottky diode, small symbol"
+			(at 54.61 364.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part #" "C2759901"
+			(at 54.61 364.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "016abd46-b9bd-4e4c-b485-803c3b38a911")
+		)
+		(pin "2"
+			(uuid "c3a2e3f6-93fb-4e36-bb6f-0646782084da")
+		)
+		(instances
+			(project "pccs"
+				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
+					(reference "D28")
 					(unit 1)
 				)
 			)
@@ -40262,7 +40243,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "MBR1045"
+		(property "Value" ""
 			(at 536.956 37.338 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -40273,7 +40254,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_THT:TO-220-2_Vertical"
+		(property "Footprint" "Diode_SMD:D_PowerDI-5"
 			(at 535.94 38.1 90)
 			(hide yes)
 			(show_name no)
@@ -40306,7 +40287,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C260253"
+		(property "LCSC Part #" "C2759901"
 			(at 535.94 38.1 0)
 			(hide yes)
 			(show_name no)
@@ -43317,6 +43298,97 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:L_Small")
+		(at 69.85 364.49 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ae6890e5-341f-485e-a084-2845d87b7848")
+		(property "Reference" "L1"
+			(at 69.85 359.41 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "3.3uH"
+			(at 69.85 361.95 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Inductor_SMD:L_SXN_SMDRI127"
+			(at 69.85 364.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 69.85 364.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Inductor, small symbol"
+			(at 69.85 364.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part #" "C24550"
+			(at 69.85 364.49 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "b669cfef-7d20-4cde-bc17-0b71c0db8e4e")
+		)
+		(pin "2"
+			(uuid "5bc46ff3-f007-482f-bf3d-a6a74a363aca")
+		)
+		(instances
+			(project "pccs"
+				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
+					(reference "L1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:LED_Small")
 		(at 520.7 125.73 0)
 		(unit 1)
@@ -43484,7 +43556,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C165558"
+		(property "LCSC Part #" "C44587"
 			(at 528.32 147.32 0)
 			(hide yes)
 			(show_name no)
@@ -44342,98 +44414,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:D_Schottky_Small")
-		(at 535.94 91.44 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "babb105c-bcd8-4e28-8ec1-8967c1bc726b")
-		(property "Reference" "D10"
-			(at 536.956 92.202 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 0.762 0.762)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "MBR1045"
-			(at 536.956 90.678 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 0.762 0.762)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Package_TO_SOT_THT:TO-220-2_Vertical"
-			(at 535.94 91.44 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 535.94 91.44 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Schottky diode, small symbol"
-			(at 535.94 91.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC Part #" "C260253"
-			(at 535.94 91.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "da08f03f-1381-4aaa-8179-4a286abc0d16")
-		)
-		(pin "2"
-			(uuid "ecb15e65-6e39-46f1-ac73-f302ab1e85db")
-		)
-		(instances
-			(project "pccs"
-				(path "/ce21946f-7655-4864-b48a-50deff8538eb"
-					(reference "D10")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:R")
 		(at 53.34 124.46 90)
 		(unit 1)
@@ -44557,7 +44537,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-4_W7.62mm"
+		(property "Footprint" "Package_DIP:DIP-4_W10.16mm"
 			(at 331.47 321.31 0)
 			(hide yes)
 			(show_name no)
@@ -46511,7 +46491,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C165558"
+		(property "LCSC Part #" "C44587"
 			(at 528.32 93.98 0)
 			(hide yes)
 			(show_name no)
@@ -46739,7 +46719,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-4_W7.62mm"
+		(property "Footprint" "Package_DIP:DIP-4_W10.16mm"
 			(at 331.47 262.89 0)
 			(hide yes)
 			(show_name no)
@@ -48978,7 +48958,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"
+		(property "Footprint" "Capacitor_SMD:CP_Elec_8x10"
 			(at 76.2 368.3 0)
 			(hide yes)
 			(show_name no)
@@ -49272,7 +49252,7 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C165558"
+		(property "LCSC Part #" "C44587"
 			(at 528.32 200.66 0)
 			(hide yes)
 			(show_name no)
